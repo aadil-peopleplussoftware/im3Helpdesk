@@ -5,19 +5,31 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting; 
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- EK HI POLICY RAKHEIN AUR MULTIPLE PORTS ALLOW KAREIN ---
+builder.Services.AddRateLimiter(options =>
+{
+  options.AddFixedWindowLimiter("login", opt =>
+  {
+    opt.PermitLimit = 5;
+    opt.Window = TimeSpan.FromMinutes(1);
+    opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    opt.QueueLimit = 0;
+  });
+});
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllLocal", policy =>
-    {
-        policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost") // Sirf localhost ke kisi bhi port ko allow karega
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
+  options.AddPolicy("AllowAllLocal", policy =>
+  {
+    policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials();
+  });
 });
 
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
@@ -32,35 +44,34 @@ var secretKey = jwtSettings["SecretKey"]!;
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+  options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+  options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(secretKey))
-    };
+  options.TokenValidationParameters = new TokenValidationParameters
+  {
+    ValidateIssuer = true,
+    ValidateAudience = true,
+    ValidateLifetime = true,
+    ValidateIssuerSigningKey = true,
+    ValidIssuer = jwtSettings["Issuer"],
+    ValidAudience = jwtSettings["Audience"],
+    IssuerSigningKey = new SymmetricSecurityKey(
+          Encoding.UTF8.GetBytes(secretKey))
+  };
 });
-builder.Services.AddScoped<iM3Helpdesk.API.Services.IEmailService,
-    iM3Helpdesk.API.Services.EmailService>();
+
+builder.Services.AddScoped<iM3Helpdesk.API.Services.IEmailService, iM3Helpdesk.API.Services.EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddAuthorization();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler =
-            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        options.JsonSerializerOptions.PropertyNamingPolicy =
-            System.Text.Json.JsonNamingPolicy.CamelCase;
+      options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+      options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -68,14 +79,13 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+  app.UseSwagger();
+  app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
-// --- SIRF EK BAAR USE CORS CALL KAREIN ---
 app.UseCors("AllowAllLocal");
+app.UseRateLimiter();
 
 app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 
