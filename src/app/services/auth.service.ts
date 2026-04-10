@@ -25,6 +25,11 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {});
   }
 
+  registerCustomer(data: any): Observable<any> {
+  return this.http.post(
+    `${this.apiUrl}/register-customer`, data);
+}
+
   saveToken(token: string): void {
     localStorage.setItem('im3_token', token);
   }

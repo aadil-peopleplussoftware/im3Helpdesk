@@ -190,5 +190,11 @@ export const routes: Routes = [
       .then(m => m.AuditLogComponent),
   canActivate: [authGuard]
 },
+{
+  path: 'register-customer',
+  loadComponent: () =>
+    import('./features/auth/register-customer/register-customer')
+      .then(m => m.RegisterCustomerComponent)
+},
   { path: '**', redirectTo: 'login' }
 ];

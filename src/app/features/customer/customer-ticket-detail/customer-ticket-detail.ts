@@ -69,7 +69,7 @@ export class CustomerTicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  sendReply() {
+sendReply() {
     if (!this.replyText.trim()) return;
     this.sending = true;
     this.cdr.detectChanges();
@@ -77,7 +77,8 @@ export class CustomerTicketDetailComponent implements OnInit, OnDestroy {
     this.customerService.addReply(this.ticketId, this.replyText).subscribe({
       next: () => {
         this.replyText = '';
-        this.sending = false;
+        this.sending = false;  
+        this.cdr.detectChanges(); 
         this.toastr.success('Reply sent!');
         this.loadTicket();
       },

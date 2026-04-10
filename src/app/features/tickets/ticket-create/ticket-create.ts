@@ -10,6 +10,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../services/ticket';
+import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-ticket-create',
