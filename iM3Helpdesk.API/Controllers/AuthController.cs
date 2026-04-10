@@ -86,8 +86,57 @@ public class AuthController : ControllerBase
     return Ok(new { message = "Account created! Please check your email to verify." });
   }
 
+  [HttpPost("register-customer")]
+  public async Task<IActionResult> RegisterCustomer([FromBody] RegisterCustomerDto dto)
+  {
+    if (dto.Password != dto.ConfirmPassword)
+      return BadRequest(new { message = "Passwords do not match" });
+
+    var existingUser = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+    if (existingUser != null)
+      return BadRequest(new { message = "Email already registered" });
+
+    var org = await _context.Organizations
+        .FirstOrDefaultAsync(o => o.Slug == dto.OrganizationSlug && o.IsActive);
+
+    if (org == null)
+      return BadRequest(new { message = "Invalid organization. Please check your invite link." });
+
+    var verificationToken = Guid.NewGuid().ToString();
+
+    var user = new User
+    {
+      FullName = dto.FullName,
+      Email = dto.Email,
+      PhoneNumber = dto.PhoneNumber ?? "",
+      PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+      Role = UserRole.Customer,
+      OrganizationId = org.Id,
+      IsEmailVerified = false,
+      EmailVerificationToken = verificationToken
+    };
+
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+
+    try
+    {
+      await _emailService.SendVerificationEmailAsync(
+          user.Email, user.FullName, verificationToken);
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Email sending failed: {ex.Message}");
+    }
+
+    return Ok(new { message = "Account created! Please verify your email." });
+  }
+
   [HttpPost("login")]
-  [EnableRateLimiting("login")] // Added back your original rate limiting policy
+  [EnableRateLimiting("login")]
   public async Task<IActionResult> Login([FromBody] LoginDto dto)
   {
     var user = await _context.Users
