@@ -26,6 +26,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
     public DbSet<TicketTemplate> TicketTemplates => Set<TicketTemplate>();
     public DbSet<EmailQueue> EmailQueues => Set<EmailQueue>();
+    public DbSet<AgentGroup> AgentGroups => Set<AgentGroup>();
+    public DbSet<AgentGroupMember> AgentGroupMembers => Set<AgentGroupMember>();
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -156,5 +159,47 @@ public class ApplicationDbContext : DbContext
           e.Property(x => x.ToEmail).HasMaxLength(256).IsRequired();
           e.Property(x => x.Subject).HasMaxLength(500).IsRequired();
         });
+        modelBuilder.Entity<AgentGroup>(e => {
+          e.HasKey(x => x.Id);
+          e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+          e.HasQueryFilter(g =>
+              _isSuperAdmin ||
+              g.OrganizationId == _currentTenantId);
+        });
+
+      modelBuilder.Entity<AgentGroupMember>(e => {
+        e.HasKey(x => x.Id);
+
+        e.HasOne(m => m.Group)
+         .WithMany(g => g.Members)
+         .HasForeignKey(m => m.AgentGroupId)
+         .OnDelete(DeleteBehavior.Cascade)
+         .IsRequired(false);
+
+        e.HasOne(m => m.User)
+         .WithMany()
+         .HasForeignKey(m => m.UserId)
+         .OnDelete(DeleteBehavior.Restrict);
+        e.HasQueryFilter(m =>
+            _isSuperAdmin ||
+            (m.Group != null && m.Group.OrganizationId == _currentTenantId));
+      });
+
+      modelBuilder.Entity<TicketAttachment>(e => {
+        e.HasKey(x => x.Id);
+        e.Property(x => x.FileName).HasMaxLength(300).IsRequired();
+        e.HasQueryFilter(a =>
+            _isSuperAdmin ||
+            a.OrganizationId == _currentTenantId);
+        e.HasOne(a => a.Ticket)
+         .WithMany()
+         .HasForeignKey(a => a.TicketId)
+         .OnDelete(DeleteBehavior.Cascade);
+        e.HasOne(a => a.UploadedBy)
+         .WithMany()
+         .HasForeignKey(a => a.UploadedByUserId)
+         .OnDelete(DeleteBehavior.Restrict);
+      });
+
   }
 }

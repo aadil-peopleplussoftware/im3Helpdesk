@@ -16,4 +16,5 @@ public class TicketResponseDto
     public string? SlaStatus { get; set; }
     public bool IsSlaBreached { get; set; }
     public string? Tags { get; set; }
+    public string? TicketType { get; set; }
 }

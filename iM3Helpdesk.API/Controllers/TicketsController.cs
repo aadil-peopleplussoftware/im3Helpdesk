@@ -40,10 +40,35 @@ public class TicketsController : ControllerBase
   [HttpGet]
   public async Task<IActionResult> GetAll()
   {
-    var tickets = await _context.Tickets
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    Guid.TryParse(userIdClaim, out var userId);
+
+    var roleClaim = User.FindFirst(
+        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    )?.Value ?? User.FindFirst("role")?.Value;
+
+    var query = _context.Tickets
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
         .Include(t => t.Comments)
+        .AsQueryable();
+
+    if (roleClaim == "Agent")
+    {
+      var userGroupIds = await _context.AgentGroupMembers
+          .Where(m => m.UserId == userId)
+          .Select(m => m.AgentGroupId)
+          .ToListAsync();
+
+      query = query.Where(t =>
+          t.AssignedToUserId == userId ||
+          (t.AgentGroupId.HasValue &&
+           userGroupIds.Contains(t.AgentGroupId.Value)) ||
+          !t.AgentGroupId.HasValue);
+    }
+
+    var tickets = await query
         .OrderByDescending(t => t.CreatedAt)
         .Select(t => new TicketResponseDto
         {
@@ -54,12 +79,15 @@ public class TicketsController : ControllerBase
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
           CreatedBy = t.CreatedBy!.FullName,
-          AssignedTo = t.AssignedTo != null ? t.AssignedTo.FullName : null,
+          AssignedTo = t.AssignedTo != null
+                ? t.AssignedTo.FullName : null,
           CreatedAt = t.CreatedAt,
           CommentsCount = t.Comments.Count,
           SlaDeadline = t.SlaDeadline,
           SlaStatus = t.SlaStatus,
-          IsSlaBreached = t.IsSlaBreached
+          IsSlaBreached = t.IsSlaBreached,
+          TicketType = t.TicketType,
+          Tags = t.Tags
         })
         .ToListAsync();
 
@@ -78,6 +106,14 @@ public class TicketsController : ControllerBase
 
     if (ticket == null)
       return NotFound(new { message = "Ticket not found" });
+
+    var roleClaim = User.FindFirst(
+        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    )?.Value ?? User.FindFirst("role")?.Value;
+
+    bool isAgent = roleClaim == "Agent"
+        || roleClaim == "CompanyAdmin"
+        || roleClaim == "SuperAdmin";
 
     return Ok(new
     {
@@ -100,13 +136,19 @@ public class TicketsController : ControllerBase
         ticket.AssignedTo.FullName,
         ticket.AssignedTo.Email
       },
-      comments = ticket.Comments.Select(c => new
-      {
-        c.Id,
-        c.Comment,
-        c.CreatedAt,
-        user = new { c.User!.FullName }
-      }).OrderBy(c => c.CreatedAt).ToList()
+      comments = ticket.Comments
+          .Where(c => isAgent || !c.IsInternal)
+          .OrderBy(c => c.CreatedAt)
+          .Select(c => new
+          {
+            c.Id,
+            c.Comment,
+            c.CreatedAt,
+            c.IsInternal,
+            user = new { c.User!.FullName },
+            isAgent = c.User.Role == UserRole.Agent
+                  || c.User.Role == UserRole.CompanyAdmin
+          }).ToList()
     });
   }
 
@@ -126,9 +168,13 @@ public class TicketsController : ControllerBase
       Description = dto.Description,
       Category = dto.Category,
       Priority = Enum.Parse<TicketPriority>(dto.Priority),
+      TicketType = dto.TicketType,
       OrganizationId = _tenantService.OrganizationId!.Value,
       CreatedByUserId = userId,
-      Status = TicketStatus.Open
+      Status = TicketStatus.Open,
+      SlaDeadline = _slaService.CalculateSlaDeadline(
+            Enum.Parse<TicketPriority>(dto.Priority), DateTime.UtcNow),
+      SlaStatus = "OnTrack"
     };
 
     _context.Tickets.Add(ticket);
@@ -144,10 +190,31 @@ public class TicketsController : ControllerBase
         "Created", $"New ticket: {ticket.Title}",
         "Ticket", ticket.Id);
 
-    // Email to creator
+    // Get Creator Info
     var creator = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
+
+    // Notify all agents in org
+    var agents = await _context.Users
+        .IgnoreQueryFilters()
+        .Where(u => u.OrganizationId == _tenantService.OrganizationId
+            && (u.Role == UserRole.Agent
+                || u.Role == UserRole.CompanyAdmin))
+        .ToListAsync();
+
+    foreach (var agent in agents)
+    {
+      await _notificationService.CreateAsync(
+          agent.Id,
+          _tenantService.OrganizationId!.Value,
+          "New Ticket",
+          $"New ticket from {creator?.FullName}: {ticket.Title}",
+          "info",
+          ticket.Id);
+    }
+
+    // Email to creator
     if (creator != null)
     {
       try
@@ -227,7 +294,8 @@ public class TicketsController : ControllerBase
       Comment = dto.Comment,
       TicketId = id,
       UserId = userId,
-      OrganizationId = _tenantService.OrganizationId!.Value
+      OrganizationId = _tenantService.OrganizationId!.Value,
+      IsInternal = dto.IsInternal
     };
 
     _context.TicketComments.Add(comment);
@@ -424,23 +492,6 @@ public class TicketsController : ControllerBase
     return Ok(result);
   }
 
-  [HttpPut("{id}/tags")]
-  public async Task<IActionResult> UpdateTags(Guid id, [FromBody] UpdateTagsDto dto)
-  {
-    var ticket = await _context.Tickets.FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    ticket.Tags = string.Join(",", dto.Tags
-        .Select(t => t.Trim().ToLower())
-        .Where(t => !string.IsNullOrEmpty(t))
-        .Distinct());
-
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Tags updated", tags = ticket.Tags });
-  }
-
   [HttpGet("by-tag/{tag}")]
   public async Task<IActionResult> GetByTag(string tag)
   {
@@ -496,6 +547,70 @@ public class TicketsController : ControllerBase
       totalHours = Math.Round(ticket.TimeSpentMinutes / 60.0, 1)
     });
   }
+
+  // --- UPDATED ENDPOINTS START HERE ---
+
+  [HttpPut("{id}/priority")]
+  public async Task<IActionResult> UpdatePriority(Guid id,
+      [FromBody] UpdatePriorityDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.Priority = Enum.Parse<TicketPriority>(dto.Priority);
+    ticket.UpdatedAt = DateTime.UtcNow;
+    ticket.SlaDeadline = _slaService.CalculateSlaDeadline(
+        ticket.Priority, ticket.CreatedAt);
+    ticket.SlaStatus = _slaService.GetSlaStatus(
+        ticket.SlaDeadline, ticket.Status);
+
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Priority updated" });
+  }
+
+  [HttpPut("{id}/type")]
+  public async Task<IActionResult> UpdateType(Guid id,
+      [FromBody] UpdateTypeDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.TicketType = dto.TicketType;
+    ticket.UpdatedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Type updated" });
+  }
+
+  [HttpPut("{id}/tags")]
+  public async Task<IActionResult> UpdateTags(Guid id,
+      [FromBody] UpdateTagsDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.Tags = string.Join(",",
+        dto.Tags.Select(t => t.Trim().ToLower())
+            .Where(t => !string.IsNullOrEmpty(t))
+            .Distinct());
+    ticket.UpdatedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Tags updated", tags = ticket.Tags });
+  }
+
+  // --- UPDATED ENDPOINTS END HERE ---
+
+  [HttpPut("{id}/group")]
+  public async Task<IActionResult> UpdateGroup(Guid id,
+      [FromBody] UpdateGroupDto dto)
+  {
+    var ticket = await _context.Tickets.FindAsync(id);
+    if (ticket == null) return NotFound();
+
+    ticket.AgentGroupId = dto.AgentGroupId;
+    ticket.UpdatedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Group updated" });
+  }
 }
 
 public class UpdateStatusDto
@@ -506,6 +621,7 @@ public class UpdateStatusDto
 public class AddCommentDto
 {
   public string Comment { get; set; } = string.Empty;
+  public bool IsInternal { get; set; } = false;
 }
 
 public class AssignTicketDto
@@ -529,4 +645,19 @@ public class LogTimeDto
 {
   public int Minutes { get; set; }
   public string? Note { get; set; }
+}
+
+public class UpdatePriorityDto
+{
+  public string Priority { get; set; } = string.Empty;
+}
+
+public class UpdateTypeDto
+{
+  public string TicketType { get; set; } = string.Empty;
+}
+
+public class UpdateGroupDto
+{
+  public Guid? AgentGroupId { get; set; }
 }

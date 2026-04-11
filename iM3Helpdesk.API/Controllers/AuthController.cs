@@ -183,6 +183,20 @@ public class AuthController : ControllerBase
     if (!user.IsEmailVerified)
       return Unauthorized(new { message = "Please verify your email first" });
 
+    // Organization validation check before generating token
+    if (user.OrganizationId.HasValue)
+    {
+      var org = await _context.Organizations
+          .FindAsync(user.OrganizationId.Value);
+
+      if (org != null && !org.IsActive)
+        return Unauthorized(new
+        {
+          message = "Your organization has been deactivated. " +
+              "Please contact support."
+        });
+    }
+
     // Reset failed attempts on success
     user.FailedLoginAttempts = 0;
     user.LockedUntil = null;

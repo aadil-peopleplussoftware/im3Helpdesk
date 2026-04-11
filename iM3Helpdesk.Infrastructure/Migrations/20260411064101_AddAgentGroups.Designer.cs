@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260411064101_AddAgentGroups")]
+    partial class AddAgentGroups
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -372,52 +375,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.ToTable("Tickets");
                 });
 
-            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketAttachment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CommentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UploadedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TicketId");
-
-                    b.HasIndex("UploadedByUserId");
-
-                    b.ToTable("TicketAttachments");
-                });
-
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketComment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -431,9 +388,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsInternal")
-                        .HasColumnType("bit");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
@@ -570,7 +524,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.AgentGroup", "Group")
                         .WithMany("Members")
                         .HasForeignKey("AgentGroupId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
                         .WithMany()
@@ -616,7 +571,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 {
                     b.HasOne("iM3Helpdesk.Domain.Entities.AgentGroup", "AgentGroup")
                         .WithMany()
-                        .HasForeignKey("AgentGroupId");
+                        .HasForeignKey("AgentGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "AssignedTo")
                         .WithMany()
@@ -642,25 +598,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Organization");
-                });
-
-            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketAttachment", b =>
-                {
-                    b.HasOne("iM3Helpdesk.Domain.Entities.Ticket", "Ticket")
-                        .WithMany()
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "UploadedBy")
-                        .WithMany()
-                        .HasForeignKey("UploadedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Ticket");
-
-                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketComment", b =>
