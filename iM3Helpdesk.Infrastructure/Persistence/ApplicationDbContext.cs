@@ -29,6 +29,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<AgentGroup> AgentGroups => Set<AgentGroup>();
     public DbSet<AgentGroupMember> AgentGroupMembers => Set<AgentGroupMember>();
     public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<CustomField> CustomFields => Set<CustomField>();
+    public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -199,6 +201,30 @@ public class ApplicationDbContext : DbContext
          .WithMany()
          .HasForeignKey(a => a.UploadedByUserId)
          .OnDelete(DeleteBehavior.Restrict);
+      });
+
+      modelBuilder.Entity<CustomField>(e => {
+        e.HasKey(x => x.Id);
+        e.Property(x => x.Label).HasMaxLength(200).IsRequired();
+        e.Property(x => x.FieldType).HasMaxLength(50);
+        e.HasQueryFilter(f =>
+            _isSuperAdmin ||
+            f.OrganizationId == _currentTenantId);
+      });
+
+      modelBuilder.Entity<TicketCustomFieldValue>(e => {
+        e.HasKey(x => x.Id);
+        e.HasOne(v => v.Ticket)
+         .WithMany()
+         .HasForeignKey(v => v.TicketId)
+         .OnDelete(DeleteBehavior.Cascade);
+        e.HasOne(v => v.CustomField)
+         .WithMany()
+         .HasForeignKey(v => v.CustomFieldId)
+         .OnDelete(DeleteBehavior.Cascade);
+        e.HasQueryFilter(v =>
+            _isSuperAdmin ||
+            v.OrganizationId == _currentTenantId);
       });
 
   }
