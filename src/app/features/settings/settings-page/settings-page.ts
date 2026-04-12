@@ -11,6 +11,10 @@ import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
 import { AuditLogComponent } from '../audit-log/audit-log';
 import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
+import { CustomFieldsComponent } from '../custom-fields/custom-fields';
+
+// imports array:
+
 
 @Component({
   selector: 'app-settings-page',
@@ -22,7 +26,7 @@ import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
     TicketTemplatesComponent,
     EmailNotificationsComponent,
     AuditLogComponent,
-    ReportsPageComponent
+    ReportsPageComponent,CustomFieldsComponent
   ],
   templateUrl: './settings-page.html',
   styleUrls: ['./settings-page.scss']
@@ -41,8 +45,9 @@ export class SettingsPageComponent implements OnInit {
 
   tabs = [
     { id: 'templates', label: 'Ticket Templates', icon: '📋' },
+    { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
     { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙' },
+    { id: 'settings', label: 'Settings', icon: '🎨' },
     { id: 'notifications', label: 'Notifications', icon: '🔔' },
     { id: 'audit', label: 'Audit Log', icon: '🔍' },
   ];

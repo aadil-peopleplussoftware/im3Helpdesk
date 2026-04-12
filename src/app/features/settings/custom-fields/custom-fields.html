@@ -1,0 +1,101 @@
+<div class="cf-page">
+  <div class="cf-header">
+    <div>
+      <h2>Custom Fields</h2>
+      <p>Add custom fields to tickets for your organization</p>
+    </div>
+    <button class="add-btn"
+      (click)="showForm = !showForm; editingId = ''">
+      {{ showForm ? 'Cancel' : '+ New Field' }}
+    </button>
+  </div>
+
+  <!-- Create/Edit Form -->
+  <div class="cf-form-card" *ngIf="showForm">
+    <h4>{{ editingId ? 'Edit Field' : 'New Custom Field' }}</h4>
+    <form [formGroup]="form" (ngSubmit)="saveField()">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Label <span class="req">*</span></label>
+          <input type="text" formControlName="label"
+            placeholder="e.g. Customer ID, Order Number"/>
+        </div>
+
+        <div class="form-group">
+          <label>Field Type</label>
+          <select formControlName="fieldType" class="form-sel">
+            <option *ngFor="let t of fieldTypes" [value]="t.value">
+              {{ t.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group"
+        *ngIf="form.value.fieldType === 'dropdown'">
+        <label>Options (comma separated)</label>
+        <input type="text" formControlName="options"
+          placeholder="Option 1, Option 2, Option 3"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group check-group">
+          <label class="check-label">
+            <input type="checkbox" formControlName="isRequired"/>
+            Required field
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Sort Order</label>
+          <input type="number" formControlName="sortOrder"
+            min="0" placeholder="0"/>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="cancel-btn"
+          (click)="cancelForm()">Cancel</button>
+        <button type="submit" class="save-btn"
+          [disabled]="form.invalid">
+          {{ editingId ? 'Update Field' : 'Save Field' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Fields List -->
+  <div class="cf-list">
+    <div *ngIf="fields.length === 0" class="empty-state">
+      <div class="empty-icon">⚙</div>
+      <p>No custom fields yet.</p>
+      <button class="add-btn"
+        (click)="showForm = true">
+        Create First Field
+      </button>
+    </div>
+
+    <div class="cf-item" *ngFor="let f of fields">
+      <div class="cf-item-left">
+        <div class="field-type-badge" [class]="'type-' + f.fieldType">
+          {{ f.fieldType }}
+        </div>
+        <div class="field-info">
+          <span class="field-label">{{ f.label }}</span>
+          <span class="field-required" *ngIf="f.isRequired">
+            Required
+          </span>
+          <span class="field-options"
+            *ngIf="f.fieldType === 'dropdown' && f.options">
+            {{ f.options }}
+          </span>
+        </div>
+      </div>
+      <div class="cf-item-actions">
+        <button class="edit-btn" (click)="editField(f)">Edit</button>
+        <button class="del-btn" (click)="deleteField(f.id)">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
