@@ -55,11 +55,10 @@ public class AgentsController : ControllerBase
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(u => u.Id == id &&
+            u.OrganizationId == _tenantService.OrganizationId);
 
-    if (agent == null)
-      return NotFound(new { message = "Agent not found" });
+    if (agent == null) return NotFound();
 
     return Ok(new
     {
@@ -68,35 +67,54 @@ public class AgentsController : ControllerBase
       agent.Email,
       agent.PhoneNumber,
       Role = agent.Role.ToString(),
+      agent.Signature,
+      agent.PhotoUrl,
       agent.IsEmailVerified,
-      agent.CreatedAt,
-      agent.LastLoginAt
+      agent.LastLoginAt,
+      agent.CreatedAt
     });
   }
 
   [HttpPost("invite")]
   public async Task<IActionResult> InviteAgent([FromBody] InviteAgentDto dto)
   {
-    var existing = await _context.Users
+    var existingUser = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-    if (existing != null)
+    if (existingUser != null)
       return BadRequest(new { message = "Email already registered" });
 
-    var tempPassword = "Agent@" + Guid.NewGuid().ToString()[..6];
+    var tempPassword = GenerateTempPassword();
+
     var agent = new iM3Helpdesk.Domain.Entities.User
     {
       FullName = dto.FullName,
       Email = dto.Email,
       PhoneNumber = dto.PhoneNumber ?? "",
       PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
-      Role = UserRole.Agent,
+      Role = ParseRole(dto.Role),
+      // Ensure this matches your original type (Guid vs Guid?)
       OrganizationId = _tenantService.OrganizationId,
-      IsEmailVerified = true
+      IsEmailVerified = true,
+      Signature = dto.Signature ?? "",
+      PhotoUrl = dto.PhotoUrl ?? ""
     };
 
     _context.Users.Add(agent);
+    if (dto.GroupIds?.Any() == true)
+    {
+      foreach (var groupId in dto.GroupIds)
+      {
+        var member = new iM3Helpdesk.Domain.Entities.AgentGroupMember
+        {
+          AgentGroupId = groupId,
+          UserId = agent.Id
+        };
+        _context.AgentGroupMembers.Add(member);
+      }
+    }
+
     await _context.SaveChangesAsync();
 
     var org = await _context.Organizations
@@ -106,34 +124,37 @@ public class AgentsController : ControllerBase
     {
       await _emailService.SendAgentInviteEmailAsync(
           agent.Email, agent.FullName,
-          org?.Name ?? "Your Company",
-          tempPassword);
+          org?.Name ?? "Your Company", tempPassword);
     }
     catch { }
 
-    return Ok(new
-    {
-      message = "Agent invited successfully",
-      tempPassword,
-      agentId = agent.Id
-    });
+    return Ok(new { message = "Agent invited successfully", tempPassword, agentId = agent.Id });
   }
 
-  [HttpPut("{id}/role")]
-  public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UpdateRoleDto dto)
+  [HttpPut("{id}")]
+  public async Task<IActionResult> UpdateAgent(Guid id, [FromBody] UpdateAgentDto dto)
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(u => u.Id == id &&
+            u.OrganizationId == _tenantService.OrganizationId);
 
-    if (agent == null)
-      return NotFound(new { message = "Agent not found" });
+    if (agent == null) return NotFound(new { message = "Agent not found" });
 
-    agent.Role = Enum.Parse<UserRole>(dto.Role);
+    if (!string.IsNullOrEmpty(dto.FullName))
+      agent.FullName = dto.FullName;
+
+    if (!string.IsNullOrEmpty(dto.Role))
+      agent.Role = ParseRole(dto.Role);
+
+    if (dto.Signature != null)
+      agent.Signature = dto.Signature;
+
+    if (dto.PhotoUrl != null)
+      agent.PhotoUrl = dto.PhotoUrl;
+
     await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Role updated successfully" });
+    return Ok(new { message = "Agent updated" });
   }
 
   [HttpDelete("{id}")]
@@ -152,6 +173,22 @@ public class AgentsController : ControllerBase
 
     return Ok(new { message = "Agent removed successfully" });
   }
+
+  private string GenerateTempPassword()
+  {
+    return "Agent@" + Guid.NewGuid().ToString()[..6];
+  }
+
+  private static UserRole ParseRole(string? role)
+  {
+    return role switch
+    {
+      "Administrator" => UserRole.CompanyAdmin,
+      "Supervisor" => UserRole.Agent,
+      "Agent" => UserRole.Agent,
+      _ => UserRole.Agent
+    };
+  }
 }
 
 public class InviteAgentDto
@@ -159,9 +196,16 @@ public class InviteAgentDto
   public string FullName { get; set; } = string.Empty;
   public string Email { get; set; } = string.Empty;
   public string? PhoneNumber { get; set; }
+  public string Role { get; set; } = "Agent";
+  public string? Signature { get; set; }
+  public string? PhotoUrl { get; set; }
+  public List<Guid>? GroupIds { get; set; }
 }
 
-public class UpdateRoleDto
+public class UpdateAgentDto
 {
-  public string Role { get; set; } = string.Empty;
+  public string? FullName { get; set; }
+  public string? Role { get; set; }
+  public string? Signature { get; set; }
+  public string? PhotoUrl { get; set; }
 }
