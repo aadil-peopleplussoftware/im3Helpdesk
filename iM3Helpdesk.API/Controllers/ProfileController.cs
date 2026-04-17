@@ -67,36 +67,71 @@ public class ProfileController : ControllerBase
 
   [HttpPost("upload-photo")]
   [RequestSizeLimit(5 * 1024 * 1024)]
-  public async Task<IActionResult> UploadPhoto(IFormFile file)
+  public async Task<IActionResult> UploadPhoto(
+      IFormFile file)
   {
-    if (file == null) return BadRequest();
+    if (file == null || file.Length == 0)
+      return BadRequest(
+          new { message = "No file provided" });
 
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    // Validate image
+    var allowed = new[]
+    {
+        "image/jpeg", "image/jpg",
+        "image/png", "image/gif", "image/webp"
+    };
+    if (!allowed.Contains(
+        file.ContentType.ToLower()))
+      return BadRequest(
+          new { message = "Only images allowed" });
+
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
+
     if (!Guid.TryParse(userIdClaim, out var userId))
       return Unauthorized();
 
     var user = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
+
     if (user == null) return NotFound();
 
-    // Using injected _env to find wwwroot path
-    var uploadPath = Path.Combine(
-        _env.WebRootPath ?? "wwwroot", "avatars");
+    // Create avatars directory
+    var wwwRoot = _env.WebRootPath
+        ?? Path.Combine(Directory.GetCurrentDirectory(),
+            "wwwroot");
+    var uploadPath = Path.Combine(wwwRoot, "avatars");
     Directory.CreateDirectory(uploadPath);
 
-    var ext = Path.GetExtension(file.FileName);
+    // Delete old photo
+    if (!string.IsNullOrEmpty(user.PhotoUrl))
+    {
+      var oldPath = Path.Combine(
+          wwwRoot, user.PhotoUrl.TrimStart('/'));
+      if (System.IO.File.Exists(oldPath))
+        System.IO.File.Delete(oldPath);
+    }
+
+    // Save new photo
+    var ext = Path.GetExtension(file.FileName)
+        .ToLower();
     var fileName = $"avatar-{userId}{ext}";
     var filePath = Path.Combine(uploadPath, fileName);
 
-    using var stream = new FileStream(filePath, FileMode.Create);
+    await using var stream =
+        new FileStream(filePath, FileMode.Create);
     await file.CopyToAsync(stream);
 
     user.PhotoUrl = $"/avatars/{fileName}";
     await _context.SaveChangesAsync();
 
-    return Ok(new { photoUrl = user.PhotoUrl });
+    return Ok(new
+    {
+      photoUrl = user.PhotoUrl,
+      message = "Photo uploaded successfully"
+    });
   }
 
   [HttpPut]

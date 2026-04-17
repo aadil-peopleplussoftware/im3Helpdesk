@@ -25,25 +25,16 @@ public class SlackController : ControllerBase
 
   // Slack slash command or event webhook
   [HttpPost("webhook")]
-  public async Task<IActionResult> Webhook(
-      [FromForm] SlackWebhookDto dto)
+  public IActionResult Webhook([FromForm] SlackWebhookDto dto)
   {
     if (dto.Command == "/helpdesk" || dto.Command == "/ticket")
     {
       return Ok(new
       {
         response_type = "ephemeral",
-        text = $"Creating ticket: {dto.Text}\n" +
-              $"Go to https://localhost:4200/tickets to track."
+        text = $"Creating ticket: {dto.Text}"
       });
     }
-
-    if (dto.EventType == "message" && !string.IsNullOrEmpty(dto.Text))
-    {
-      // Auto-create ticket from DM
-      return Ok(new { text = "Ticket created!" });
-    }
-
     return Ok();
   }
 

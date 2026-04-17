@@ -69,12 +69,16 @@ public class EmailNotificationSettingsController : ControllerBase
         return Ok(new { message = "Settings saved" });
     }
 
-    public async Task<bool> IsEnabledAsync(string notifKey)
+    [NonAction]  
+    public async Task<bool> IsEnabledAsync(
+        string notifKey)
     {
-        var setting = await _context.EmailNotificationSettings
-            .FirstOrDefaultAsync(s => s.NotifKey == notifKey);
+      var setting = await _context
+          .EmailNotificationSettings
+          .FirstOrDefaultAsync(s =>
+              s.NotifKey == notifKey);
 
-        return setting?.IsEnabled ?? true;
+      return setting?.IsEnabled ?? true;
     }
 }
 

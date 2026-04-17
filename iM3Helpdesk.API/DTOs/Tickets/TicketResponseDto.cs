@@ -8,6 +8,8 @@ public class TicketResponseDto
     public string Category { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Priority { get; set; } = string.Empty;
+    public string TicketType { get; set; } = "Support";
+    public string? Tags { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
     public string? AssignedTo { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -15,6 +17,6 @@ public class TicketResponseDto
     public DateTime? SlaDeadline { get; set; }
     public string? SlaStatus { get; set; }
     public bool IsSlaBreached { get; set; }
-    public string? Tags { get; set; }
-    public string? TicketType { get; set; }
+    public int TicketNumber { get; set; }
+    public string TicketId => $"#TN{TicketNumber}";
 }

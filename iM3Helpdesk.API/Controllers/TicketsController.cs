@@ -22,23 +22,28 @@ public class TicketsController : ControllerBase
   private readonly INotificationService _notificationService;
   private readonly IEmailService _emailService;
   private readonly ISlaService _slaService;
+  private readonly ILogger<TicketsController> _logger;
 
   public TicketsController(
       ApplicationDbContext context,
       ICurrentTenantService tenantService,
       INotificationService notificationService,
       IEmailService emailService,
-      ISlaService slaService)
+      ISlaService slaService,
+      ILogger<TicketsController> logger)
   {
     _context = context;
     _tenantService = tenantService;
     _notificationService = notificationService;
     _emailService = emailService;
     _slaService = slaService;
+    _logger = logger;
   }
 
   [HttpGet]
-  public async Task<IActionResult> GetAll()
+  public async Task<IActionResult> GetAll(
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 50)
   {
     var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
@@ -49,14 +54,15 @@ public class TicketsController : ControllerBase
     )?.Value ?? User.FindFirst("role")?.Value;
 
     var query = _context.Tickets
+        .AsNoTracking()
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
-        .Include(t => t.Comments)
         .AsQueryable();
 
     if (roleClaim == "Agent")
     {
-      var userGroupIds = await _context.AgentGroupMembers
+      var groupIds = await _context.AgentGroupMembers
+          .AsNoTracking()
           .Where(m => m.UserId == userId)
           .Select(m => m.AgentGroupId)
           .ToListAsync();
@@ -64,30 +70,32 @@ public class TicketsController : ControllerBase
       query = query.Where(t =>
           t.AssignedToUserId == userId ||
           (t.AgentGroupId.HasValue &&
-           userGroupIds.Contains(t.AgentGroupId.Value)) ||
+           groupIds.Contains(t.AgentGroupId.Value)) ||
           !t.AgentGroupId.HasValue);
     }
 
     var tickets = await query
         .OrderByDescending(t => t.CreatedAt)
-        .Select(t => new TicketResponseDto
+        .Take(200)
+        .Select(t => new
         {
-          Id = t.Id,
-          Title = t.Title,
-          Description = t.Description,
-          Category = t.Category,
+          t.Id,
+          t.Title,
+          t.Category,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
+          TicketType = t.TicketType ?? "Support",
+          t.Tags,
+          t.TicketNumber,
           CreatedBy = t.CreatedBy!.FullName,
           AssignedTo = t.AssignedTo != null
                 ? t.AssignedTo.FullName : null,
-          CreatedAt = t.CreatedAt,
-          CommentsCount = t.Comments.Count,
-          SlaDeadline = t.SlaDeadline,
-          SlaStatus = t.SlaStatus,
-          IsSlaBreached = t.IsSlaBreached,
-          TicketType = t.TicketType,
-          Tags = t.Tags
+          t.CreatedAt,
+          CommentsCount = _context.TicketComments
+                .Count(c => c.TicketId == t.Id),
+          t.SlaDeadline,
+          t.SlaStatus,
+          t.IsSlaBreached
         })
         .ToListAsync();
 
@@ -141,11 +149,11 @@ public class TicketsController : ControllerBase
     {
       ticket.Id,
       ticket.Title,
-      Description = ticket.Description, // raw HTML
+      Description = ticket.Description,
       ticket.Category,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
-      ticket.TicketType,
+      TicketType = ticket.TicketType ?? "Support",
       ticket.Tags,
       ticket.CreatedAt,
       ticket.UpdatedAt,
@@ -155,6 +163,8 @@ public class TicketsController : ControllerBase
       ticket.IsSlaBreached,
       ticket.TimeSpentMinutes,
       ticket.AgentGroupId,
+      ticket.TicketNumber,
+      TicketId = $"#TN{ticket.TicketNumber}",
       CreatedBy = ticket.CreatedBy == null ? null : new
       {
         ticket.CreatedBy.Id,
@@ -204,78 +214,148 @@ public class TicketsController : ControllerBase
   }
 
   [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateTicketDto dto)
+  public async Task<IActionResult> Create(
+      [FromBody] CreateTicketDto dto)
   {
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
 
     if (!Guid.TryParse(userIdClaim, out var userId))
       return Unauthorized();
 
+    // ✅ Get next ticket number — thread safe
+    var orgId = _tenantService.OrganizationId!.Value;
+
+    var lastNum = await _context.Tickets
+        .IgnoreQueryFilters()
+        .Where(t => t.OrganizationId == orgId)
+        .MaxAsync(t => (int?)t.TicketNumber)
+        ?? 1000;
+
     var ticket = new Ticket
     {
-      Title = dto.Title,
-      Description = dto.Description,
-      Category = dto.Category,
-      Priority = Enum.Parse<TicketPriority>(dto.Priority),
-      TicketType = dto.TicketType,
+      Title = dto.Title?.Trim()
+            ?? throw new ArgumentNullException(
+                nameof(dto.Title)),
+      Description = dto.Description
+            ?? string.Empty,
+      Category = dto.Category ?? "General",
+      Priority = Enum.TryParse<TicketPriority>(
+            dto.Priority, out var p)
+            ? p : TicketPriority.Medium,
       Status = TicketStatus.Open,
-      OrganizationId = _tenantService.OrganizationId!.Value,
+      TicketType = dto.TicketType ?? "Support",
+      OrganizationId = orgId,
       CreatedByUserId = userId,
       Tags = dto.Tags ?? string.Empty,
-      AssignedToUserId = dto.AssignedToUserId == Guid.Empty
-            ? null : dto.AssignedToUserId,
-      AgentGroupId = dto.AgentGroupId == Guid.Empty
-            ? null : dto.AgentGroupId
+      AssignedToUserId =
+            dto.AssignedToUserId.HasValue &&
+            dto.AssignedToUserId.Value != Guid.Empty
+                ? dto.AssignedToUserId
+                : null,
+      AgentGroupId =
+            dto.AgentGroupId.HasValue &&
+            dto.AgentGroupId.Value != Guid.Empty
+                ? dto.AgentGroupId
+                : null,
+      TicketNumber = lastNum + 1  // ✅ manual set
     };
 
-    ticket.SlaDeadline = _slaService.CalculateSlaDeadline(
-        ticket.Priority, ticket.CreatedAt);
+    ticket.SlaDeadline = _slaService
+        .CalculateSlaDeadline(
+            ticket.Priority, ticket.CreatedAt);
     ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);
-    await _context.SaveChangesAsync();
 
-    // Notifications
-    var creator = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == userId);
+    try
+    {
+      await _context.SaveChangesAsync();
+    }
+    catch (DbUpdateException ex)
+    {
+      _logger.LogError(ex,
+          "Ticket create DB error");
 
+      // Retry with new number if conflict
+      if (ex.InnerException?.Message
+              .Contains("IDENTITY_INSERT") == true ||
+          ex.InnerException?.Message
+              .Contains("duplicate") == true)
+      {
+        var retryNum = await _context.Tickets
+            .IgnoreQueryFilters()
+            .Where(t => t.OrganizationId == orgId)
+            .MaxAsync(t => (int?)t.TicketNumber)
+            ?? 1000;
+
+        ticket.TicketNumber = retryNum + 1;
+
+        try
+        {
+          await _context.SaveChangesAsync();
+        }
+        catch (Exception retryEx)
+        {
+          return StatusCode(500, new
+          {
+            message = "Failed to create ticket",
+            error = retryEx.InnerException?.Message
+                  ?? retryEx.Message
+          });
+        }
+      }
+      else
+      {
+        return StatusCode(500, new
+        {
+          message = "Failed to create ticket",
+          error = ex.InnerException?.Message
+                ?? ex.Message
+        });
+      }
+    }
+
+    // Notify agents
     var agents = await _context.Users
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId == _tenantService.OrganizationId
-            && (u.Role == UserRole.Agent
-                || u.Role == UserRole.CompanyAdmin))
+        .Where(u =>
+            u.OrganizationId == orgId &&
+            (u.Role == UserRole.Agent ||
+             u.Role == UserRole.CompanyAdmin))
+        .Select(u => new { u.Id })
         .ToListAsync();
 
     foreach (var agent in agents)
     {
-      await _notificationService.CreateAsync(
-          agent.Id,
-          _tenantService.OrganizationId!.Value,
-          "New Ticket",
-          $"New ticket from {creator?.FullName}: {ticket.Title}",
-          "info",
-          ticket.Id);
-    }
-
-    if (creator != null)
-    {
-      try
+      _context.Notifications.Add(new Notification
       {
-        await _emailService.SendTicketCreatedEmailAsync(
-            creator.Email, creator.FullName,
-            ticket.Title, ticket.Id.ToString());
-      }
-      catch { }
-
-      await _notificationService.CreateActivityAsync(
-          userId, _tenantService.OrganizationId!.Value,
-          "Created", $"Ticket: {ticket.Title}",
-          "Ticket", ticket.Id);
+        UserId = agent.Id,
+        OrganizationId = orgId,
+        Title = "New Ticket",
+        Message = $"New ticket: {ticket.Title}",
+        Type = "info",
+        TicketId = ticket.Id
+      });
     }
 
-    return Ok(new { message = "Ticket created", id = ticket.Id });
+    // Activity log
+    await _notificationService.CreateActivityAsync(
+        userId, orgId,
+        "Created",
+        $"New ticket: {ticket.Title}",
+        "Ticket",
+        ticket.Id);
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+      message = "Ticket created",
+      id = ticket.Id,
+      ticketNumber = ticket.TicketNumber
+    });
   }
 
   [HttpPut("{id}/status")]
@@ -535,8 +615,11 @@ public class TicketsController : ControllerBase
           Category = t.Category,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
+          TicketType = t.TicketType ?? "Support",
+          Tags = t.Tags,
           CreatedBy = t.CreatedBy!.FullName,
-          AssignedTo = t.AssignedTo != null ? t.AssignedTo.FullName : null,
+          AssignedTo = t.AssignedTo != null
+                ? t.AssignedTo.FullName : null,
           CreatedAt = t.CreatedAt,
           CommentsCount = t.Comments.Count,
           SlaDeadline = t.SlaDeadline,

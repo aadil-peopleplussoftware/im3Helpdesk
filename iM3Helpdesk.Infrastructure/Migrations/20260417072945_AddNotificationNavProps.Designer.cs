@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417072945_AddNotificationNavProps")]
+    partial class AddNotificationNavProps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -465,8 +468,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TicketNumber")
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasColumnType("int");
 
                     b.Property<string>("TicketType")
                         .IsRequired()
@@ -561,9 +563,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("EmailMessageId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsInternal")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -571,9 +570,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Source")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("TicketId")
                         .HasColumnType("uniqueidentifier");

@@ -26,63 +26,94 @@ public class DashboardController : ControllerBase
   [HttpGet("stats")]
   public async Task<IActionResult> GetStats()
   {
-    var tickets = await _context.Tickets.ToListAsync();
+    // ✅ Single query with groupBy
+    var tickets = await _context.Tickets
+        .AsNoTracking()
+        .Select(t => new
+        {
+          t.Status,
+          t.Priority,
+          t.CreatedAt,
+          t.ResolvedAt,
+          t.TimeSpentMinutes
+        })
+        .ToListAsync();
+
     var users = await _context.Users
+        .AsNoTracking()
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId == _tenantService.OrganizationId)
+        .Where(u => u.OrganizationId ==
+            _tenantService.OrganizationId)
+        .Select(u => new { u.Role })
         .ToListAsync();
 
     var org = await _context.Organizations
-        .FirstOrDefaultAsync(o => o.Id == _tenantService.OrganizationId);
+        .AsNoTracking()
+        .FirstOrDefaultAsync(o =>
+            o.Id == _tenantService.OrganizationId);
 
     var today = DateTime.UtcNow.Date;
     var weekAgo = DateTime.UtcNow.AddDays(-7);
 
-    var stats = new
+    var avgRes = tickets
+        .Where(t => t.ResolvedAt.HasValue)
+        .Select(t => (t.ResolvedAt!.Value - t.CreatedAt)
+            .TotalHours)
+        .DefaultIfEmpty(0)
+        .Average();
+
+    var recentTickets = await _context.Tickets
+        .AsNoTracking()
+        .Include(t => t.CreatedBy)
+        .OrderByDescending(t => t.CreatedAt)
+        .Take(5)
+        .Select(t => new
+        {
+          t.Id,
+          t.Title,
+          t.TicketNumber,
+          Status = t.Status.ToString(),
+          Priority = t.Priority.ToString(),
+          t.CreatedAt,
+          CreatedBy = t.CreatedBy!.FullName
+        })
+        .ToListAsync();
+
+    return Ok(new
     {
       totalTickets = tickets.Count,
-      openTickets = tickets.Count(t => t.Status == TicketStatus.Open),
+      openTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Open),
       inProgressTickets = tickets.Count(t =>
           t.Status == TicketStatus.InProgress),
       resolvedTickets = tickets.Count(t =>
           t.Status == TicketStatus.Resolved),
-      closedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
-
-      // Added Priority Stats
-      lowPriority = tickets.Count(t => t.Priority == TicketPriority.Low),
-      mediumPriority = tickets.Count(t => t.Priority == TicketPriority.Medium),
-      highPriority = tickets.Count(t => t.Priority == TicketPriority.High),
-      criticalPriority = tickets.Count(t => t.Priority == TicketPriority.Critical),
-
-      totalAgents = users.Count(u => u.Role == UserRole.Agent),
-      totalAdmins = users.Count(u => u.Role == UserRole.CompanyAdmin),
-      newTicketsToday = tickets.Count(t => t.CreatedAt.Date == today),
-      newTicketsThisWeek = tickets.Count(t => t.CreatedAt >= weekAgo),
-      avgResolutionHours = Math.Round(
-            tickets.Where(t => t.ResolvedAt.HasValue)
-                .Select(t => (t.ResolvedAt!.Value - t.CreatedAt).TotalHours)
-                .DefaultIfEmpty(0).Average(), 1),
+      closedTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Closed),
+      totalAgents = users.Count(u =>
+          u.Role == UserRole.Agent),
+      totalAdmins = users.Count(u =>
+          u.Role == UserRole.CompanyAdmin),
+      newTicketsToday = tickets.Count(t =>
+          t.CreatedAt.Date == today),
+      newTicketsThisWeek = tickets.Count(t =>
+          t.CreatedAt >= weekAgo),
+      avgResolutionHours = Math.Round(avgRes, 1),
+      lowPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Low),
+      mediumPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Medium),
+      highPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.High),
+      criticalPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Critical),
       trialDaysLeft = org != null
-            ? Math.Max(0, (int)(org.TrialEndsAt - DateTime.UtcNow).TotalDays)
-            : 0,
+            ? Math.Max(0, (int)(org.TrialEndsAt -
+                DateTime.UtcNow).TotalDays)
+            : 30,
       organizationName = org?.Name ?? "",
-      recentTickets = await _context.Tickets
-            .Include(t => t.CreatedBy)
-            .OrderByDescending(t => t.CreatedAt)
-            .Take(5)
-            .Select(t => new
-            {
-              t.Id,
-              t.Title,
-              Status = t.Status.ToString(),
-              Priority = t.Priority.ToString(),
-              t.CreatedAt,
-              CreatedBy = t.CreatedBy!.FullName
-            })
-            .ToListAsync()
-    };
-
-    return Ok(stats);
+      recentTickets
+    });
   }
 
   [HttpGet("widgets")]

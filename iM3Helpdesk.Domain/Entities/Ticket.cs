@@ -26,6 +26,7 @@ public class Ticket : IMustHaveTenant
     public string TicketType { get; set; } = "Support";
     public Guid? AgentGroupId { get; set; }
     public AgentGroup? AgentGroup { get; set; }
+    public int TicketNumber { get; set; }
 
   public User? CreatedBy { get; set; }
     public User? AssignedTo { get; set; }

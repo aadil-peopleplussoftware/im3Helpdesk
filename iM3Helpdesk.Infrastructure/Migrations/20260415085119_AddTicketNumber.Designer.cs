@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415085119_AddTicketNumber")]
+    partial class AddTicketNumber
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -38,7 +41,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid?>("EntityId")
                         .HasColumnType("uniqueidentifier");
@@ -54,8 +58,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("UserId");
 
@@ -110,48 +112,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AgentGroupMembers");
-                });
-
-            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Contact", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Company")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid?>("LinkedUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Source")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrganizationId", "Email")
-                        .IsUnique();
-
-                    b.ToTable("Contacts");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.CustomField", b =>
@@ -347,7 +307,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.HasIndex("TicketId");
 
-                    b.HasIndex("UserId", "IsRead");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
                 });
@@ -465,8 +425,10 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("TicketNumber")
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TicketNumber"));
 
                     b.Property<string>("TicketType")
                         .IsRequired()
@@ -489,15 +451,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.HasIndex("AssignedToUserId");
 
-                    b.HasIndex("CreatedAt");
-
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("OrganizationId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("OrganizationId", "Status");
 
                     b.ToTable("Tickets");
                 });
@@ -556,24 +512,17 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
                     b.Property<string>("Comment")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("EmailMessageId")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<bool>("IsInternal")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Source")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("TicketId")
                         .HasColumnType("uniqueidentifier");
@@ -644,17 +593,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Tags")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TicketType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

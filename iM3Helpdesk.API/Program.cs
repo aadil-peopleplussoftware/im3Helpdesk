@@ -35,9 +35,10 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
 builder.Services.AddScoped<ISlaService, SlaService>();
 builder.Services.AddSingleton<IEmailQueueService, EmailQueueService>();
-builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddSingleton<IEscalationService, EscalationService>();
+builder.Services.AddHostedService<EmailWorker>();
 builder.Services.AddHostedService<EscalationWorker>();
+builder.Services.AddHostedService<EmailPollingService>();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient();
 
@@ -84,6 +85,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -92,6 +94,17 @@ if (app.Environment.IsDevelopment())
   app.UseSwaggerUI();
 }
 app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+  OnPrepareResponse = ctx =>
+  {
+    ctx.Context.Response.Headers
+        .Append("Access-Control-Allow-Origin", "*");
+    ctx.Context.Response.Headers
+        .Append("Cache-Control",
+            "public,max-age=3600");
+  }
+});
 app.UseHttpsRedirection();
 app.UseCors("AllowAllLocal");
 app.UseRateLimiter();
