@@ -41,27 +41,34 @@ public class TicketsController : ControllerBase
   }
 
   [HttpGet]
+  [ResponseCache(Duration = 10)]
   public async Task<IActionResult> GetAll(
+      [FromQuery] string? status = null,
+      [FromQuery] string? priority = null,
+      [FromQuery] string? search = null,
       [FromQuery] int page = 1,
       [FromQuery] int pageSize = 50)
   {
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
     Guid.TryParse(userIdClaim, out var userId);
 
     var roleClaim = User.FindFirst(
-        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-    )?.Value ?? User.FindFirst("role")?.Value;
+        "http://schemas.microsoft.com/ws/2008/06/" +
+        "identity/claims/role")?.Value
+        ?? User.FindFirst("role")?.Value;
 
+    // ✅ Fast: projection only, no nav props
     var query = _context.Tickets
         .AsNoTracking()
-        .Include(t => t.CreatedBy)
-        .Include(t => t.AssignedTo)
         .AsQueryable();
 
+    // Agent filter
     if (roleClaim == "Agent")
     {
-      var groupIds = await _context.AgentGroupMembers
+      var groupIds = await _context
+          .AgentGroupMembers
           .AsNoTracking()
           .Where(m => m.UserId == userId)
           .Select(m => m.AgentGroupId)
@@ -70,10 +77,30 @@ public class TicketsController : ControllerBase
       query = query.Where(t =>
           t.AssignedToUserId == userId ||
           (t.AgentGroupId.HasValue &&
-           groupIds.Contains(t.AgentGroupId.Value)) ||
-          !t.AgentGroupId.HasValue);
+           groupIds.Contains(
+               t.AgentGroupId.Value)) ||
+          !t.AssignedToUserId.HasValue);
     }
 
+    // Filters
+    if (!string.IsNullOrEmpty(status))
+      query = query.Where(t =>
+          t.Status.ToString() == status);
+
+    if (!string.IsNullOrEmpty(priority))
+      query = query.Where(t =>
+          t.Priority.ToString() == priority);
+
+    if (!string.IsNullOrEmpty(search))
+    {
+      var s = search.ToLower();
+      query = query.Where(t =>
+          t.Title.ToLower().Contains(s) ||
+          t.Description.ToLower().Contains(s) ||
+          t.Tags.ToLower().Contains(s));
+    }
+
+    // ✅ Direct projection — fastest possible
     var tickets = await query
         .OrderByDescending(t => t.CreatedAt)
         .Take(200)
@@ -87,15 +114,29 @@ public class TicketsController : ControllerBase
           TicketType = t.TicketType ?? "Support",
           t.Tags,
           t.TicketNumber,
-          CreatedBy = t.CreatedBy!.FullName,
-          AssignedTo = t.AssignedTo != null
-                ? t.AssignedTo.FullName : null,
           t.CreatedAt,
-          CommentsCount = _context.TicketComments
-                .Count(c => c.TicketId == t.Id),
           t.SlaDeadline,
           t.SlaStatus,
-          t.IsSlaBreached
+          t.IsSlaBreached,
+          CreatedBy = _context.Users
+                .Where(u => u.Id ==
+                    t.CreatedByUserId)
+                .Select(u => u.FullName)
+                .FirstOrDefault(),
+          CreatedByPhoto = _context.Users
+                .Where(u => u.Id ==
+                    t.CreatedByUserId)
+                .Select(u => u.PhotoUrl)
+                .FirstOrDefault(),
+          AssignedTo = t.AssignedToUserId != null
+                ? _context.Users
+                    .Where(u => u.Id ==
+                        t.AssignedToUserId)
+                    .Select(u => u.FullName)
+                    .FirstOrDefault()
+                : null,
+          CommentsCount = _context.TicketComments
+                .Count(c => c.TicketId == t.Id)
         })
         .ToListAsync();
 
@@ -106,28 +147,36 @@ public class TicketsController : ControllerBase
   public async Task<IActionResult> GetById(Guid id)
   {
     var ticket = await _context.Tickets
+        .AsNoTracking()
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
         .Include(t => t.AgentGroup)
         .Include(t => t.Comments)
             .ThenInclude(c => c.User)
+        .AsSplitQuery()
         .FirstOrDefaultAsync(t => t.Id == id);
 
     if (ticket == null)
-      return NotFound(new { message = "Ticket not found" });
+      return NotFound(new
+      {
+        message = "Ticket not found"
+      });
 
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
     var roleClaim = User.FindFirst(
-        "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-    )?.Value ?? User.FindFirst("role")?.Value;
+        "http://schemas.microsoft.com/ws/2008/06/" +
+        "identity/claims/role")?.Value
+        ?? User.FindFirst("role")?.Value;
 
-    bool isAgent = roleClaim == "Agent"
-        || roleClaim == "CompanyAdmin"
-        || roleClaim == "SuperAdmin";
+    bool isAgent =
+        roleClaim == "Agent" ||
+        roleClaim == "CompanyAdmin" ||
+        roleClaim == "SuperAdmin";
 
     var attachments = await _context.TicketAttachments
-        .Include(a => a.UploadedBy)
+        .AsNoTracking()
         .Where(a => a.TicketId == id)
         .OrderByDescending(a => a.UploadedAt)
         .Select(a => new
@@ -139,8 +188,8 @@ public class TicketsController : ControllerBase
           a.FileSize,
           a.UploadedAt,
           a.CommentId,
-          UploadedBy = a.UploadedBy!.FullName,
-          IsImage = a.ContentType.StartsWith("image/"),
+          IsImage = a.ContentType
+                .StartsWith("image/"),
           SizeFormatted = FormatSize(a.FileSize)
         })
         .ToListAsync();
@@ -165,25 +214,31 @@ public class TicketsController : ControllerBase
       ticket.AgentGroupId,
       ticket.TicketNumber,
       TicketId = $"#TN{ticket.TicketNumber}",
-      CreatedBy = ticket.CreatedBy == null ? null : new
-      {
-        ticket.CreatedBy.Id,
-        ticket.CreatedBy.FullName,
-        ticket.CreatedBy.Email,
-        ticket.CreatedBy.PhotoUrl
-      },
-      AssignedTo = ticket.AssignedTo == null ? null : new
-      {
-        ticket.AssignedTo.Id,
-        ticket.AssignedTo.FullName,
-        ticket.AssignedTo.Email,
-        ticket.AssignedTo.PhotoUrl
-      },
-      AgentGroup = ticket.AgentGroup == null ? null : new
-      {
-        ticket.AgentGroup.Id,
-        ticket.AgentGroup.Name
-      },
+      CreatedBy = ticket.CreatedBy == null
+            ? null
+            : new
+            {
+              ticket.CreatedBy.Id,
+              ticket.CreatedBy.FullName,
+              ticket.CreatedBy.Email,
+              ticket.CreatedBy.PhotoUrl
+            },
+      AssignedTo = ticket.AssignedTo == null
+            ? null
+            : new
+            {
+              ticket.AssignedTo.Id,
+              ticket.AssignedTo.FullName,
+              ticket.AssignedTo.Email,
+              ticket.AssignedTo.PhotoUrl
+            },
+      AgentGroup = ticket.AgentGroup == null
+            ? null
+            : new
+            {
+              ticket.AgentGroup.Id,
+              ticket.AgentGroup.Name
+            },
       Comments = ticket.Comments
             .Where(c => isAgent || !c.IsInternal)
             .OrderBy(c => c.CreatedAt)
@@ -193,15 +248,18 @@ public class TicketsController : ControllerBase
               c.Comment,
               c.CreatedAt,
               c.IsInternal,
-              User = new
+              User = c.User == null ? null : new
               {
-                c.User!.FullName,
+                c.User.Id,
+                c.User.FullName,
                 c.User.Email,
                 c.User.PhotoUrl
               },
-              IsAgent = c.User.Role == UserRole.Agent
-                    || c.User.Role == UserRole.CompanyAdmin
-            }).ToList(),
+              IsAgent =
+                    c.User?.Role == UserRole.Agent ||
+                    c.User?.Role == UserRole.CompanyAdmin
+            })
+            .ToList(),
       Attachments = attachments
     });
   }
@@ -209,7 +267,8 @@ public class TicketsController : ControllerBase
   private static string FormatSize(long bytes)
   {
     if (bytes < 1024) return $"{bytes} B";
-    if (bytes < 1048576) return $"{bytes / 1024} KB";
+    if (bytes < 1048576)
+      return $"{bytes / 1024} KB";
     return $"{bytes / 1048576} MB";
   }
 

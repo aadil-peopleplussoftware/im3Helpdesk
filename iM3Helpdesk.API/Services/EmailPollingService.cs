@@ -104,8 +104,7 @@ public class EmailPollingService : BackgroundService
   {
     var smtp = _config.GetSection("SmtpSettings");
     var imapHost = smtp["ImapHost"];
-    var imapPort = smtp.GetValue<int>(
-        "ImapPort", 993);
+    var imapPort = smtp.GetValue<int>("ImapPort", 993);
     var inboxEmail = smtp["FromEmail"];
     var password = smtp["Password"];
 
@@ -113,16 +112,12 @@ public class EmailPollingService : BackgroundService
         string.IsNullOrEmpty(inboxEmail) ||
         string.IsNullOrEmpty(password))
     {
-      _logger.LogWarning(
-          "IMAP not configured");
+      _logger.LogWarning("IMAP not configured");
       return;
     }
 
-    _logger.LogInformation(
-        "Connecting IMAP for org: {Org}",
-        org.Name);
-
-    using var client = new ImapClient();
+    using var client =
+        new MailKit.Net.Imap.ImapClient();
 
     try
     {
@@ -133,18 +128,25 @@ public class EmailPollingService : BackgroundService
 
       var inbox = client.Inbox;
       await inbox.OpenAsync(
-          FolderAccess.ReadWrite, ct);
+          MailKit.FolderAccess.ReadWrite, ct);
 
       _logger.LogInformation(
-          "IMAP connected. Inbox: {N} messages",
+          "IMAP connected: {N} total messages",
           inbox.Count);
+      var since = DateTime.UtcNow.Date;
 
-      // Get unseen emails
+      var query = MailKit.Search.SearchQuery
+          .And(
+              MailKit.Search.SearchQuery.NotSeen,
+              MailKit.Search.SearchQuery
+                  .DeliveredAfter(since)
+          );
+
       var uids = await inbox.SearchAsync(
-          SearchQuery.NotSeen, ct);
+          query, ct);
 
       _logger.LogInformation(
-          "Unread: {N} emails", uids.Count);
+          "New emails today: {N}", uids.Count);
 
       foreach (var uid in uids)
       {
@@ -158,14 +160,14 @@ public class EmailPollingService : BackgroundService
           await ProcessEmailAsync(
               msg, org, context, ct);
 
-          // Mark as read after processing
           await inbox.AddFlagsAsync(uid,
-              MessageFlags.Seen, true, ct);
+              MailKit.MessageFlags.Seen,
+              true, ct);
         }
         catch (Exception ex)
         {
           _logger.LogError(ex,
-              "Error processing uid {U}", uid);
+              "Error uid {U}", uid);
         }
       }
 
@@ -174,7 +176,7 @@ public class EmailPollingService : BackgroundService
     catch (Exception ex)
     {
       _logger.LogError(ex,
-          "IMAP connect failed: {M}", ex.Message);
+          "IMAP error: {M}", ex.Message);
       try
       {
         if (client.IsConnected)

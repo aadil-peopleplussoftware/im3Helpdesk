@@ -84,6 +84,8 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCaching();
 
 
 var app = builder.Build();
@@ -108,9 +110,9 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseHttpsRedirection();
 app.UseCors("AllowAllLocal");
 app.UseRateLimiter();
-app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<iM3Helpdesk.API.Middleware.TenantMiddleware>();
 app.MapControllers();
 app.MapHub<iM3Helpdesk.API.Hubs.ChatHub>("/hubs/chat");
 app.Run();

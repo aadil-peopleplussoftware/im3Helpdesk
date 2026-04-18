@@ -4,6 +4,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -13,20 +14,32 @@ namespace iM3Helpdesk.API.Controllers;
 public class DashboardController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
-  private readonly ICurrentTenantService _tenantService;
+  private readonly ICurrentTenantService _tenant;
+  private readonly IMemoryCache _cache;
 
   public DashboardController(
       ApplicationDbContext context,
-      ICurrentTenantService tenantService)
+      ICurrentTenantService tenant,
+      IMemoryCache cache)
   {
     _context = context;
-    _tenantService = tenantService;
+    _tenant = tenant;
+    _cache = cache;
   }
 
   [HttpGet("stats")]
   public async Task<IActionResult> GetStats()
   {
-    // ✅ Single query with groupBy
+    var orgId = _tenant.OrganizationId;
+    var cacheKey = $"dashboard_stats_{orgId}";
+
+    if (_cache.TryGetValue(cacheKey, out var cached))
+      return Ok(cached);
+
+    // ✅ FIX: Sequential queries — EF Core DbContext is NOT thread-safe.
+    //         Task.WhenAll on the same context causes the
+    //         "second operation started" exception.
+
     var tickets = await _context.Tickets
         .AsNoTracking()
         .Select(t => new
@@ -34,37 +47,24 @@ public class DashboardController : ControllerBase
           t.Status,
           t.Priority,
           t.CreatedAt,
-          t.ResolvedAt,
-          t.TimeSpentMinutes
+          t.ResolvedAt
         })
         .ToListAsync();
 
-    var users = await _context.Users
+    var agentCount = await _context.Users
         .AsNoTracking()
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId ==
-            _tenantService.OrganizationId)
-        .Select(u => new { u.Role })
-        .ToListAsync();
+        .Where(u => u.OrganizationId == orgId &&
+                    (u.Role == UserRole.Agent ||
+                     u.Role == UserRole.CompanyAdmin))
+        .CountAsync();
 
     var org = await _context.Organizations
         .AsNoTracking()
-        .FirstOrDefaultAsync(o =>
-            o.Id == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(o => o.Id == orgId);
 
-    var today = DateTime.UtcNow.Date;
-    var weekAgo = DateTime.UtcNow.AddDays(-7);
-
-    var avgRes = tickets
-        .Where(t => t.ResolvedAt.HasValue)
-        .Select(t => (t.ResolvedAt!.Value - t.CreatedAt)
-            .TotalHours)
-        .DefaultIfEmpty(0)
-        .Average();
-
-    var recentTickets = await _context.Tickets
+    var recent = await _context.Tickets
         .AsNoTracking()
-        .Include(t => t.CreatedBy)
         .OrderByDescending(t => t.CreatedAt)
         .Take(5)
         .Select(t => new
@@ -74,73 +74,79 @@ public class DashboardController : ControllerBase
           t.TicketNumber,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
-          t.CreatedAt,
-          CreatedBy = t.CreatedBy!.FullName
+          t.CreatedAt
         })
         .ToListAsync();
 
-    return Ok(new
+    var today = DateTime.UtcNow.Date;
+    var weekAgo = DateTime.UtcNow.AddDays(-7);
+
+    var result = new
     {
       totalTickets = tickets.Count,
-      openTickets = tickets.Count(t =>
-          t.Status == TicketStatus.Open),
-      inProgressTickets = tickets.Count(t =>
-          t.Status == TicketStatus.InProgress),
-      resolvedTickets = tickets.Count(t =>
-          t.Status == TicketStatus.Resolved),
-      closedTickets = tickets.Count(t =>
-          t.Status == TicketStatus.Closed),
-      totalAgents = users.Count(u =>
-          u.Role == UserRole.Agent),
-      totalAdmins = users.Count(u =>
-          u.Role == UserRole.CompanyAdmin),
-      newTicketsToday = tickets.Count(t =>
-          t.CreatedAt.Date == today),
-      newTicketsThisWeek = tickets.Count(t =>
-          t.CreatedAt >= weekAgo),
-      avgResolutionHours = Math.Round(avgRes, 1),
-      lowPriority = tickets.Count(t =>
-          t.Priority == TicketPriority.Low),
-      mediumPriority = tickets.Count(t =>
-          t.Priority == TicketPriority.Medium),
-      highPriority = tickets.Count(t =>
-          t.Priority == TicketPriority.High),
-      criticalPriority = tickets.Count(t =>
-          t.Priority == TicketPriority.Critical),
+      openTickets = tickets.Count(t => t.Status == TicketStatus.Open),
+      inProgressTickets = tickets.Count(t => t.Status == TicketStatus.InProgress),
+      resolvedTickets = tickets.Count(t => t.Status == TicketStatus.Resolved),
+      closedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
+      totalAgents = agentCount,
+      newTicketsToday = tickets.Count(t => t.CreatedAt.Date == today),
+      newTicketsThisWeek = tickets.Count(t => t.CreatedAt >= weekAgo),
+      avgResolutionHours = tickets
+            .Where(t => t.ResolvedAt.HasValue)
+            .Select(t => (t.ResolvedAt!.Value - t.CreatedAt).TotalHours)
+            .DefaultIfEmpty(0)
+            .Average()
+            .ToString("F1"),
+      lowPriority = tickets.Count(t => t.Priority == TicketPriority.Low),
+      mediumPriority = tickets.Count(t => t.Priority == TicketPriority.Medium),
+      highPriority = tickets.Count(t => t.Priority == TicketPriority.High),
+      criticalPriority = tickets.Count(t => t.Priority == TicketPriority.Critical),
       trialDaysLeft = org != null
-            ? Math.Max(0, (int)(org.TrialEndsAt -
-                DateTime.UtcNow).TotalDays)
+            ? Math.Max(0, (int)(org.TrialEndsAt - DateTime.UtcNow).TotalDays)
             : 30,
       organizationName = org?.Name ?? "",
-      recentTickets
-    });
+      recentTickets = recent
+    };
+
+    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
+    return Ok(result);
   }
 
   [HttpGet("widgets")]
-  public async Task<IActionResult> GetWidgetData()
+  public async Task<IActionResult> GetWidgets()
   {
-    var tickets = await _context.Tickets.ToListAsync();
-    var today = DateTime.UtcNow.Date;
-    var last7Days = Enumerable.Range(0, 7)
-        .Select(i => today.AddDays(-i))
-        .Reverse()
-        .ToList();
+    var orgId = _tenant.OrganizationId;
+    var cacheKey = $"dashboard_widgets_{orgId}";
 
-    var ticketsByDay = last7Days.Select(day => new
-    {
-      date = day.ToString("dd MMM"),
-      count = tickets.Count(t => t.CreatedAt.Date == day)
-    }).ToList();
+    if (_cache.TryGetValue(cacheKey, out var cached))
+      return Ok(cached);
 
-    var resolvedByDay = last7Days.Select(day => new
-    {
-      date = day.ToString("dd MMM"),
-      count = tickets.Count(t =>
-          t.ResolvedAt.HasValue &&
-          t.ResolvedAt.Value.Date == day)
-    }).ToList();
+    var weekAgo = DateTime.UtcNow.AddDays(-7);
 
-    return Ok(new { ticketsByDay, resolvedByDay });
+    // Sequential — same reason as above
+    var trend = await _context.Tickets
+        .AsNoTracking()
+        .Where(t => t.CreatedAt >= weekAgo)
+        .GroupBy(t => t.CreatedAt.Date)
+        .Select(g => new { date = g.Key, count = g.Count() })
+        .OrderBy(x => x.date)
+        .ToListAsync();
+
+    var byStatus = await _context.Tickets
+        .AsNoTracking()
+        .GroupBy(t => t.Status)
+        .Select(g => new { status = g.Key.ToString(), count = g.Count() })
+        .ToListAsync();
+
+    var byPriority = await _context.Tickets
+        .AsNoTracking()
+        .GroupBy(t => t.Priority)
+        .Select(g => new { priority = g.Key.ToString(), count = g.Count() })
+        .ToListAsync();
+
+    var result = new { trend, byStatus, byPriority };
+
+    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
+    return Ok(result);
   }
-
 }
