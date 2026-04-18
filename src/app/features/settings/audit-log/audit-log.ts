@@ -48,15 +48,16 @@ export class AuditLogComponent implements OnInit {
     this.loadLogs();
   }
 
+
   loadLogs() {
     this.loading = true;
-    const params = new URLSearchParams();
-    params.set('page', this.page.toString());
-    params.set('pageSize', this.pageSize.toString());
-    if (this.selectedType) params.set('entityType', this.selectedType);
-
     this.http.get<any>(
-      `https://localhost:7071/api/Audit?${params.toString()}`,
+      `https://localhost:7071/api/Audit` +
+      `?page=${this.page}` +
+      `&pageSize=${this.pageSize}` +
+      (this.selectedType
+        ? `&entityType=${this.selectedType}`
+        : ''),
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {

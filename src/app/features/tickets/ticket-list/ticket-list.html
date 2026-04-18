@@ -1,373 +1,417 @@
 <app-layout>
-  <div class="tickets-page">
+  <div class="ticket-list-page">
 
+    <!-- Page Header -->
     <div class="page-header">
-      <div class="page-header-left">
-        <h1>All Tickets</h1>
-        <span class="ticket-count">{{ tickets.length }}</span>
+      <div class="header-left">
+        <h1>Tickets</h1>
+        <span class="count-badge">
+          {{ tickets.length }}
+          <span *ngIf="hasActiveFilters()"
+            class="filter-active"> filtered</span>
+        </span>
       </div>
-      <div class="page-header-right">
 
-        <!-- Layout Toggle -->
-        <div class="layout-btns">
-          <button class="layout-btn"
-            [class.active]="currentLayout === 'card'"
-            (click)="currentLayout = 'card'"
-            title="Card View">
-            ≡
-          </button>
-          <button class="layout-btn"
-            [class.active]="currentLayout === 'table'"
-            (click)="currentLayout = 'table'"
-            title="Table View">
-            ⊞
-          </button>
-          <button class="layout-btn"
-            [class.active]="currentLayout === 'grid'"
-            (click)="currentLayout = 'grid'"
-            title="Grid View">
-            ⊟
-          </button>
+      <div class="header-right">
+        <!-- Search -->
+        <div class="search-wrap">
+          <span class="s-icon">🔍</span>
+          <input class="search-input"
+            [(ngModel)]="filters.search"
+            (ngModelChange)="applyFilters()"
+            placeholder="Search tickets..."/>
         </div>
 
-        <!-- Column Picker -->
-        <div class="col-picker-wrap">
-          <button class="filter-btn"
-            (click)="showColumnPicker = !showColumnPicker">
-            ⊞ Columns
+        <!-- Layout -->
+        <div class="layout-btns">
+          <button class="lb"
+            [class.active]="currentLayout==='card'"
+            (click)="currentLayout='card'"
+            title="Card">≡</button>
+          <button class="lb"
+            [class.active]="currentLayout==='table'"
+            (click)="currentLayout='table'"
+            title="Table">⊞</button>
+          <button class="lb"
+            [class.active]="currentLayout==='grid'"
+            (click)="currentLayout='grid'"
+            title="Grid">⊟</button>
+        </div>
+
+        <!-- Column Picker (table only) -->
+        <div class="col-wrap"
+          *ngIf="currentLayout==='table'">
+          <button class="icon-btn"
+            (click)="showColumnPicker=
+              !showColumnPicker">
+            Columns ▾
           </button>
-          <div class="col-picker-dropdown"
+          <div class="col-dropdown"
             *ngIf="showColumnPicker">
-            <div class="col-picker-title">Show/Hide Columns</div>
-            <div class="col-picker-item"
-              *ngFor="let col of allColumns">
-              <label class="col-check">
+            <div class="col-item"
+              *ngFor="let c of allColumns">
+              <label>
                 <input type="checkbox"
-                  [checked]="isColumnVisible(col.id)"
-                  (change)="toggleColumn(col.id)"/>
-                {{ col.label }}
+                  [checked]="isColumnVisible(c.id)"
+                  (change)="toggleColumn(c.id)"/>
+                {{ c.label }}
               </label>
             </div>
           </div>
         </div>
 
-        <button class="export-btn" (click)="exportCsv()">
-          ↓ Export
-        </button>
-        <span class="pagination">
-          1 - {{ tickets.length }} of {{ tickets.length }}
-        </span>
-        <button class="filter-btn"
-          (click)="showFilters = !showFilters">
+        <!-- Filter Toggle -->
+        <button class="icon-btn filter-btn-main"
+          [class.has-filter]="hasActiveFilters()"
+          (click)="showFilters=!showFilters">
           ⊟ Filters
-          <span *ngIf="hasActiveFilters()" class="filter-count">
-            1
+          <span *ngIf="hasActiveFilters()"
+            class="filter-dot">
           </span>
         </button>
+
+        <!-- Clear Filters -->
+        <button class="icon-btn clear-btn"
+          *ngIf="hasActiveFilters()"
+          (click)="clearFilters()">
+          ✕ Clear
+        </button>
+
+        <!-- Export -->
+        <button class="icon-btn"
+          (click)="exportCsv()">
+          ↓ Export
+        </button>
+
+        <!-- New Ticket -->
+        <button class="new-btn"
+          (click)="router.navigate(['/tickets/create'])">
+          + New Ticket
+        </button>
       </div>
     </div>
 
-    <div class="tickets-layout">
-      <div class="tickets-main">
-
-        <div class="bulk-bar" *ngIf="selectedTicketIds.size > 0">
-          <span>{{ selectedTicketIds.size }} selected</span>
-          <select class="bulk-select" [(ngModel)]="bulkStatus">
-            <option value="">Change Status</option>
-            <option value="Open">Open</option>
-            <option value="InProgress">In Progress</option>
-            <option value="Resolved">Resolved</option>
-            <option value="Closed">Closed</option>
+    <!-- Filters Panel -->
+    <div class="filters-panel" *ngIf="showFilters">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Status</label>
+          <select class="filter-sel"
+            [(ngModel)]="filters.status"
+            (ngModelChange)="applyFilters()">
+            <option value="">All Status</option>
+            <option *ngFor="let s of statusOptions"
+              [value]="s">{{ s }}</option>
           </select>
-          <button class="bulk-apply-btn"
-            (click)="bulkUpdateStatus()"
-            [disabled]="!bulkStatus">Apply</button>
-          <button class="bulk-clear-btn"
-            (click)="selectedTicketIds.clear(); cdr.detectChanges()">
-            Clear
-          </button>
         </div>
 
-        <div *ngIf="loading" class="loading-center">
-          <div class="spinner"></div>
+        <div class="filter-group">
+          <label>Priority</label>
+          <select class="filter-sel"
+            [(ngModel)]="filters.priority"
+            (ngModelChange)="applyFilters()">
+            <option value="">All Priority</option>
+            <option *ngFor="let p of priorityOptions"
+              [value]="p">{{ p }}</option>
+          </select>
         </div>
 
-        <div *ngIf="!loading">
-          <div *ngIf="tickets.length === 0" class="empty-tickets">
-            <div class="empty-icon">🎫</div>
-            <h3>No tickets found</h3>
-            <p>Try clearing filters or create a new ticket</p>
-            <button class="create-ticket-btn"
-              (click)="router.navigate(['/tickets/create'])">
-              + Create Ticket
-            </button>
-          </div>
+        <div class="filter-group">
+          <label>Category</label>
+          <input class="filter-sel"
+            [(ngModel)]="filters.category"
+            (ngModelChange)="applyFilters()"
+            placeholder="Filter category..."/>
+        </div>
 
-          <!-- CARD VIEW (default) -->
-          <div class="ticket-cards" *ngIf="currentLayout === 'card'">
-            <div class="ticket-card"
-              *ngFor="let t of tickets"
-              (click)="viewTicket(t.id)">
+        <div class="filter-group">
+          <label>Assigned To</label>
+          <input class="filter-sel"
+            [(ngModel)]="filters.assignedTo"
+            (ngModelChange)="applyFilters()"
+            placeholder="Agent name..."/>
+        </div>
 
-              <div class="ticket-card-left">
-                <input type="checkbox"
-                  class="ticket-checkbox"
-                  [checked]="selectedTicketIds.has(t.id)"
-                  (change)="toggleSelect(t.id)"
-                  (click)="$event.stopPropagation()"/>
+        <div class="filter-group">
+          <label>From Date</label>
+          <input type="date" class="filter-sel"
+            [(ngModel)]="filters.dateFrom"
+            (ngModelChange)="applyFilters()"/>
+        </div>
 
-                <div class="ticket-avatar"
-                  [style.background]="getAvatarColor(t.createdBy)">
-                  {{ t.createdBy?.charAt(0)?.toUpperCase() }}
-                </div>
+        <div class="filter-group">
+          <label>To Date</label>
+          <input type="date" class="filter-sel"
+            [(ngModel)]="filters.dateTo"
+            (ngModelChange)="applyFilters()"/>
+        </div>
+      </div>
+    </div>
 
-                <div class="ticket-main-info">
-                  <div class="ticket-badges">
-                    <span class="new-badge" *ngIf="isNew(t.createdAt)">New</span>
-                    <span class="responded-badge"
-                      *ngIf="t.commentsCount > 0 && t.status === 'InProgress'">
-                      Customer responded
-                    </span>
-                    <span class="tag-pill"
-                      *ngFor="let tag of getTagsArr(t.tags).slice(0,2)">
-                      {{ tag }}
-                    </span>
-                    <span class="more-tags"
-                      *ngIf="getTagsArr(t.tags).length > 2">
-                      +{{ getTagsArr(t.tags).length - 2 }}
-                    </span>
-                  </div>
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+      <p>Loading tickets...</p>
+    </div>
 
-                  <div class="ticket-title-row">
-                    <span class="ticket-num-badge">
-                      #TN{{ t.ticketNumber || '—' }}
-                    </span>
-                    <span class="ticket-title">{{ t.title }}</span>
-                  </div>
+    <!-- Empty -->
+    <div *ngIf="!loading && tickets.length === 0"
+      class="empty-state">
+      <div class="empty-icon">🎫</div>
+      <h3 *ngIf="!hasActiveFilters()">
+        No tickets yet
+      </h3>
+      <h3 *ngIf="hasActiveFilters()">
+        No tickets match your filters
+      </h3>
+      <p *ngIf="!hasActiveFilters()">
+        Create your first ticket to get started
+      </p>
+      <button class="new-btn"
+        *ngIf="!hasActiveFilters()"
+        (click)="router.navigate(['/tickets/create'])">
+        + New Ticket
+      </button>
+      <button class="clear-btn-lg"
+        *ngIf="hasActiveFilters()"
+        (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
 
-                  <div class="ticket-meta-info">
-                    <span class="meta-email">✉ {{ t.category }}</span>
-                    <span class="meta-sep">·</span>
-                    <span class="meta-time">
-                      Created {{ getTimeAgo(t.createdAt) }}
-                    </span>
-                    <span class="meta-sep">·</span>
-                    <span class="meta-sla"
-                      [class.sla-warn]="t.slaStatus === 'Warning'"
-                      [class.sla-breach]="t.slaStatus === 'Breached'">
-                      {{ getSlaText(t) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
+    <!-- CARD VIEW -->
+    <div class="card-view"
+      *ngIf="!loading && tickets.length > 0
+        && currentLayout === 'card'">
 
-              <div class="ticket-card-right">
-                <div class="ticket-priority"
-                  [class]="'priority-' + t.priority?.toLowerCase()">
-                  <span class="priority-dot"></span>
-                  {{ t.priority }} ▼
-                </div>
+      <div class="ticket-card"
+        *ngFor="let t of tickets"
+        (click)="viewTicket(t.id)">
 
-                <div class="ticket-assign">
-                  <span class="assign-icon">👤</span>
-                  <span class="assign-text">
-                    {{ t.assignedTo ? t.assignedTo + ' / --' : 'Customer S... / --' }}
-                  </span>
-                  <span>▼</span>
-                </div>
+        <div class="card-top">
+          <span class="t-num">
+            #TN{{ t.ticketNumber }}
+          </span>
+          <span class="status-badge"
+            [style.background]="
+              getStatusColor(t.status) + '20'"
+            [style.color]="getStatusColor(t.status)">
+            {{ t.status }}
+          </span>
+        </div>
 
-                <div class="ticket-status-wrap">
-                  <span class="ticket-status"
-                    [class]="'status-' + t.status?.toLowerCase()">
-                    {{ getStatusLabel(t.status) }}
-                  </span>
-                  <span>▼</span>
-                </div>
-              </div>
+        <div class="card-title">{{ t.title }}</div>
+
+        <div class="card-meta">
+          <span class="priority-chip"
+            [style.background]="
+              getPriorityColor(t.priority) + '15'"
+            [style.color]="
+              getPriorityColor(t.priority)">
+            ● {{ t.priority }}
+          </span>
+          <span class="cat-chip">
+            {{ t.category }}
+          </span>
+          <span class="type-chip"
+            *ngIf="t.ticketType">
+            {{ t.ticketType }}
+          </span>
+        </div>
+
+        <div class="card-tags"
+          *ngIf="getTagsArr(t.tags).length > 0">
+          <span class="tag-pill"
+            *ngFor="let tag of
+              getTagsArr(t.tags).slice(0,3)">
+            {{ tag }}
+          </span>
+        </div>
+
+        <div class="card-footer">
+          <div class="card-assign">
+            <div class="av-sm"
+              [style.background]="
+                getAvatarColor(
+                  t.assignedTo || t.createdBy)">
+              {{ (t.assignedTo || t.createdBy)
+                ?.charAt(0)?.toUpperCase() }}
             </div>
+            <span>
+              {{ t.assignedTo || 'Unassigned' }}
+            </span>
           </div>
 
-          <!-- TABLE VIEW -->
-          <div class="table-view" *ngIf="currentLayout === 'table'">
-            <table class="tickets-table">
-              <thead>
-                <tr>
-                  <th>
-                    <input type="checkbox"
-                      (change)="selectAll()"/>
-                  </th>
-                  <th *ngIf="isColumnVisible('title')">Title</th>
-                  <th *ngIf="isColumnVisible('status')">Status</th>
-                  <th *ngIf="isColumnVisible('priority')">Priority</th>
-                  <th *ngIf="isColumnVisible('category')">Category</th>
-                  <th *ngIf="isColumnVisible('assignedTo')">Assigned</th>
-                  <th *ngIf="isColumnVisible('createdBy')">Created By</th>
-                  <th *ngIf="isColumnVisible('createdAt')">Date</th>
-                  <th *ngIf="isColumnVisible('sla')">SLA</th>
-                  <th *ngIf="isColumnVisible('ticketType')">Type</th>
-                  <th *ngIf="isColumnVisible('tags')">Tags</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let t of tickets"
-                  (click)="viewTicket(t.id)"
-                  class="table-row">
-                  <td>
-                    <input type="checkbox"
-                      [checked]="selectedTicketIds.has(t.id)"
-                      (change)="toggleSelect(t.id)"
-                      (click)="$event.stopPropagation()"/>
-                  </td>
-                  <td *ngIf="isColumnVisible('title')"
-                    class="title-cell">
-                    {{ t.title }}
-                  </td>
-                  <td *ngIf="isColumnVisible('status')">
-                    <span class="status-pill"
-                      [class]="'status-' + t.status?.toLowerCase()">
-                      {{ t.status }}
-                    </span>
-                  </td>
-                  <td *ngIf="isColumnVisible('priority')">
-                    <span class="priority-dot"
-                      [class]="'p-' + t.priority?.toLowerCase()">
-                    </span>
-                    {{ t.priority }}
-                  </td>
-                  <td *ngIf="isColumnVisible('category')">
-                    {{ t.category }}
-                  </td>
-                  <td *ngIf="isColumnVisible('assignedTo')">
-                    {{ t.assignedTo || '—' }}
-                  </td>
-                  <td *ngIf="isColumnVisible('createdBy')">
-                    {{ t.createdBy }}
-                  </td>
-                  <td *ngIf="isColumnVisible('createdAt')">
-                    {{ t.createdAt | date:'dd MMM yyyy' }}
-                  </td>
-                  <td *ngIf="isColumnVisible('sla')">
-                    <span class="sla-badge"
-                      [class]="'sla-' + (t.slaStatus || 'notrack')">
-                      {{ t.slaStatus || 'No SLA' }}
-                    </span>
-                  </td>
-                  <td *ngIf="isColumnVisible('ticketType')">
-                    {{ t.ticketType }}
-                  </td>
-                  <td *ngIf="isColumnVisible('tags')">
-                    <ng-container *ngFor="let tag of getTagsArr(t.tags).slice(0,2)">
-                      <span class="tag-pill">{{ tag }}</span>
-                    </ng-container> </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="card-right">
+            <span class="sla-mini"
+              *ngIf="t.slaStatus"
+              [style.color]="
+                getSlaColor(t.slaStatus)">
+              ⏱ {{ t.slaStatus }}
+            </span>
+            <span class="time-ago">
+              {{ getTimeAgo(t.createdAt) }}
+            </span>
           </div>
+        </div>
 
-          <!-- GRID VIEW -->
-          <div class="grid-view" *ngIf="currentLayout === 'grid'">
-            <div class="grid-card"
-              *ngFor="let t of tickets"
-              (click)="viewTicket(t.id)">
-              <div class="grid-top">
-                <span class="status-pill"
-                  [class]="'status-' + t.status?.toLowerCase()">
-                  {{ t.status }}
-                </span>
-                <span class="grid-date">
-                  {{ t.createdAt | date:'dd MMM' }}
-                </span>
-              </div>
-              <div class="grid-title">{{ t.title }}</div>
-              <div class="grid-meta">
-                <span class="priority-dot"
-                  [class]="'p-' + t.priority?.toLowerCase()">
-                </span>
+      </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div class="table-wrap"
+      *ngIf="!loading && tickets.length > 0
+        && currentLayout === 'table'">
+      <table class="t-table">
+        <thead>
+          <tr>
+            <th class="check-col">
+              <input type="checkbox"
+                (change)="selectAll()"/>
+            </th>
+            <th class="sort-th"
+              (click)="sortBy_('ticketNumber')">
+              #
+            </th>
+            <th class="sort-th title-th"
+              (click)="sortBy_('title')">
+              Title
+            </th>
+            <th *ngIf="isColumnVisible('status')"
+              class="sort-th"
+              (click)="sortBy_('status')">
+              Status
+            </th>
+            <th *ngIf="isColumnVisible('priority')"
+              class="sort-th"
+              (click)="sortBy_('priority')">
+              Priority
+            </th>
+            <th *ngIf="isColumnVisible('category')">
+              Category
+            </th>
+            <th *ngIf="isColumnVisible('assignedTo')">
+              Assigned
+            </th>
+            <th *ngIf="isColumnVisible('ticketType')">
+              Type
+            </th>
+            <th *ngIf="isColumnVisible('sla')">
+              SLA
+            </th>
+            <th *ngIf="isColumnVisible('createdAt')"
+              class="sort-th"
+              (click)="sortBy_('createdAt')">
+              Date
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of tickets"
+            class="t-row"
+            (click)="viewTicket(t.id)">
+            <td (click)="$event.stopPropagation()">
+              <input type="checkbox"
+                [checked]="selectedTicketIds
+                  .has(t.id)"
+                (change)="toggleSelect(t.id)"/>
+            </td>
+            <td class="num-cell">
+              #TN{{ t.ticketNumber }}
+            </td>
+            <td class="title-cell">
+              {{ t.title }}
+            </td>
+            <td *ngIf="isColumnVisible('status')">
+              <span class="status-badge"
+                [style.background]="
+                  getStatusColor(t.status) + '20'"
+                [style.color]="
+                  getStatusColor(t.status)">
+                {{ t.status }}
+              </span>
+            </td>
+            <td *ngIf="isColumnVisible('priority')">
+              <span class="priority-chip"
+                [style.background]="
+                  getPriorityColor(t.priority)+'15'"
+                [style.color]="
+                  getPriorityColor(t.priority)">
                 {{ t.priority }}
-                <span class="grid-sep">·</span>
-                {{ t.category }}
-              </div>
-              <div class="grid-assign">
-                <span *ngIf="t.assignedTo">
-                  👤 {{ t.assignedTo }}
-                </span>
-                <span *ngIf="!t.assignedTo" class="unassigned">
-                  Unassigned
-                </span>
-              </div>
-              <div class="grid-sla" *ngIf="t.slaStatus">
-                <span class="sla-badge"
-                  [class]="'sla-' + t.slaStatus">
-                  {{ t.slaStatus }}
-                </span>
-              </div>
-            </div>
-          </div>
+              </span>
+            </td>
+            <td *ngIf="isColumnVisible('category')">
+              {{ t.category }}
+            </td>
+            <td *ngIf="isColumnVisible('assignedTo')">
+              {{ t.assignedTo || '—' }}
+            </td>
+            <td *ngIf="isColumnVisible('ticketType')">
+              {{ t.ticketType }}
+            </td>
+            <td *ngIf="isColumnVisible('sla')">
+              <span *ngIf="t.slaStatus"
+                [style.color]="
+                  getSlaColor(t.slaStatus)">
+                {{ t.slaStatus }}
+              </span>
+            </td>
+            <td *ngIf="isColumnVisible('createdAt')">
+              {{ t.createdAt
+                | date:'dd MMM yy' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-        </div>
-      </div>
+    <!-- GRID VIEW -->
+    <div class="grid-view"
+      *ngIf="!loading && tickets.length > 0
+        && currentLayout === 'grid'">
 
-      <div class="filter-panel" *ngIf="showFilters">
-        <div class="filter-header">
-          <strong>FILTERS</strong>
-          <a class="show-applied">Show applied filters</a>
-        </div>
+      <div class="grid-card"
+        *ngFor="let t of tickets"
+        (click)="viewTicket(t.id)">
 
-        <div class="filter-search">
-          <input placeholder="Search fields..."
-            class="filter-search-input"/>
-        </div>
-
-        <div class="filter-group">
-          <div class="filter-group-label" (click)="toggleFilter('agents')">
-            Agents Include ▼
-          </div>
-          <select class="filter-select" (change)="onAgentFilter($event)">
-            <option value="">Any agent</option>
-            <option *ngFor="let a of agents" [value]="a.id">
-              {{ a.fullName }}
-            </option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <div class="filter-group-label">Groups Include ▼</div>
-          <select class="filter-select">
-            <option value="">Any group</option>
-          </select>
+        <div class="grid-top">
+          <span class="t-num small">
+            #TN{{ t.ticketNumber }}
+          </span>
+          <span class="status-badge"
+            [style.background]="
+              getStatusColor(t.status) + '20'"
+            [style.color]="
+              getStatusColor(t.status)">
+            {{ t.status }}
+          </span>
         </div>
 
-        <div class="filter-group">
-          <div class="filter-group-label">Status Include ▼</div>
-          <select class="filter-select"
-            [(ngModel)]="filterForm.value.status"
-            (change)="applyFilters()">
-            <option value="All">All statuses</option>
-            <option *ngFor="let s of statuses.slice(1)" [value]="s">
-              {{ s }}
-            </option>
-          </select>
+        <div class="grid-title">{{ t.title }}</div>
+
+        <div class="grid-meta">
+          <span [style.color]="
+            getPriorityColor(t.priority)">
+            ● {{ t.priority }}
+          </span>
+          <span class="sep">·</span>
+          {{ t.category }}
         </div>
 
-        <div class="filter-group">
-          <div class="filter-group-label">Priority Include ▼</div>
-          <select class="filter-select"
-            [(ngModel)]="filterForm.value.priority"
-            (change)="applyFilters()">
-            <option value="All">All priorities</option>
-            <option *ngFor="let p of priorities.slice(1)" [value]="p">
-              {{ p }}
-            </option>
-          </select>
+        <div class="grid-footer">
+          <span class="time-ago">
+            {{ getTimeAgo(t.createdAt) }}
+          </span>
+          <span *ngIf="t.slaStatus"
+            [style.color]="
+              getSlaColor(t.slaStatus)"
+            style="font-size:11px">
+            ⏱ {{ t.slaStatus }}
+          </span>
         </div>
 
-        <button class="apply-filter-btn" (click)="applyFilters()">
-          Apply
-        </button>
-        <button class="clear-filter-btn" (click)="clearFilters()">
-          Clear Filters
-        </button>
       </div>
     </div>
+
   </div>
 </app-layout>
