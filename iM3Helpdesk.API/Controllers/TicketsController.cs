@@ -41,13 +41,7 @@ public class TicketsController : ControllerBase
   }
 
   [HttpGet]
-  [ResponseCache(Duration = 10)]
-  public async Task<IActionResult> GetAll(
-      [FromQuery] string? status = null,
-      [FromQuery] string? priority = null,
-      [FromQuery] string? search = null,
-      [FromQuery] int page = 1,
-      [FromQuery] int pageSize = 50)
+  public async Task<IActionResult> GetAll()
   {
     var userIdClaim =
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value
@@ -59,12 +53,14 @@ public class TicketsController : ControllerBase
         "identity/claims/role")?.Value
         ?? User.FindFirst("role")?.Value;
 
-    // ✅ Fast: projection only, no nav props
+    // ✅ Single clean query — no subqueries
     var query = _context.Tickets
         .AsNoTracking()
+        .Include(t => t.CreatedBy)
+        .Include(t => t.AssignedTo)
+        .AsSplitQuery()
         .AsQueryable();
 
-    // Agent filter
     if (roleClaim == "Agent")
     {
       var groupIds = await _context
@@ -82,25 +78,6 @@ public class TicketsController : ControllerBase
           !t.AssignedToUserId.HasValue);
     }
 
-    // Filters
-    if (!string.IsNullOrEmpty(status))
-      query = query.Where(t =>
-          t.Status.ToString() == status);
-
-    if (!string.IsNullOrEmpty(priority))
-      query = query.Where(t =>
-          t.Priority.ToString() == priority);
-
-    if (!string.IsNullOrEmpty(search))
-    {
-      var s = search.ToLower();
-      query = query.Where(t =>
-          t.Title.ToLower().Contains(s) ||
-          t.Description.ToLower().Contains(s) ||
-          t.Tags.ToLower().Contains(s));
-    }
-
-    // ✅ Direct projection — fastest possible
     var tickets = await query
         .OrderByDescending(t => t.CreatedAt)
         .Take(200)
@@ -118,25 +95,10 @@ public class TicketsController : ControllerBase
           t.SlaDeadline,
           t.SlaStatus,
           t.IsSlaBreached,
-          CreatedBy = _context.Users
-                .Where(u => u.Id ==
-                    t.CreatedByUserId)
-                .Select(u => u.FullName)
-                .FirstOrDefault(),
-          CreatedByPhoto = _context.Users
-                .Where(u => u.Id ==
-                    t.CreatedByUserId)
-                .Select(u => u.PhotoUrl)
-                .FirstOrDefault(),
-          AssignedTo = t.AssignedToUserId != null
-                ? _context.Users
-                    .Where(u => u.Id ==
-                        t.AssignedToUserId)
-                    .Select(u => u.FullName)
-                    .FirstOrDefault()
-                : null,
-          CommentsCount = _context.TicketComments
-                .Count(c => c.TicketId == t.Id)
+          CreatedBy = t.CreatedBy != null
+                ? t.CreatedBy.FullName : "",
+          AssignedTo = t.AssignedTo != null
+                ? t.AssignedTo.FullName : null
         })
         .ToListAsync();
 
@@ -279,11 +241,9 @@ public class TicketsController : ControllerBase
     var userIdClaim =
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
-
     if (!Guid.TryParse(userIdClaim, out var userId))
       return Unauthorized();
 
-    // ✅ Get next ticket number — thread safe
     var orgId = _tenantService.OrganizationId!.Value;
 
     var lastNum = await _context.Tickets
@@ -292,13 +252,29 @@ public class TicketsController : ControllerBase
         .MaxAsync(t => (int?)t.TicketNumber)
         ?? 1000;
 
+    // ✅ Properly handle Group
+    Guid? groupId = null;
+    if (dto.AgentGroupId.HasValue &&
+        dto.AgentGroupId.Value != Guid.Empty)
+    {
+      // Verify group exists
+      var groupExists = await _context.AgentGroups
+          .AnyAsync(g =>
+              g.Id == dto.AgentGroupId.Value &&
+              g.OrganizationId == orgId);
+      if (groupExists)
+        groupId = dto.AgentGroupId.Value;
+    }
+
+    Guid? assignedTo = null;
+    if (dto.AssignedToUserId.HasValue &&
+        dto.AssignedToUserId.Value != Guid.Empty)
+      assignedTo = dto.AssignedToUserId.Value;
+
     var ticket = new Ticket
     {
-      Title = dto.Title?.Trim()
-            ?? throw new ArgumentNullException(
-                nameof(dto.Title)),
-      Description = dto.Description
-            ?? string.Empty,
+      Title = dto.Title?.Trim() ?? "",
+      Description = dto.Description ?? "",
       Category = dto.Category ?? "General",
       Priority = Enum.TryParse<TicketPriority>(
             dto.Priority, out var p)
@@ -308,17 +284,9 @@ public class TicketsController : ControllerBase
       OrganizationId = orgId,
       CreatedByUserId = userId,
       Tags = dto.Tags ?? string.Empty,
-      AssignedToUserId =
-            dto.AssignedToUserId.HasValue &&
-            dto.AssignedToUserId.Value != Guid.Empty
-                ? dto.AssignedToUserId
-                : null,
-      AgentGroupId =
-            dto.AgentGroupId.HasValue &&
-            dto.AgentGroupId.Value != Guid.Empty
-                ? dto.AgentGroupId
-                : null,
-      TicketNumber = lastNum + 1  // ✅ manual set
+      AssignedToUserId = assignedTo,
+      AgentGroupId = groupId,  // ✅ Fixed
+      TicketNumber = lastNum + 1
     };
 
     ticket.SlaDeadline = _slaService
@@ -327,87 +295,14 @@ public class TicketsController : ControllerBase
     ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);
-
-    try
-    {
-      await _context.SaveChangesAsync();
-    }
-    catch (DbUpdateException ex)
-    {
-      _logger.LogError(ex,
-          "Ticket create DB error");
-
-      // Retry with new number if conflict
-      if (ex.InnerException?.Message
-              .Contains("IDENTITY_INSERT") == true ||
-          ex.InnerException?.Message
-              .Contains("duplicate") == true)
-      {
-        var retryNum = await _context.Tickets
-            .IgnoreQueryFilters()
-            .Where(t => t.OrganizationId == orgId)
-            .MaxAsync(t => (int?)t.TicketNumber)
-            ?? 1000;
-
-        ticket.TicketNumber = retryNum + 1;
-
-        try
-        {
-          await _context.SaveChangesAsync();
-        }
-        catch (Exception retryEx)
-        {
-          return StatusCode(500, new
-          {
-            message = "Failed to create ticket",
-            error = retryEx.InnerException?.Message
-                  ?? retryEx.Message
-          });
-        }
-      }
-      else
-      {
-        return StatusCode(500, new
-        {
-          message = "Failed to create ticket",
-          error = ex.InnerException?.Message
-                ?? ex.Message
-        });
-      }
-    }
-
-    // Notify agents
-    var agents = await _context.Users
-        .IgnoreQueryFilters()
-        .Where(u =>
-            u.OrganizationId == orgId &&
-            (u.Role == UserRole.Agent ||
-             u.Role == UserRole.CompanyAdmin))
-        .Select(u => new { u.Id })
-        .ToListAsync();
-
-    foreach (var agent in agents)
-    {
-      _context.Notifications.Add(new Notification
-      {
-        UserId = agent.Id,
-        OrganizationId = orgId,
-        Title = "New Ticket",
-        Message = $"New ticket: {ticket.Title}",
-        Type = "info",
-        TicketId = ticket.Id
-      });
-    }
+    await _context.SaveChangesAsync();
 
     // Activity log
     await _notificationService.CreateActivityAsync(
         userId, orgId,
         "Created",
         $"New ticket: {ticket.Title}",
-        "Ticket",
-        ticket.Id);
-
-    await _context.SaveChangesAsync();
+        "Ticket", ticket.Id);
 
     return Ok(new
     {
@@ -415,6 +310,29 @@ public class TicketsController : ControllerBase
       id = ticket.Id,
       ticketNumber = ticket.TicketNumber
     });
+  }
+
+  [HttpGet("{id}/timeline")]
+  public async Task<IActionResult> GetTimeline(Guid id)
+  {
+    var logs = await _context.ActivityLogs
+        .AsNoTracking()
+        .Where(a => a.EntityId == id)
+        .OrderByDescending(a => a.CreatedAt)
+        .Select(a => new
+        {
+          a.Id,
+          a.Action,
+          a.Description,
+          a.CreatedAt,
+          User = a.User != null
+                ? a.User.FullName : "System",
+          UserPhoto = a.User != null
+                ? a.User.PhotoUrl : null
+        })
+        .ToListAsync();
+
+    return Ok(logs);
   }
 
   [HttpPut("{id}/status")]

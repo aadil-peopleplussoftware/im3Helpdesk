@@ -12,19 +12,22 @@ public class AuditController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
 
-  public AuditController(ApplicationDbContext context)
+  public AuditController(
+      ApplicationDbContext context)
   {
     _context = context;
   }
 
-  [HttpGet]  // ✅ /api/Audit — GET
+  // ✅ GET /api/Audit
+  [HttpGet]
   public async Task<IActionResult> GetAll(
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 20,
-    [FromQuery] string? entityType = null)
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 20,
+      [FromQuery] string? entityType = null)
   {
     var query = _context.ActivityLogs
         .AsNoTracking()
+        .Include(a => a.User)
         .OrderByDescending(a => a.CreatedAt)
         .AsQueryable();
 
@@ -58,45 +61,4 @@ public class AuditController : ControllerBase
             (double)total / pageSize)
     });
   }
-  //[HttpGet("activity")]  
-  //public async Task<IActionResult> GetActivity(
-  //  [FromQuery] int page = 1,
-  //  [FromQuery] int pageSize = 20,
-  //  [FromQuery] string? entityType = null)
-  //{
-  //  var query = _context.ActivityLogs
-  //      .AsNoTracking()
-  //      .OrderByDescending(a => a.CreatedAt)
-  //      .AsQueryable();
-
-  //  if (!string.IsNullOrEmpty(entityType))
-  //    query = query.Where(a =>
-  //        a.EntityType == entityType);
-
-  //  var total = await query.CountAsync();
-
-  //  var logs = await query
-  //      .Skip((page - 1) * pageSize)
-  //      .Take(pageSize)
-  //      .Select(a => new
-  //      {
-  //        a.Id,
-  //        a.Action,
-  //        a.Description,
-  //        a.EntityType,
-  //        a.CreatedAt,
-  //        User = a.User != null
-  //              ? a.User.FullName : "System"
-  //      })
-  //      .ToListAsync();
-
-  //  return Ok(new
-  //  {
-  //    logs,
-  //    total,
-  //    page,
-  //    totalPages = (int)Math.Ceiling(
-  //          (double)total / pageSize)
-  //  });
-  //}
 }

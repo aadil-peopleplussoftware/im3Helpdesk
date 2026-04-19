@@ -162,6 +162,50 @@ public class KnowledgeBaseController : ControllerBase
 
     return Ok(categories);
   }
+
+  [HttpPost("{id}/view")]
+  public async Task<IActionResult> RecordView(Guid id)
+  {
+    var article = await _context.KbArticles
+        .FindAsync(id);
+    if (article == null) return NotFound();
+
+    article.ViewCount = (article.ViewCount) + 1;
+    await _context.SaveChangesAsync();
+
+    return Ok();
+  }
+
+  [HttpGet("{id}/viewers")]
+  public async Task<IActionResult> GetViewers(Guid id)
+  {
+    // Get recent activity logs for this article
+    var viewers = await _context.ActivityLogs
+        .AsNoTracking()
+        .Where(a =>
+            a.EntityType == "KbArticle" &&
+            a.EntityId == id &&
+            a.Action == "Viewed")
+        .OrderByDescending(a => a.CreatedAt)
+        .Take(20)
+        .Select(a => new
+        {
+          a.Id,
+          User = a.User != null
+                ? a.User.FullName : "Unknown",
+          UserPhoto = a.User != null
+                ? a.User.PhotoUrl : null,
+          a.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(new
+    {
+      viewCount = viewers.Count,
+      viewers
+    });
+  }
+
 }
 
 public class CreateArticleDto

@@ -5,7 +5,7 @@
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCommentEmailFields : Migration
+    public partial class FixAllPending : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

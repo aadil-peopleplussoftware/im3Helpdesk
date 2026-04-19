@@ -12,8 +12,8 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260417192903_AddCommentEmailFields")]
-    partial class AddCommentEmailFields
+    [Migration("20260418192022_AddActivityLogEntityId")]
+    partial class AddActivityLogEntityId
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -31,15 +31,12 @@ public class DashboardController : ControllerBase
   public async Task<IActionResult> GetStats()
   {
     var orgId = _tenant.OrganizationId;
-    var cacheKey = $"dashboard_stats_{orgId}";
+    var cacheKey = $"stats_{orgId}";
 
-    if (_cache.TryGetValue(cacheKey, out var cached))
-      return Ok(cached);
+    if (_cache.TryGetValue(cacheKey, out var hit))
+      return Ok(hit);
 
-    // ✅ FIX: Sequential queries — EF Core DbContext is NOT thread-safe.
-    //         Task.WhenAll on the same context causes the
-    //         "second operation started" exception.
-
+    // ✅ Sequential — no threading issues
     var tickets = await _context.Tickets
         .AsNoTracking()
         .Select(t => new
@@ -54,14 +51,20 @@ public class DashboardController : ControllerBase
     var agentCount = await _context.Users
         .AsNoTracking()
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId == orgId &&
-                    (u.Role == UserRole.Agent ||
-                     u.Role == UserRole.CompanyAdmin))
-        .CountAsync();
+        .CountAsync(u =>
+            u.OrganizationId == orgId &&
+            (u.Role == UserRole.Agent ||
+             u.Role == UserRole.CompanyAdmin));
 
     var org = await _context.Organizations
         .AsNoTracking()
-        .FirstOrDefaultAsync(o => o.Id == orgId);
+        .Select(o => new
+        {
+          o.Name,
+          o.TrialEndsAt
+        })
+        .FirstOrDefaultAsync(o =>
+            o.Name != null);
 
     var recent = await _context.Tickets
         .AsNoTracking()
@@ -81,72 +84,114 @@ public class DashboardController : ControllerBase
     var today = DateTime.UtcNow.Date;
     var weekAgo = DateTime.UtcNow.AddDays(-7);
 
+    var avgRes = tickets
+        .Where(t => t.ResolvedAt.HasValue)
+        .Select(t =>
+            (t.ResolvedAt!.Value - t.CreatedAt)
+            .TotalHours)
+        .DefaultIfEmpty(0)
+        .Average();
+
     var result = new
     {
       totalTickets = tickets.Count,
-      openTickets = tickets.Count(t => t.Status == TicketStatus.Open),
-      inProgressTickets = tickets.Count(t => t.Status == TicketStatus.InProgress),
-      resolvedTickets = tickets.Count(t => t.Status == TicketStatus.Resolved),
-      closedTickets = tickets.Count(t => t.Status == TicketStatus.Closed),
+      openTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Open),
+      inProgressTickets = tickets.Count(t =>
+          t.Status == TicketStatus.InProgress),
+      resolvedTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Resolved),
+      closedTickets = tickets.Count(t =>
+          t.Status == TicketStatus.Closed),
       totalAgents = agentCount,
-      newTicketsToday = tickets.Count(t => t.CreatedAt.Date == today),
-      newTicketsThisWeek = tickets.Count(t => t.CreatedAt >= weekAgo),
-      avgResolutionHours = tickets
-            .Where(t => t.ResolvedAt.HasValue)
-            .Select(t => (t.ResolvedAt!.Value - t.CreatedAt).TotalHours)
-            .DefaultIfEmpty(0)
-            .Average()
-            .ToString("F1"),
-      lowPriority = tickets.Count(t => t.Priority == TicketPriority.Low),
-      mediumPriority = tickets.Count(t => t.Priority == TicketPriority.Medium),
-      highPriority = tickets.Count(t => t.Priority == TicketPriority.High),
-      criticalPriority = tickets.Count(t => t.Priority == TicketPriority.Critical),
-      trialDaysLeft = org != null
-            ? Math.Max(0, (int)(org.TrialEndsAt - DateTime.UtcNow).TotalDays)
-            : 30,
+      newTicketsToday = tickets.Count(t =>
+          t.CreatedAt.Date == today),
+      newTicketsThisWeek = tickets.Count(t =>
+          t.CreatedAt >= weekAgo),
+      avgResolutionHours =
+            Math.Round(avgRes, 1),
+      lowPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Low),
+      mediumPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Medium),
+      highPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.High),
+      criticalPriority = tickets.Count(t =>
+          t.Priority == TicketPriority.Critical),
       organizationName = org?.Name ?? "",
       recentTickets = recent
     };
 
-    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
+    _cache.Set(cacheKey, result,
+        TimeSpan.FromSeconds(30));
+
     return Ok(result);
   }
 
   [HttpGet("widgets")]
   public async Task<IActionResult> GetWidgets()
   {
-    var orgId = _tenant.OrganizationId;
-    var cacheKey = $"dashboard_widgets_{orgId}";
+    var cacheKey =
+        $"widgets_{_tenant.OrganizationId}";
 
-    if (_cache.TryGetValue(cacheKey, out var cached))
-      return Ok(cached);
+    if (_cache.TryGetValue(cacheKey, out var hit))
+      return Ok(hit);
 
     var weekAgo = DateTime.UtcNow.AddDays(-7);
 
-    // Sequential — same reason as above
     var trend = await _context.Tickets
         .AsNoTracking()
         .Where(t => t.CreatedAt >= weekAgo)
         .GroupBy(t => t.CreatedAt.Date)
-        .Select(g => new { date = g.Key, count = g.Count() })
+        .Select(g => new
+        {
+          date = g.Key,
+          count = g.Count()
+        })
         .OrderBy(x => x.date)
         .ToListAsync();
 
     var byStatus = await _context.Tickets
         .AsNoTracking()
         .GroupBy(t => t.Status)
-        .Select(g => new { status = g.Key.ToString(), count = g.Count() })
+        .Select(g => new
+        {
+          status = g.Key.ToString(),
+          count = g.Count()
+        })
         .ToListAsync();
 
     var byPriority = await _context.Tickets
         .AsNoTracking()
         .GroupBy(t => t.Priority)
-        .Select(g => new { priority = g.Key.ToString(), count = g.Count() })
+        .Select(g => new
+        {
+          priority = g.Key.ToString(),
+          count = g.Count()
+        })
         .ToListAsync();
 
-    var result = new { trend, byStatus, byPriority };
+    var byCategory = await _context.Tickets
+        .AsNoTracking()
+        .GroupBy(t => t.Category)
+        .Select(g => new
+        {
+          category = g.Key,
+          count = g.Count()
+        })
+        .ToListAsync();
 
-    _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
+    var result = new
+    {
+      trend,
+      byStatus,
+      byPriority,
+      byCategory
+    };
+
+    _cache.Set(cacheKey, result,
+        TimeSpan.FromSeconds(60));
+
     return Ok(result);
   }
 }
