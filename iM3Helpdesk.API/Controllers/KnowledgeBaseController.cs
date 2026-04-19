@@ -170,38 +170,77 @@ public class KnowledgeBaseController : ControllerBase
         .FindAsync(id);
     if (article == null) return NotFound();
 
-    article.ViewCount = (article.ViewCount) + 1;
-    await _context.SaveChangesAsync();
+    // ✅ Get current user
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    Guid.TryParse(userIdClaim, out var userId);
 
-    return Ok();
+    // ✅ Check if this user already has
+    // a view log for today
+    var today = DateTime.UtcNow.Date;
+    var alreadyViewed = await _context.ActivityLogs
+        .AnyAsync(a =>
+            a.EntityId == id &&
+            a.UserId == userId &&
+            a.Action == "Viewed" &&
+            a.CreatedAt.Date == today);
+
+    if (!alreadyViewed)
+    {
+      // Increment count only once per user per day
+      article.ViewCount++;
+
+      _context.ActivityLogs.Add(new ActivityLog
+      {
+        UserId = userId,
+        OrganizationId =
+              _tenantService.OrganizationId!.Value,
+        Action = "Viewed",
+        Description = $"Viewed article: {article.Title}",
+        EntityType = "KbArticle",
+        EntityId = id
+      });
+
+      await _context.SaveChangesAsync();
+    }
+
+    return Ok(new { viewCount = article.ViewCount });
   }
 
   [HttpGet("{id}/viewers")]
   public async Task<IActionResult> GetViewers(Guid id)
   {
-    // Get recent activity logs for this article
+    // ✅ DISTINCT users — one entry per user
     var viewers = await _context.ActivityLogs
         .AsNoTracking()
+        .Include(a => a.User)
         .Where(a =>
             a.EntityType == "KbArticle" &&
             a.EntityId == id &&
             a.Action == "Viewed")
-        .OrderByDescending(a => a.CreatedAt)
-        .Take(20)
-        .Select(a => new
+        .GroupBy(a => a.UserId)  // ✅ Group by user
+        .Select(g => new
         {
-          a.Id,
-          User = a.User != null
-                ? a.User.FullName : "Unknown",
-          UserPhoto = a.User != null
-                ? a.User.PhotoUrl : null,
-          a.CreatedAt
+          UserId = g.Key,
+          User = g.First().User != null
+                ? g.First().User!.FullName
+                : "Unknown",
+          LastViewed = g.Max(x => x.CreatedAt),
+          ViewCount = g.Count()
         })
+        .OrderByDescending(x => x.LastViewed)
         .ToListAsync();
+
+    var article = await _context.KbArticles
+        .AsNoTracking()
+        .Select(a => new { a.Id, a.ViewCount })
+        .FirstOrDefaultAsync(a => a.Id == id);
 
     return Ok(new
     {
-      viewCount = viewers.Count,
+      viewCount = article?.ViewCount ?? 0,
+      uniqueViewers = viewers.Count,
       viewers
     });
   }

@@ -98,6 +98,32 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
+  FileProvider = new Microsoft.Extensions
+        .FileProviders.PhysicalFileProvider(
+        Path.Combine(
+            builder.Environment.ContentRootPath,
+            "wwwroot")),
+  RequestPath = ""
+});
+var uploadsPath = Path.Combine(
+    Directory.GetCurrentDirectory(),
+    "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsPath);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+  FileProvider = new Microsoft.Extensions
+        .FileProviders.PhysicalFileProvider(
+            uploadsPath),
+  RequestPath = "/uploads",
+  OnPrepareResponse = ctx =>
+  {
+    ctx.Context.Response.Headers
+        .Append("Access-Control-Allow-Origin", "*");
+  }
+});
+app.UseStaticFiles(new StaticFileOptions
+{
   OnPrepareResponse = ctx =>
   {
     ctx.Context.Response.Headers
