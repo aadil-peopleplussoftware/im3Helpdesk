@@ -94,63 +94,109 @@
 
         <!-- Conversation Section -->
         <div class="conversation-section">
+          <!-- Comment Thread — Each email separate -->
           <div class="comment-thread">
-
-            <div *ngFor="let c of ticket.comments" class="comment-item"
+            <div *ngFor="let c of ticket.comments"
+              class="comment-item"
               [class.internal-note]="c.isInternal"
-              [class.agent-comment]="c.isAgent"
-              [class.customer-comment]="!c.isAgent">
+              [class.email-reply]="!c.isInternal">
 
-              <div class="comment-avatar"
-                [class.agent-avatar]="c.isAgent"
-                [class.customer-avatar]="!c.isAgent"
-                [style.background]="c.user?.photoUrl ? 'transparent' : getAvatarColor(c.user?.fullName)">
-                <img *ngIf="c.user?.photoUrl" [src]="'https://localhost:7071' + c.user.photoUrl"
-                  [alt]="c.user.fullName"
-                  style="width:100%;height:100%;object-fit:cover;border-radius:50%" />
-                <span *ngIf="!c.user?.photoUrl">
-                  {{ c.user?.fullName?.charAt(0)?.toUpperCase() }}
-                </span>
-              </div>
-
-              <div class="comment-bubble">
-                <div class="comment-meta">
-                  <span class="commenter-name">{{ c.user?.fullName }}</span>
-                  <span class="agent-tag" *ngIf="c.isAgent">Agent</span>
-                  <span class="internal-tag" *ngIf="c.isInternal">Internal Note</span>
-                  <span class="commenter-time">{{ c.createdAt | date:'dd MMM yyyy, hh:mm a' }}</span>
+              <!-- Email Reply Style -->
+              <div class="comment-envelope" *ngIf="!c.isInternal">
+                <div class="comment-avatar"
+                  [style.background]="c.user?.photoUrl
+                    ? 'transparent'
+                    : getAvatarColor(c.user?.fullName)">
+                  <img *ngIf="c.user?.photoUrl"
+                    [src]="'https://localhost:7071' + c.user.photoUrl"
+                    style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+                  <span *ngIf="!c.user?.photoUrl">
+                    {{ c.user?.fullName?.charAt(0)?.toUpperCase() }}
+                  </span>
                 </div>
 
-                <!-- Comment body -->
-                <div class="comment-body" [innerHTML]="sanitizeHtml(c.comment)"></div>
+                <div class="comment-bubble">
+                  <div class="comment-meta">
+                    <span class="commenter-name">{{ c.user?.fullName }}</span>
+                    <span class="replied-badge">replied</span>
+                    <span class="agent-tag" *ngIf="c.isAgent">Agent</span>
+                    <span class="commenter-time">
+                      {{ c.createdAt | date:'EEE dd MMM yyyy, hh:mm a' }}
+                    </span>
 
-                <!-- Comment Attachments -->
-                <div class="comment-attachments" *ngIf="(getCommentAttachments(c.id) || []).length > 0">
-                  <div class="att-grid">
-                    <div class="att-item" *ngFor="let a of getCommentAttachments(c.id)">
-                      <div class="att-thumb" *ngIf="a.isImage">
-                        <img [src]="'https://localhost:7071' + a.fileUrl" [alt]="a.fileName" />
-                      </div>
-                      <div class="att-thumb file-thumb" *ngIf="!a.isImage">
-                        {{ getFileIcon(a.contentType) }}
-                      </div>
-                      <div class="att-info">
-                        <div class="att-name">{{ a.fileName }}</div>
-                        <div class="att-size">{{ a.sizeFormatted }}</div>
-                      </div>
-                      <a [href]="'https://localhost:7071' + a.fileUrl" target="_blank" class="att-dl">↓</a>
+                    <!-- Edit/Delete for agent -->
+                    <div class="comment-actions" *ngIf="c.isAgent && isAgent">
+                      <button class="ca-btn" title="Forward">↗</button>
+                      <button class="ca-btn red" title="Delete">🗑</button>
                     </div>
                   </div>
-                </div>
-                <!-- end: comment-attachments -->
 
+                  <!-- Comment Body -->
+                  <div class="comment-body" [innerHTML]="sanitizeHtml(c.comment)"></div>
+
+                  <!-- Attachments with this comment -->
+                  <div class="comment-attachments"
+                    *ngIf="getCommentAttachments(c.id).length > 0">
+                    <div class="att-sep">
+                      📎 {{ getCommentAttachments(c.id).length }} attachment(s)
+                    </div>
+                    <div class="att-grid">
+                      <div class="att-item" *ngFor="let a of getCommentAttachments(c.id)">
+                        <div class="att-thumb" *ngIf="a.isImage">
+                          <img [src]="'https://localhost:7071' + a.fileUrl" [alt]="a.fileName"/>
+                        </div>
+                        <div class="att-thumb file-thumb" *ngIf="!a.isImage">
+                          {{ getFileIcon(a.contentType) }}
+                        </div>
+                        <div class="att-info">
+                          <div class="att-name">{{ a.fileName }}</div>
+                          <div class="att-size">{{ a.sizeFormatted }}</div>
+                        </div>
+                        <a class="att-dl"
+                          [href]="'https://localhost:7071' + a.fileUrl"
+                          target="_blank">↓</a>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- end: comment-attachments -->
+
+                </div>
+                <!-- end: comment-bubble -->
               </div>
-              <!-- end: comment-bubble -->
+              <!-- end: comment-envelope -->
+
+              <!-- Internal Note Style -->
+              <div class="note-envelope" *ngIf="c.isInternal">
+                <div class="note-header">
+                  <div class="note-av"
+                    [style.background]="getAvatarColor(c.user?.fullName)">
+                    {{ c.user?.fullName?.charAt(0)?.toUpperCase() }}
+                  </div>
+                  <div class="note-meta">
+                    <span class="note-name">{{ c.user?.fullName }}</span>
+                    <span class="note-action">
+                      added a
+                      <span class="note-type-badge"
+                        [class.private]="c.isInternal"
+                        [class.public]="!c.isInternal">
+                        {{ c.isInternal ? 'private' : 'public' }} note
+                      </span>
+                    </span>
+                    <span class="note-time">
+                      {{ c.createdAt | date:'EEE dd MMM yyyy, hh:mm a' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="note-body" [innerHTML]="sanitizeHtml(c.comment)"></div>
+              </div>
+              <!-- end: note-envelope -->
 
             </div>
             <!-- end: *ngFor comment-item -->
 
-            <div *ngIf="!ticket.comments?.length" class="no-comments">No replies yet.</div>
+            <div *ngIf="!ticket.comments?.length" class="no-comments">
+              No replies yet. Write the first reply below.
+            </div>
 
           </div>
           <!-- end: comment-thread -->
@@ -224,6 +270,36 @@
 
             <!-- Note Tab -->
             <div class="composer-body note-composer" *ngIf="activeTab === 'note'">
+
+              <!-- Public/Private Toggle -->
+              <div class="note-visibility-row">
+                <span class="nv-label">Mark note as</span>
+                <div class="nv-options">
+                  <div class="nv-option"
+                    [class.selected]="!noteIsPrivate"
+                    (click)="noteIsPrivate = false">
+                    <span class="nv-icon">🌐</span>
+                    <div>
+                      <div class="nv-name">Public</div>
+                      <div class="nv-desc">Visible to contact</div>
+                    </div>
+                    <span class="nv-check" *ngIf="!noteIsPrivate">✓</span>
+                  </div>
+                  <div class="nv-option"
+                    [class.selected]="noteIsPrivate"
+                    (click)="noteIsPrivate = true">
+                    <span class="nv-icon">🔒</span>
+                    <div>
+                      <div class="nv-name">Private</div>
+                      <div class="nv-desc">Not visible to contact</div>
+                    </div>
+                    <span class="nv-check" *ngIf="noteIsPrivate">✓</span>
+                  </div>
+                </div>
+              </div>
+              <!-- end: note-visibility-row -->
+
+              <!-- Notify row -->
               <div class="notify-row">
                 <span class="notify-label">Notify to:</span>
                 <div class="notify-agents">
@@ -244,8 +320,12 @@
                 </div>
               </div>
 
-              <div class="editor-area note-editor" contenteditable="true" #noteEditor
-                (input)="onNoteInput($event)" data-placeholder="Add a note, @mention...">
+              <div class="editor-area note-editor"
+                [class.public-note]="!noteIsPrivate"
+                contenteditable="true"
+                #noteEditor
+                (input)="onNoteInput($event)"
+                data-placeholder="Add a note, @mention...">
               </div>
             </div>
             <!-- end: composer-body note -->

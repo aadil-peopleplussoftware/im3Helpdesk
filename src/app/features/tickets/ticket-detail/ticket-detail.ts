@@ -112,6 +112,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   viewers: any[] = [];
   timeline: any[] = [];
   showTimeline = false;
+  noteIsPrivate = true;
 
       loadTimeline() {
         this.http.get<any[]>(
@@ -564,21 +565,23 @@ loadCustomFieldValues() {
     }
   }
     async sendNote() {
-      // Get HTML content from contenteditable editor
-      const noteContent = this.noteEditorRef?.nativeElement?.innerHTML?.trim()
+      const content =
+        this.noteEditorRef?.nativeElement
+          ?.innerHTML?.trim()
         || this.noteText?.trim();
 
-      if (!noteContent || noteContent === '<br>') return;
-
+      if (!content || content === '<br>') return;
       this.updating = true;
       this.cdr.detectChanges();
 
       try {
-        const res: any = await this.ticketService.addComment(
-          this.ticketId,
-          noteContent, // HTML content
-          true
-        ).toPromise();
+        const res: any = await this.ticketService
+          // ✅ noteIsPrivate controls visibility
+          .addComment(
+            this.ticketId,
+            content,
+            this.noteIsPrivate  // true=private, false=public
+          ).toPromise();
 
         const commentId = res?.commentId;
 

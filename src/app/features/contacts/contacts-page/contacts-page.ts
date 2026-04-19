@@ -33,6 +33,12 @@ export class ContactsPageComponent implements OnInit {
   searchQuery = '';
   selectedContact: any = null;
 
+  activeView: 'contacts' | 'companies' = 'contacts';
+  companies: any[] = [];
+  filteredCompanies: any[] = [];
+  selectedCompany: any = null;
+  companyContacts: any[] = [];
+
   private getHeaders() {
     return new HttpHeaders({
       'Authorization':
@@ -40,8 +46,19 @@ export class ContactsPageComponent implements OnInit {
     });
   }
 
+
+  coActiveTab = 'contacts';
+  showCreateForm = false;
+
+  viewContact(c: any) {
+    this.selectedContact = c;
+    this.activeView = 'contacts';
+    this.cdr.detectChanges();
+  }
+
   ngOnInit() {
     this.loadContacts();
+    this.loadCompanies();
   }
 
   loadContacts() {
@@ -85,6 +102,44 @@ export class ContactsPageComponent implements OnInit {
     .map(([name, contacts]) => ({ name, contacts }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+  loadCompanies() {
+    this.http.get<any[]>(
+      'https://localhost:7071/api/Contacts',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        const groups: any = {};
+        data.forEach(c => {
+          const co = c.company || 'No Company';
+          if (!groups[co]) {
+            groups[co] = { name: co, contacts: [] };
+          }
+          groups[co].contacts.push(c);
+        });
+        this.companies = Object.values(groups)
+          .sort((a: any, b: any) =>
+            a.name.localeCompare(b.name));
+        this.filteredCompanies = [...this.companies];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  selectCompany(co: any) {
+    this.selectedCompany = co;
+    this.companyContacts = co.contacts;
+    this.cdr.detectChanges();
+  }
+
+  searchCompanies() {
+    const q = this.searchQuery.toLowerCase();
+    this.filteredCompanies = q
+      ? this.companies.filter(
+          (c: any) => c.name.toLowerCase().includes(q))
+      : [...this.companies];
+    this.cdr.detectChanges();
+  }
 
   selectContact(c: any) {
     this.selectedContact =
