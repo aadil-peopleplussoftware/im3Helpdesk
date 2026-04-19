@@ -1,49 +1,146 @@
 <app-layout>
-  <div class="kb-page">
-    <div class="page-top">
-      <div>
-        <h1>Knowledge Base</h1>
-        <p>Help articles for your team and customers</p>
+  <div class="kb-detail-page">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Article Content -->
+    <div *ngIf="!loading && article"
+      class="article-wrap">
+
+      <!-- Back Button -->
+      <div class="breadcrumb">
+        <button class="back-btn"
+          (click)="router.navigate([getBackRoute()])">
+          ← Knowledge Base
+        </button>
       </div>
-      <button class="add-btn"
-        *ngIf="canManage()"
-        (click)="router.navigate(['/kb/create'])">
-        + New Article
+
+      <!-- Article Card -->
+      <div class="article-card">
+
+        <!-- Header -->
+        <div class="article-header">
+          <div class="article-badges">
+            <span class="cat-badge">
+              {{ article.category }}
+            </span>
+            <span class="draft-badge"
+              *ngIf="!article.isPublished">
+              Draft
+            </span>
+          </div>
+
+          <!-- ✅ Eye Icon + Viewers -->
+          <div class="viewers-section">
+            <button class="eye-btn"
+              (click)="toggleViewers()"
+              [class.active]="showViewers"
+              title="See who viewed">
+              <span class="eye-icon">👁</span>
+              <span class="view-num">
+                {{ viewCount }}
+              </span>
+            </button>
+
+            <!-- Viewers Dropdown -->
+            <div class="viewers-dropdown"
+              *ngIf="showViewers">
+              <div class="vd-header">
+                <span>Who viewed this article</span>
+                <button (click)="showViewers = false">
+                  ✕
+                </button>
+              </div>
+
+              <div *ngIf="articleViewers.length === 0"
+                class="vd-empty">
+                No views recorded yet
+              </div>
+
+              <div class="viewer-item"
+                *ngFor="let v of articleViewers">
+                <div class="viewer-av"
+                  [style.background]="
+                    getAvatarColor(v.user)">
+                  {{ v.user?.charAt(0)
+                    ?.toUpperCase() }}
+                </div>
+                <div class="viewer-info">
+                  <div class="viewer-name">
+                    {{ v.user }}
+                  </div>
+                  <div class="viewer-time">
+                    {{ v.createdAt
+                      | date:'dd MMM, hh:mm a' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Title -->
+        <h1 class="article-title">
+          {{ article.title }}
+        </h1>
+
+        <!-- Meta -->
+        <div class="article-meta">
+          <span class="meta-item">
+            👁 {{ viewCount }} views
+          </span>
+          <span class="meta-item">
+            📅 {{ article.createdAt
+              | date:'dd MMM yyyy' }}
+          </span>
+          <span class="meta-item"
+            *ngIf="article.createdBy">
+            ✍ {{ article.createdBy }}
+          </span>
+        </div>
+
+        <!-- Tags -->
+        <div class="article-tags"
+          *ngIf="article.tags">
+          <span class="tag-pill"
+            *ngFor="let tag of
+              article.tags?.split(',')">
+            {{ tag.trim() }}
+          </span>
+        </div>
+
+        <div class="article-divider"></div>
+
+        <!-- Content -->
+        <div class="article-content">
+          {{ article.content }}
+        </div>
+
+        <!-- Actions (agents only) -->
+        <div class="article-actions"
+          *ngIf="canManage()">
+          <button class="edit-btn"
+            (click)="router.navigate(
+              ['/kb/edit', article.id])">
+            ✏ Edit Article
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Not Found -->
+    <div *ngIf="!loading && !article"
+      class="not-found">
+      <h3>Article not found</h3>
+      <button class="back-btn"
+        (click)="router.navigate(['/kb'])">
+        Back to KB
       </button>
     </div>
 
-<div class="page-container" *ngIf="!loading && article">
-  <mat-card class="article-card">
-    <mat-card-content>
-
-      <div class="article-meta">
-        <span class="category-tag">{{ article.category }}</span>
-        <span class="views">{{ article.viewCount }} views</span>
-        <span class="date">{{ article.createdAt | date:'dd MMM yyyy' }}</span>
-      </div>
-
-      <h1 class="article-title">{{ article.title }}</h1>
-
-      <div class="article-tags" *ngIf="article.tags">
-        <span class="tag" *ngFor="let tag of article.tags?.split(',')">
-          {{ tag.trim() }}
-        </span>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="article-content">{{ article.content }}</div>
-
-      <div class="author-row">
-        <span>Written by <strong>{{ article.createdBy }}</strong></span>
-        <span *ngIf="article.updatedAt">
-          Updated {{ article.updatedAt | date:'dd MMM yyyy' }}
-        </span>
-      </div>
-
-    </mat-card-content>
-  </mat-card>
-</div>
-
-</div>
+  </div>
 </app-layout>

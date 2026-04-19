@@ -14,6 +14,7 @@ import { ToastrService } from 'ngx-toastr';
 import { KnowledgeBaseService } from '../../../services/knowledge-base';
 import { AuthService } from '../../../services/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-kb-list',
@@ -22,7 +23,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs';
     CommonModule, RouterModule, ReactiveFormsModule,
     MatButtonModule, MatToolbarModule, MatCardModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatProgressSpinnerModule, MatChipsModule
+    MatProgressSpinnerModule, MatChipsModule,LayoutComponent
   ],
   templateUrl: './kb-list.html',
   styleUrls: ['./kb-list.scss']

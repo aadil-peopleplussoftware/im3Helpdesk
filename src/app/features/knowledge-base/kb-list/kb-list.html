@@ -1,89 +1,114 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/dashboard'])">← Dashboard</button>
-  <span>Knowledge Base</span>
-  <span class="spacer"></span>
-  <button mat-raised-button *ngIf="canManage()"
-    (click)="router.navigate(['/kb/create'])">
-    + New Article
-  </button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="kb-page">
 
-<div class="page-container">
+    <div class="page-top">
+      <div>
+        <h1>Knowledge Base</h1>
+        <p>Help articles for your team and customers</p>
+      </div>
+      <button class="add-btn"
+        *ngIf="canManage()"
+        (click)="router.navigate(['/kb/create'])">
+        + New Article
+      </button>
+    </div>
 
-  <div class="filter-row">
-    <form [formGroup]="filterForm" class="filter-form">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search articles...</mat-label>
-        <input matInput formControlName="search"/>
-      </mat-form-field>
+    <!-- Filters -->
+    <div class="filter-row">
+      <form [formGroup]="filterForm">
+        <div class="filter-inputs">
+          <div class="search-wrap">
+            <span>🔍</span>
+            <input class="search-input"
+              formControlName="search"
+              placeholder="Search articles..."/>
+          </div>
 
-      <mat-form-field appearance="outline" class="cat-field">
-        <mat-label>Category</mat-label>
-        <mat-select formControlName="category">
-          <mat-option value="">All Categories</mat-option>
-          <mat-option *ngFor="let c of categories" [value]="c">
-            {{ c }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </form>
-  </div>
+          <select class="cat-select"
+            formControlName="category">
+            <option value="">All Categories</option>
+            <option *ngFor="let c of categories"
+              [value]="c">{{ c }}</option>
+          </select>
+        </div>
+      </form>
+    </div>
 
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+    </div>
 
-  <div *ngIf="!loading">
-    <div *ngIf="articles.length === 0" class="empty-state">
-      <p>No articles found.</p>
-      <button mat-raised-button color="primary"
+    <!-- Empty -->
+    <div *ngIf="!loading && articles.length === 0"
+      class="empty-state">
+      <div class="empty-icon">📚</div>
+      <h3>No articles found</h3>
+      <button class="add-btn"
         *ngIf="canManage()"
         (click)="router.navigate(['/kb/create'])">
         Create First Article
       </button>
     </div>
 
-    <div class="articles-grid">
-      <mat-card class="article-card"
+    <!-- Articles Grid -->
+    <div class="articles-grid"
+      *ngIf="!loading && articles.length > 0">
+
+      <div class="article-card"
         *ngFor="let a of articles"
         (click)="router.navigate(['/kb', a.id])">
-        <mat-card-content>
 
-          <div class="article-header">
-            <span class="category-tag">{{ a.category }}</span>
-            <span class="draft-tag" *ngIf="!a.isPublished">Draft</span>
-          </div>
+        <div class="card-top">
+          <span class="cat-badge">
+            {{ a.category }}
+          </span>
+          <span class="draft-badge"
+            *ngIf="!a.isPublished">
+            Draft
+          </span>
+        </div>
 
-          <h3 class="article-title">{{ a.title }}</h3>
-          <p class="article-preview">{{ a.contentPreview }}</p>
+        <h3 class="card-title">{{ a.title }}</h3>
 
-          <div class="article-footer">
-            <div class="article-tags">
-              <span class="tag" *ngFor="let tag of a.tags?.split(',')?.slice(0,3)">
-                {{ tag.trim() }}
-              </span>
-            </div>
-            <div class="article-meta">
-              <span>{{ a.viewCount }} views</span>
-              <span>{{ a.createdAt | date:'dd MMM yyyy' }}</span>
-            </div>
-          </div>
+        <p class="card-preview">
+          {{ a.contentPreview }}
+        </p>
 
-          <div class="article-actions" *ngIf="canManage()"
-            (click)="$event.stopPropagation()">
-            <button mat-button color="primary"
-              (click)="router.navigate(['/kb/edit', a.id])">
-              Edit
-            </button>
-            <button mat-button color="warn"
-              (click)="deleteArticle(a.id)">
-              Delete
-            </button>
-          </div>
+        <div class="card-tags"
+          *ngIf="a.tags">
+          <span class="tag-pill"
+            *ngFor="let tag of
+              a.tags?.split(',')?.slice(0,3)">
+            {{ tag.trim() }}
+          </span>
+        </div>
 
-        </mat-card-content>
-      </mat-card>
+        <div class="card-footer">
+          <span class="views-count">
+            👁 {{ a.viewCount || 0 }} views
+          </span>
+          <span class="card-date">
+            {{ a.createdAt | date:'dd MMM yyyy' }}
+          </span>
+        </div>
+
+        <div class="card-actions"
+          *ngIf="canManage()"
+          (click)="$event.stopPropagation()">
+          <button class="edit-btn"
+            (click)="router.navigate(
+              ['/kb/edit', a.id])">
+            Edit
+          </button>
+          <button class="del-btn"
+            (click)="deleteArticle(a.id)">
+            Delete
+          </button>
+        </div>
+
+      </div>
     </div>
+
   </div>
-</div>
+</app-layout>

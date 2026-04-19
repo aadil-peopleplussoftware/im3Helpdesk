@@ -74,7 +74,7 @@ export const routes: Routes = [
   path: 'agents',
   loadComponent: () =>
     import('./features/agents/agent-list/agent-list')
-      .then(m => m.AgentListComponent),
+      .then(m => m.AgentsComponent),
   canActivate: [authGuard]
 },
 {

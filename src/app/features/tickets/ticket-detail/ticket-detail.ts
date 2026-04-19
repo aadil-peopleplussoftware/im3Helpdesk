@@ -55,6 +55,13 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  private getHeaders(): HttpHeaders {
+  return new HttpHeaders({
+    'Authorization':
+      `Bearer ${this.authService.getToken()}`
+  });
+}
+
   ticket: any = null;
   loading = true;
   updating = false;
@@ -103,6 +110,35 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
     comment: ['', [Validators.required, Validators.minLength(3)]]
   });
   viewers: any[] = [];
+  timeline: any[] = [];
+  showTimeline = false;
+
+      loadTimeline() {
+        this.http.get<any[]>(
+          `https://localhost:7071/api/Tickets/${this.ticketId}/timeline`,
+          { headers: this.getHeaders() }
+        ).subscribe({
+          next: (data) => {
+            this.timeline = data;
+            this.cdr.detectChanges();
+          }
+        });
+      }
+
+      getTimelineLabel(action: string): string {
+        const labels: any = {
+          'Created': 'created this ticket',
+          'StatusChanged': 'changed status',
+          'Assigned': 'assigned ticket',
+          'Commented': 'added a reply',
+          'Updated': 'updated ticket',
+          'TimeLogged': 'logged time',
+          'TagAdded': 'added a tag',
+          'PriorityChanged': 'changed priority',
+          'GroupChanged': 'changed group'
+        };
+        return labels[action] || action?.toLowerCase();
+      }  
 
     loadTicket() {
       this.ticketService.getById(this.ticketId).subscribe({
@@ -170,6 +206,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       this.loadAgentSignature();
       this.startPolling();
       this.loadCustomFieldValues()
+      this.loadTimeline();
     });
   }
 

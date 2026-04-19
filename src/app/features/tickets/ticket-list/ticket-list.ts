@@ -209,17 +209,6 @@ export class TicketListComponent
       .some(v => v !== '');
   }
 
-  sortBy_(field: string) {
-    if (this.sortBy === field)
-      this.sortDir =
-        this.sortDir === 'asc' ? 'desc' : 'asc';
-    else {
-      this.sortBy = field;
-      this.sortDir = 'desc';
-    }
-    this.applyFilters();
-  }
-
   viewTicket(id: string) {
     this.router.navigate(['/tickets', id]);
   }
@@ -258,12 +247,32 @@ export class TicketListComponent
     this.cdr.markForCheck();
   }
 
-  getTagsArr(tags: string): string[] {
-    if (!tags) return [];
-    return tags.split(',')
-      .map(t => t.trim())
-      .filter(t => t);
-  }
+
+    getTagsArr(tags: string): string[] {
+      if (!tags || tags.trim() === '') return [];
+      return tags.split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0)
+        .slice(0, 3); 
+    }
+
+    sortBy_(field: string) {
+      if (this.sortBy === field) {
+        this.sortDir =
+          this.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortBy = field;
+        this.sortDir = field === 'createdAt'
+          ? 'desc' : 'asc';
+      }
+      this.applyFilters();
+    }
+
+// Sort icon helper
+getSortIcon(field: string): string {
+  if (this.sortBy !== field) return '↕';
+  return this.sortDir === 'asc' ? '↑' : '↓';
+}
 
   getStatusColor(s: string): string {
     const c: any = {

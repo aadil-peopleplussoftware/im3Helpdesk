@@ -74,6 +74,18 @@ export class ContactsPageComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  get companyGroups(): any[] {
+  const groups: { [key: string]: any[] } = {};
+  this.filteredContacts.forEach(c => {
+    const company = c.company || 'No Company';
+    if (!groups[company]) groups[company] = [];
+    groups[company].push(c);
+  });
+  return Object.entries(groups)
+    .map(([name, contacts]) => ({ name, contacts }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
   selectContact(c: any) {
     this.selectedContact =
       this.selectedContact?.id === c.id ? null : c;

@@ -1,87 +1,149 @@
-<mat-toolbar color="primary">
-  <button mat-button (click)="router.navigate(['/dashboard'])">← Dashboard</button>
-  <span>Agent Management</span>
-  <span class="spacer"></span>
-  <button mat-raised-button (click)="router.navigate(['/agents/invite'])">
-    + Invite Agent
-  </button>
-  <button mat-button (click)="router.navigate(['/agents/groups'])">
-  Groups
-</button>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="agents-page">
 
-<div class="page-container">
-  <div *ngIf="loading" class="loading-center">
-    <mat-spinner diameter="48"></mat-spinner>
-  </div>
-
-  <div *ngIf="!loading">
-    <div class="summary-bar">
-      <span>Total Members: <strong>{{ agents.length }}</strong></span>
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-left">
+        <h1>Agents</h1>
+        <div class="seats-info">
+          <span class="seats-badge">
+            {{ agents.length }} agents
+          </span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="search-wrap">
+          <span>🔍</span>
+          <input class="search-input"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="filterAgents()"
+            placeholder="Search agents..."/>
+        </div>
+        <button class="export-btn"
+          (click)="exportCsv()">
+          Export
+        </button>
+        <button class="new-btn"
+          (click)="router.navigate(['/agents/invite'])"
+          *ngIf="isAdmin">
+          New agent
+        </button>
+      </div>
     </div>
 
-    <table mat-table [dataSource]="agents" class="agents-table">
-
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Name</th>
-        <td mat-cell *matCellDef="let a">
-          <strong>{{ a.fullName }}</strong>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="email">
-        <th mat-header-cell *matHeaderCellDef>Email</th>
-        <td mat-cell *matCellDef="let a">{{ a.email }}</td>
-      </ng-container>
-
-      <ng-container matColumnDef="role">
-        <th mat-header-cell *matHeaderCellDef>Role</th>
-        <td mat-cell *matCellDef="let a">
-          <span class="role-badge"
-            [style.color]="getRoleColor(a.role)"
-            [style.background]="getRoleColor(a.role) + '20'">
-            {{ a.role }}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="verified">
-        <th mat-header-cell *matHeaderCellDef>Verified</th>
-        <td mat-cell *matCellDef="let a">
-          <span class="verified-badge" [class.yes]="a.isEmailVerified">
-            {{ a.isEmailVerified ? 'Yes' : 'No' }}
-          </span>
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="lastLogin">
-        <th mat-header-cell *matHeaderCellDef>Last Login</th>
-        <td mat-cell *matCellDef="let a">
-          {{ a.lastLoginAt ? (a.lastLoginAt | date:'dd MMM yyyy') : 'Never' }}
-        </td>
-      </ng-container>
-
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef>Actions</th>
-        <td mat-cell *matCellDef="let a">
-          <button mat-button color="warn"
-            (click)="deleteAgent(a.id, a.fullName)">
-            Remove
-          </button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-    </table>
-
-    <div *ngIf="agents.length === 0" class="empty-state">
-      <p>No agents found. Invite your first agent!</p>
-      <button mat-raised-button color="primary"
-        (click)="router.navigate(['/agents/invite'])">
-        Invite Agent
+    <!-- Tabs -->
+    <div class="agent-tabs">
+      <button class="a-tab"
+        [class.active]="activeTab === 'active'"
+        (click)="activeTab = 'active';
+          filterAgents()">
+        Support Agents
+        <span class="tab-count">
+          {{ getActiveCount() }}
+        </span>
+      </button>
+      <button class="a-tab"
+        [class.active]="activeTab === 'inactive'"
+        (click)="activeTab = 'inactive';
+          filterAgents()">
+        Deactivated Agents
+        <span class="tab-count inactive">
+          {{ getInactiveCount() }}
+        </span>
       </button>
     </div>
+
+    <!-- Table -->
+    <div class="agents-table-wrap">
+      <table class="agents-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Roles</th>
+            <th>Groups</th>
+            <th>Last Seen</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of filteredAgents"
+            class="agent-row">
+            <td>
+              <div class="agent-name-cell">
+                <div class="ag-av"
+                  [style.background]="a.photoUrl
+                    ? 'transparent'
+                    : getAvatarColor(a.fullName)"
+                  style="overflow:hidden">
+                  <img *ngIf="a.photoUrl"
+                    [src]="'https://localhost:7071'
+                      + a.photoUrl"
+                    style="width:100%;height:100%;
+                      object-fit:cover;
+                      border-radius:50%"/>
+                  <span *ngIf="!a.photoUrl">
+                    {{ a.fullName
+                      ?.charAt(0)?.toUpperCase() }}
+                  </span>
+                </div>
+                <div class="ag-info">
+                  <span class="ag-name">
+                    {{ a.fullName }}
+                  </span>
+                  <span class="ag-email">
+                    {{ a.email }}
+                  </span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="role-badge"
+                [class]="'role-' +
+                  a.role?.toLowerCase()">
+                {{ getRoleLabel(a.role) }}
+              </span>
+            </td>
+            <td>
+              <span class="group-text">
+                {{ a.groupName || '—' }}
+              </span>
+            </td>
+            <td>
+              <span class="lastseen">
+                {{ a.lastLoginAt
+                  ? getTimeAgo(a.lastLoginAt)
+                  : 'Never' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-btns">
+                <!-- Edit button — all admins -->
+                <button class="edit-btn"
+                  (click)="editAgent(a)"
+                  *ngIf="isAdmin">
+                  Edit
+                </button>
+
+                <!-- ✅ Delete ONLY for CompanyAdmin -->
+                <button class="del-btn"
+                  *ngIf="isCompanyAdmin"
+                  (click)="deleteAgent(a)">
+                  Delete
+                </button>
+
+                <!-- Deactivate/Activate -->
+                <button class="deact-btn"
+                  *ngIf="isAdmin"
+                  (click)="toggleActive(a)">
+                  {{ a.isActive
+                    ? 'Deactivate' : 'Activate' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
-</div>
+</app-layout>

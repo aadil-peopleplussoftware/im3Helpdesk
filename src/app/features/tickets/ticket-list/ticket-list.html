@@ -222,8 +222,7 @@
         <div class="card-tags"
           *ngIf="getTagsArr(t.tags).length > 0">
           <span class="tag-pill"
-            *ngFor="let tag of
-              getTagsArr(t.tags).slice(0,3)">
+            *ngFor="let tag of getTagsArr(t.tags)">
             {{ tag }}
           </span>
         </div>
@@ -359,6 +358,15 @@
             <td *ngIf="isColumnVisible('createdAt')">
               {{ t.createdAt
                 | date:'dd MMM yy' }}
+            </td>
+            <td *ngIf="isColumnVisible('tags')">
+              <span class="tag-pill"
+                *ngFor="let tag of getTagsArr(t.tags)">
+                {{ tag }}
+              </span>
+              <span *ngIf="!t.tags || t.tags.trim() === ''">
+                —
+              </span>
             </td>
           </tr>
         </tbody>

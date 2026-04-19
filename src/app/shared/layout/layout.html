@@ -1,140 +1,309 @@
-<div class="app-frame">
+<div class="app-shell">
 
-  <aside class="sidebar">
-    <div class="sidebar-brand" (click)="router.navigate(['/dashboard'])" style="cursor:pointer">
-      <div class="brand-icon">⚡</div>
-      <span>iM3 Helpdesk</span>
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚡</div>
+      <span class="logo-text">
+        <ng-container *ngIf="!isSuperAdmin && !isCustomer">
+          iM3 Helpdesk
+        </ng-container>
+        <ng-container *ngIf="isSuperAdmin">
+          Super Admin
+        </ng-container>
+        <ng-container *ngIf="isCustomer">
+          My Support
+        </ng-container>
+      </span>
     </div>
 
-    <nav class="sidebar-nav">
-      <div class="nav-label">MAIN MENU</div>
+    <!-- Agent/Admin Nav -->
+    <nav class="sidebar-nav"
+      *ngIf="!isSuperAdmin && !isCustomer">
 
-      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
-        <span class="nav-icon">⊞</span>
-        <span>Dashboard</span>
-      </a>
+      <div class="nav-section">
+        <div class="nav-label">Main Menu</div>
 
-      <a class="nav-item" routerLink="/tickets" routerLinkActive="active">
-        <span class="nav-icon">🎫</span>
-        <span>Tickets</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/dashboard"
+          routerLinkActive="active">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
 
-      <a class="nav-item" routerLink="/agents" routerLinkActive="active">
-       <span class="nav-icon">👤</span>
-        <span>Agents</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/tickets"
+          routerLinkActive="active">
+          <span class="nav-icon">🎫</span>
+          <span>Tickets</span>
+        </a>
 
-      <!-- Main menu mein add karo -->
-      <a class="nav-item"
-        routerLink="/contacts"
-        routerLinkActive="active">
-        <span class="nav-icon">👤</span>
-        <span class="nav-label">Contacts</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/contacts"
+          routerLinkActive="active">
+          <span class="nav-icon">👤</span>
+          <span>Contacts</span>
+        </a>
 
-      <a class="nav-item" routerLink="/kb" routerLinkActive="active">
-        <span class="nav-icon">📖</span>
-        <span>KB</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/kb"
+          routerLinkActive="active">
+          <span class="nav-icon">📚</span>
+          <span>Knowledge Base</span>
+        </a>
 
-      <a class="nav-item" routerLink="/notifications">
-        <span class="nav-icon">🔔</span>
-        <span>Notifications</span>
-        <span class="nav-badge" *ngIf="unreadCount > 0">
-          {{ unreadCount }}
-        </span>
-      </a>
- 
+        <a class="nav-item"
+          routerLink="/notifications"
+          routerLinkActive="active">
+          <span class="nav-icon">🔔</span>
+          <span>Notifications</span>
+          <span class="badge" *ngIf="unreadCount > 0">
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+        </a>
+      </div>
 
-      <div class="nav-label">SYSTEM</div>
+      <div class="nav-section">
+        <div class="nav-label">Manage</div>
 
-      <a class="nav-item" routerLink="/settings" routerLinkActive="active">
-        <span class="nav-icon">⚙</span>
-        <span>Settings</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/agents"
+          routerLinkActive="active">
+          <span class="nav-icon">👥</span>
+          <span>Agents</span>
+        </a>
 
-      <a class="nav-item" routerLink="/admin" routerLinkActive="active" *ngIf="userRole === 'SuperAdmin'">
-        <span class="nav-icon">👑</span>
-        <span>Super Admin</span>
-      </a>
+        <a class="nav-item"
+          routerLink="/reports"
+          routerLinkActive="active">
+          <span class="nav-icon">📈</span>
+          <span>Reports</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">System</div>
+
+        <a class="nav-item"
+          routerLink="/settings"
+          routerLinkActive="active">
+          <span class="nav-icon">⚙</span>
+          <span>Settings</span>
+        </a>
+      </div>
+
     </nav>
 
-    <div class="sidebar-footer">
-      <div class="sidebar-user" (click)="router.navigate(['/profile'])" style="cursor:pointer">
-        <div class="user-av">
-          <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName" (error)="userPhotoUrl = ''" 
-               style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
-          <span *ngIf="!userPhotoUrl">{{ userInitials }}</span>
-        </div>
-        <div class="user-info">
-          <div class="user-name">{{ userName }}</div>
-          <div class="user-email">{{ userEmail }}</div>
-        </div>
+    <!-- SuperAdmin Nav -->
+    <nav class="sidebar-nav" *ngIf="isSuperAdmin">
+      <div class="nav-section">
+        <div class="nav-label">Super Admin</div>
+
+        <a class="nav-item"
+          routerLink="/admin"
+          routerLinkActive="active">
+          <span class="nav-icon">🏠</span>
+          <span>Overview</span>
+        </a>
+
+        <a class="nav-item"
+          routerLink="/admin/organizations"
+          routerLinkActive="active">
+          <span class="nav-icon">🏢</span>
+          <span>Organizations</span>
+        </a>
+
+        <a class="nav-item"
+          routerLink="/admin/users"
+          routerLinkActive="active">
+          <span class="nav-icon">👤</span>
+          <span>All Users</span>
+        </a>
       </div>
-      
-      <div class="footer-links">
-        <a class="footer-link" routerLink="/profile">👤 Profile</a>
-        <button class="footer-link logout" (click)="logout()">→ Logout</button>
+    </nav>
+
+    <!-- Customer Nav -->
+    <nav class="sidebar-nav" *ngIf="isCustomer">
+      <div class="nav-section">
+        <div class="nav-label">My Support</div>
+
+        <a class="nav-item"
+          routerLink="/customer"
+          routerLinkActive="active">
+          <span class="nav-icon">🎫</span>
+          <span>My Tickets</span>
+        </a>
+
+        <a class="nav-item"
+          routerLink="/kb"
+          routerLinkActive="active">
+          <span class="nav-icon">📚</span>
+          <span>Help Articles</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Sidebar Bottom User -->
+    <div class="sidebar-user"
+      (click)="router.navigate(['/profile'])">
+      <div class="user-av"
+        [style.background]="userPhotoUrl
+          ? 'transparent'
+          : getAvatarColor(userName)">
+        <img *ngIf="userPhotoUrl"
+          [src]="userPhotoUrl"
+          [alt]="userName"
+          (error)="userPhotoUrl = ''"
+          style="width:100%;height:100%;
+            object-fit:cover;border-radius:50%"/>
+        <span *ngIf="!userPhotoUrl">
+          {{ getInitials(userName) }}
+        </span>
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ userName }}</div>
+        <div class="user-role">{{ userRole }}</div>
       </div>
     </div>
-  </aside>
 
-  <div class="main-wrap">
-    <header class="topbar">
-      <div class="topbar-search">
-        <app-global-search></app-global-search>
+  </div>
+  <!-- End Sidebar -->
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+
+      <!-- Search (agents/admin only) -->
+      <div class="topbar-search"
+        *ngIf="!isSuperAdmin && !isCustomer">
+        <span class="ts-icon">🔍</span>
+        <input class="ts-input"
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearch()"
+          placeholder="Search tickets, agents, KB..."/>
+        <div class="search-dropdown"
+          *ngIf="searchResults.length > 0">
+          <div class="sr-item"
+            *ngFor="let r of searchResults"
+            (click)="goToResult(r)">
+            <span class="sr-icon">
+              {{ r.type === 'ticket' ? '🎫'
+                : r.type === 'agent' ? '👤' : '📚' }}
+            </span>
+            <span>{{ r.title }}</span>
+          </div>
+        </div>
       </div>
 
-      <div class="topbar-actions">
-        <button class="action-btn primary" (click)="router.navigate(['/tickets/create'])">
+      <!-- Customer header -->
+      <div class="customer-header"
+        *ngIf="isCustomer">
+        Support Portal
+      </div>
+
+      <!-- SuperAdmin header -->
+      <div class="super-header"
+        *ngIf="isSuperAdmin">
+        Platform Administration
+      </div>
+
+      <!-- Right side -->
+      <div class="topbar-right">
+
+        <!-- New Ticket btn -->
+        <button class="new-ticket-btn"
+          *ngIf="!isSuperAdmin && !isCustomer"
+          (click)="router.navigate(['/tickets/create'])">
           + New Ticket
         </button>
 
-        <div class="notif-wrap">
-          <button class="notif-bell" (click)="toggleNotifDropdown()">
-            🔔
-            <span class="notif-dot" *ngIf="unreadCount > 0">
-              {{ unreadCount > 9 ? '9+' : unreadCount }}
-            </span>
-          </button>
+        <!-- Bell -->
+        <div class="notif-bell"
+          *ngIf="!isSuperAdmin"
+          (click)="toggleNotifDropdown()">
+          <span class="bell-icon">🔔</span>
+          <span class="notif-count"
+            *ngIf="unreadCount > 0">
+            {{ unreadCount > 99
+              ? '99+' : unreadCount }}
+          </span>
 
-          <div class="notif-dropdown" *ngIf="showNotifDropdown">
-            <div class="notif-header">
+          <!-- Dropdown -->
+          <div class="notif-dropdown"
+            *ngIf="showNotifDropdown"
+            (click)="$event.stopPropagation()">
+            <div class="nd-header">
               <span>Notifications</span>
-              <button (click)="viewAllNotifications()">View all</button>
+              <button (click)="markAllRead()">
+                Mark all read
+              </button>
             </div>
-            <div class="notif-list">
-              <div *ngIf="notifications.length === 0" class="notif-empty">No notifications</div>
-              <div class="notif-row" *ngFor="let n of notifications" (click)="goToNotification(n)" [class.unread]="!n.isRead">
-                <div class="notif-dot-type" [style.background]="getTypeColor(n.type)"></div>
-                <div class="notif-text">
-                  <div class="notif-t">{{ n.title }}</div>
-                  <div class="notif-m">{{ n.message }}</div>
-                  <div class="notif-time">{{ n.timeAgo || (n.createdAt | date:'hh:mm a') }}</div>
+
+            <div class="nd-empty"
+              *ngIf="notifications.length === 0">
+              No notifications
+            </div>
+
+            <div class="nd-item"
+              *ngFor="let n of notifications.slice(0,8)"
+              [class.unread]="!n.isRead"
+              (click)="goToNotification(n)">
+              <div class="nd-dot" *ngIf="!n.isRead">
+              </div>
+              <div class="nd-content">
+                <div class="nd-title">{{ n.title }}</div>
+                <div class="nd-msg">{{ n.message }}</div>
+                <div class="nd-time">
+                  {{ n.createdAt
+                    | date:'dd MMM, hh:mm a' }}
                 </div>
               </div>
             </div>
+
+            <div class="nd-footer"
+              (click)="router.navigate(['/notifications'])">
+              View all notifications
+            </div>
           </div>
         </div>
 
-        <div class="topbar-user" (click)="router.navigate(['/profile'])" style="cursor:pointer">
-          <div class="u-av">
-            <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName" (error)="userPhotoUrl = ''"
-                 style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
-            <span *ngIf="!userPhotoUrl">{{ userInitials }}</span>
+        <!-- Topbar User Avatar -->
+        <div class="topbar-user"
+          (click)="router.navigate(['/profile'])">
+          <div class="u-av"
+            [style.background]="userPhotoUrl
+              ? 'transparent'
+              : getAvatarColor(userName)">
+            <img *ngIf="userPhotoUrl"
+              [src]="userPhotoUrl"
+              [alt]="userName"
+              (error)="userPhotoUrl = ''"
+              style="width:100%;height:100%;
+                object-fit:cover;border-radius:50%"/>
+            <span *ngIf="!userPhotoUrl">
+              {{ getInitials(userName) }}
+            </span>
           </div>
           <div class="u-info">
             <span class="u-name">{{ userName }}</span>
-            <span class="u-role">{{ userRole | uppercase }}</span>
+            <span class="u-role">{{ userRole }}</span>
           </div>
         </div>
-      </div>
-    </header>
 
-    <div class="page-body">
+      </div>
+    </div>
+    <!-- End Topbar -->
+
+    <!-- PAGE CONTENT -->
+    <div class="page-content">
       <ng-content></ng-content>
     </div>
-  </div>
 
-  <div class="overlay" *ngIf="showNotifDropdown" (click)="showNotifDropdown = false"></div>
+  </div>
+  <!-- End Main Area -->
+
 </div>

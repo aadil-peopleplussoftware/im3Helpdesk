@@ -351,6 +351,47 @@
       <!-- Properties Panel -->
       <div class="properties-panel">
 
+        <!-- Timeline Card -->
+        <div class="prop-card timeline-card">
+          <div class="prop-title" style="display:flex;
+            justify-content:space-between;
+            align-items:center">
+            <span>TIMELINE</span>
+            <button class="tl-toggle"
+              (click)="showTimeline = !showTimeline">
+              {{ showTimeline ? '▲' : '▼' }}
+            </button>
+          </div>
+
+          <div class="timeline-list" *ngIf="showTimeline">
+            <div class="tl-empty"
+              *ngIf="timeline.length === 0">
+              No activity yet
+            </div>
+
+            <div class="tl-item"
+              *ngFor="let t of timeline">
+              <div class="tl-dot"
+                [class]="'tl-' + t.action?.toLowerCase()">
+              </div>
+              <div class="tl-content">
+                <div class="tl-action">
+                  <strong>{{ t.user }}</strong>
+                  {{ getTimelineLabel(t.action) }}
+                </div>
+                <div class="tl-desc"
+                  *ngIf="t.description">
+                  {{ t.description }}
+                </div>
+                <div class="tl-time">
+                  {{ t.createdAt
+                    | date:'dd MMM yyyy, hh:mm a' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="prop-card">
           <div class="prop-card-header">
             <span class="status-indicator" [class]="'si-' + ticket.status?.toLowerCase()"></span>
