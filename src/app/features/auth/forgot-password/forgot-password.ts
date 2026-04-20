@@ -1,53 +1,52 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatProgressSpinnerModule
-  ],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './forgot-password.html',
   styleUrls: ['./forgot-password.scss']
 })
 export class ForgotPasswordComponent {
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
+
+  email = '';
   loading = false;
   submitted = false;
-  form: FormGroup;
-
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private toastr: ToastrService
-  ) {
-    this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]]
-    });
-  }
+  errorMessage = '';
+  successMessage = '';
 
   onSubmit() {
-    if (this.form.invalid) return;
-    setTimeout(() => { this.loading = true; });
+    if (!this.email?.trim()) {
+      this.errorMessage = 'Email is required';
+      return;
+    }
+    this.loading = true;
+    this.errorMessage = '';
+    this.cdr.detectChanges();
 
-    this.authService.forgotPassword(this.form.value).subscribe({
+    this.http.post(
+      'https://localhost:7071/api/Auth/forgot-password',
+      { email: this.email }
+    ).subscribe({
       next: () => {
-        setTimeout(() => { this.loading = false; });
+        this.loading = false;
         this.submitted = true;
-        this.toastr.success('Reset link sent to your email!');
+        this.successMessage =
+          'Password reset email sent! Check your inbox.';
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        setTimeout(() => { this.loading = false; });
-        this.toastr.error(err.error?.message || 'Something went wrong');
+        this.loading = false;
+        this.errorMessage =
+          err.error?.message
+            || 'Email not found. Please check and try again.';
+        this.cdr.detectChanges();
       }
     });
   }

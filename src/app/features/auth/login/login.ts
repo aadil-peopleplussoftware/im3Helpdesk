@@ -21,6 +21,8 @@ export class LoginComponent {
 
   loading = false;
   showPassword = false;
+  errorMessage = '';
+  successMessage = '';
 
   form: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -28,12 +30,16 @@ export class LoginComponent {
   });
 
   onSubmit() {
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading = true;
+    this.errorMessage = '';
     this.cdr.detectChanges();
 
     this.authService.login(this.form.value).subscribe({
-      next: (res) => {
+      next: (res: any) => {
         this.authService.saveUserData(res);
         this.loading = false;
         this.cdr.detectChanges();
@@ -49,10 +55,14 @@ export class LoginComponent {
       },
       error: (err) => {
         this.loading = false;
+        this.errorMessage =
+          err.status === 401
+            ? 'Invalid email or password'
+            : err.status === 403
+              ? 'Account is locked. Contact admin.'
+              : err.error?.message
+                || 'Login failed. Please try again.';
         this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.error(err.error?.message || 'Login failed')
-        );
       }
     });
   }

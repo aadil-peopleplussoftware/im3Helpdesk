@@ -200,7 +200,7 @@ export const routes: Routes = [
   path: 'register-customer',
   loadComponent: () =>
     import('./features/auth/register-customer/register-customer')
-      .then(m => m.VerifyEmailComponent)
+      .then(m => m.RegisterCustomerComponent)
 },
 {
   path: 'agents/groups',

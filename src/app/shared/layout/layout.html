@@ -205,10 +205,28 @@
         Support Portal
       </div>
 
-      <!-- SuperAdmin header -->
-      <div class="super-header"
-        *ngIf="isSuperAdmin">
-        Platform Administration
+      <!-- SuperAdmin Topbar -->
+      <div class="super-header" *ngIf="isSuperAdmin">
+        <span class="super-label">
+          🔧 Platform Administration
+        </span>
+        <div class="super-nav">
+          <a class="super-nav-item"
+            routerLink="/admin"
+            routerLinkActive="active">
+            🏠 Overview
+          </a>
+          <a class="super-nav-item"
+            routerLink="/admin/organizations"
+            routerLinkActive="active">
+            🏢 Organizations
+          </a>
+          <a class="super-nav-item"
+            routerLink="/admin/users"
+            routerLinkActive="active">
+            👤 All Users
+          </a>
+        </div>
       </div>
 
       <!-- Right side -->
@@ -293,7 +311,11 @@
             <span class="u-role">{{ userRole }}</span>
           </div>
         </div>
-
+          <a class="nav-item logout-item"
+            (click)="logout()">
+            <span class="nav-icon">→</span>
+            <span>Logout</span>
+          </a>
       </div>
     </div>
     <!-- End Topbar -->

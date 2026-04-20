@@ -14,6 +14,10 @@ import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
 import { CustomFieldsComponent } from '../custom-fields/custom-fields';
 import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-settings';
 import { IntegrationsComponent } from '../integrations/integrations';
+import { AgentGroupsSettingsComponent } from '../agent-groups-settings/agent-groups-settings';
+
+// imports array:
+
 
 @Component({
   selector: 'app-settings-page',
@@ -31,7 +35,8 @@ import { IntegrationsComponent } from '../integrations/integrations';
     ReportsPageComponent,
     CustomFieldsComponent,
     WhatsappSettingsComponent,
-    IntegrationsComponent
+    IntegrationsComponent,
+    AgentGroupsSettingsComponent
   ],
   templateUrl: './settings-page.html',
   styleUrls: ['./settings-page.scss']
@@ -44,16 +49,17 @@ export class SettingsPageComponent implements OnInit {
 
   activeTab = 'reports';
 
-  tabs = [
-    { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'templates', label: 'Ticket Templates', icon: '📋' },
-    { id: 'settings', label: 'General Settings', icon: '⚙' },
-    { id: 'notifications', label: 'Notifications', icon: '🔔' },
-    { id: 'audit', label: 'Audit Log', icon: '🔍' },
-    { id: 'custom-fields', label: 'Custom Fields', icon: '🔧' },
-    { id: 'integrations', label: 'Integrations', icon: '🔗' },
-    { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-  ];
+tabs = [
+  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'templates', label: 'Ticket Templates', icon: '📋' },
+  { id: 'groups', label: 'Agent Groups', icon: '👥' },
+  { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
+  { id: 'settings', label: 'General Settings', icon: '🎨' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
+  { id: 'audit', label: 'Audit Log', icon: '🔍' },
+  { id: 'integrations', label: 'Integrations', icon: '🔗' },
+  { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
+];
 
   currentTheme = 'theme-blue';
   emailNotifications = true;

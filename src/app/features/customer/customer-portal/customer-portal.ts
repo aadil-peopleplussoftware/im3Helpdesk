@@ -1,51 +1,65 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component, OnInit,
+  ChangeDetectorRef, inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  FormsModule, ReactiveFormsModule,
+  FormBuilder, FormGroup, Validators
+} from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTabsModule } from '@angular/material/tabs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { CustomerService } from '../../../services/customer';
 import { AuthService } from '../../../services/auth.service';
+import { LayoutComponent }
+  from '../../../shared/layout/layout';
 
 @Component({
   selector: 'app-customer-portal',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, ReactiveFormsModule,
-    MatButtonModule, MatToolbarModule, MatCardModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatProgressSpinnerModule, MatTabsModule
+    CommonModule, FormsModule,
+    ReactiveFormsModule, RouterModule,
+    LayoutComponent
   ],
   templateUrl: './customer-portal.html',
   styleUrls: ['./customer-portal.scss']
 })
-export class CustomerPortalComponent implements OnInit {
-  private customerService = inject(CustomerService);
+export class CustomerPortalComponent
+  implements OnInit {
+
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
-  tickets: any[] = [];
+  myTickets: any[] = [];
   loading = true;
-  submitting = false;
-  submitted = false;
+  showCreateForm = false;
+  creating = false;
 
-  categories = ['General', 'Technical', 'Billing', 'Sales', 'Network', 'Other'];
-
-  ticketForm: FormGroup = this.fb.group({
-    title: ['', [Validators.required, Validators.minLength(5)]],
-    description: ['', [Validators.required, Validators.minLength(10)]],
-    category: ['General', Validators.required]
+  createForm: FormGroup = this.fb.group({
+    title: ['', [Validators.required,
+      Validators.minLength(5)]],
+    description: ['', [Validators.required,
+      Validators.minLength(10)]],
+    priority: ['Medium'],
+    category: ['General']
   });
+
+  priorities = ['Low', 'Medium', 'High', 'Urgent'];
+  categories = [
+    'General', 'Technical', 'Billing', 'Account'
+  ];
+
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+  }
 
   ngOnInit() {
     this.loadMyTickets();
@@ -53,9 +67,12 @@ export class CustomerPortalComponent implements OnInit {
 
   loadMyTickets() {
     this.loading = true;
-    this.customerService.getMyTickets().subscribe({
-      next: (data: any[]) => {
-        this.tickets = data;
+    this.http.get<any[]>(
+      'https://localhost:7071/api/Customer/my-tickets',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.myTickets = data;
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -66,45 +83,49 @@ export class CustomerPortalComponent implements OnInit {
     });
   }
 
-  submitTicket() {
-    if (this.ticketForm.invalid) return;
-    this.submitting = true;
+  createTicket() {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+    this.creating = true;
     this.cdr.detectChanges();
 
-    this.customerService.submitTicket(this.ticketForm.value).subscribe({
-      next: () => {
-        this.submitting = false;
-        this.submitted = true;
-        this.ticketForm.reset({ category: 'General' });
+    this.http.post<any>(
+      'https://localhost:7071/api/Customer' +
+      '/submit-ticket',
+      this.createForm.value,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (res) => {
+        this.creating = false;
+        this.showCreateForm = false;
+        this.createForm.reset({
+          priority: 'Medium',
+          category: 'General'
+        });
         this.cdr.detectChanges();
-        this.toastr.success('Ticket submitted! We will get back to you soon.');
-        setTimeout(() => {
-          this.submitted = false;
-          this.loadMyTickets();
-          this.cdr.detectChanges();
-        }, 3000);
+        Promise.resolve().then(() =>
+          this.toastr.success('Ticket submitted!')
+        );
+        this.loadMyTickets();
       },
-      error: (err: any) => {
-        this.submitting = false;
+      error: (err) => {
+        this.creating = false;
         this.cdr.detectChanges();
-        this.toastr.error(err.error?.message || 'Failed to submit ticket');
+        Promise.resolve().then(() =>
+          this.toastr.error(
+            err.error?.message || 'Failed')
+        );
       }
     });
   }
 
-  viewTicket(id: string) {
-    this.router.navigate(['/customer/ticket', id]);
-  }
-
-  getStatusColor(status: string): string {
-    const colors: any = {
-      'Open': '#f44336', 'InProgress': '#ff9800',
-      'Resolved': '#4caf50', 'Closed': '#9e9e9e'
+  getStatusColor(s: string): string {
+    const c: any = {
+      'Open': '#22c55e', 'InProgress': '#f59e0b',
+      'Resolved': '#8b5cf6', 'Closed': '#6b7280'
     };
-    return colors[status] || '#666';
-  }
-
-  logout() {
-    this.authService.logout();
+    return c[s] || '#6b7280';
   }
 }

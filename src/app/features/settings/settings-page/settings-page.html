@@ -33,6 +33,11 @@
           </app-ticket-templates>
         </div>
 
+        <div *ngIf="activeTab === 'groups'">
+          <app-agent-groups-settings>
+          </app-agent-groups-settings>
+        </div>
+
         <!-- General Settings -->
         <div *ngIf="activeTab === 'settings'"
           class="settings-pane">

@@ -38,6 +38,10 @@
         </p>
       </div>
 
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
       <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
 
         <div class="form-group">

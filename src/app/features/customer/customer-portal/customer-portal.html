@@ -1,125 +1,140 @@
-<mat-toolbar color="primary">
-  <span>iM3 Helpdesk — Support</span>
-  <span class="spacer"></span>
-  <button mat-button (click)="logout()">Logout</button>
-</mat-toolbar>
+<app-layout>
+  <div class="customer-page">
 
-<div class="page-container">
-  <mat-tab-group>
-
-    <!-- Tab 1: Submit Ticket -->
-    <mat-tab label="Submit Ticket">
-      <div class="tab-content">
-
-        <div *ngIf="submitted" class="success-box">
-          <div class="success-icon">✓</div>
-          <h3>Ticket Submitted!</h3>
-          <p>We have received your request and will get back to you shortly.
-            A confirmation email has been sent to you.</p>
-        </div>
-
-        <mat-card *ngIf="!submitted" class="form-card">
-          <mat-card-content>
-            <h2>Submit a Support Ticket</h2>
-            <p class="subtitle">
-              Describe your issue and we will help you as soon as possible.
-            </p>
-
-            <form [formGroup]="ticketForm" (ngSubmit)="submitTicket()">
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Subject</mat-label>
-                <input matInput formControlName="title"
-                  placeholder="Brief description of your issue"/>
-                <mat-error *ngIf="ticketForm.get('title')?.hasError('required')">
-                  Subject is required
-                </mat-error>
-                <mat-error *ngIf="ticketForm.get('title')?.hasError('minlength')">
-                  Minimum 5 characters
-                </mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Category</mat-label>
-                <mat-select formControlName="category">
-                  <mat-option *ngFor="let c of categories" [value]="c">
-                    {{ c }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Description</mat-label>
-                <textarea matInput formControlName="description"
-                  rows="6"
-                  placeholder="Please describe your issue in detail...">
-                </textarea>
-                <mat-error *ngIf="ticketForm.get('description')?.hasError('required')">
-                  Description is required
-                </mat-error>
-                <mat-error *ngIf="ticketForm.get('description')?.hasError('minlength')">
-                  Minimum 10 characters
-                </mat-error>
-              </mat-form-field>
-
-              <button mat-raised-button color="primary"
-                type="submit" class="submit-btn" [disabled]="submitting">
-                <mat-spinner *ngIf="submitting" diameter="20"></mat-spinner>
-                <span *ngIf="!submitting">Submit Ticket</span>
-              </button>
-            </form>
-          </mat-card-content>
-        </mat-card>
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1>My Support Tickets</h1>
+        <p>Track and manage your support requests</p>
       </div>
-    </mat-tab>
+      <button class="new-btn"
+        (click)="showCreateForm = !showCreateForm">
+        {{ showCreateForm
+          ? '✕ Cancel'
+          : '+ New Ticket' }}
+      </button>
+    </div>
 
-    <!-- Tab 2: My Tickets -->
-    <mat-tab label="My Tickets">
-      <div class="tab-content">
-        <div *ngIf="loading" class="loading-center">
-          <mat-spinner diameter="40"></mat-spinner>
+    <!-- Create Form -->
+    <div class="create-card"
+      *ngIf="showCreateForm">
+      <h3>Submit a New Ticket</h3>
+      <form [formGroup]="createForm"
+        (ngSubmit)="createTicket()">
+
+        <div class="form-group">
+          <label>Subject <span class="req">*</span></label>
+          <input type="text"
+            formControlName="title"
+            placeholder="Brief description..."/>
+          <span class="error-msg"
+            *ngIf="createForm.get('title')?.invalid
+              && createForm.get('title')?.touched">
+            Subject is required (min 5 chars)
+          </span>
         </div>
 
-        <div *ngIf="!loading">
-          <div *ngIf="tickets.length === 0" class="empty-state">
-            <p>No tickets yet. Submit your first ticket!</p>
+        <div class="form-group">
+          <label>
+            Description <span class="req">*</span>
+          </label>
+          <textarea formControlName="description"
+            rows="5"
+            placeholder="Describe your issue...">
+          </textarea>
+          <span class="error-msg"
+            *ngIf="createForm.get('description')
+              ?.invalid
+              && createForm.get('description')
+                ?.touched">
+            Description is required (min 10 chars)
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Priority</label>
+            <select formControlName="priority">
+              <option *ngFor="let p of priorities"
+                [value]="p">{{ p }}</option>
+            </select>
           </div>
-
-          <div class="ticket-card"
-            *ngFor="let t of tickets"
-            (click)="viewTicket(t.id)">
-
-            <div class="ticket-header">
-              <span class="ticket-title">{{ t.title }}</span>
-              <span class="status-badge"
-                [style.background]="getStatusColor(t.status) + '20'"
-                [style.color]="getStatusColor(t.status)">
-                {{ t.status }}
-              </span>
-            </div>
-
-            <div class="ticket-body">
-              <p class="ticket-desc">{{ t.description | slice:0:100 }}...</p>
-            </div>
-
-            <div class="ticket-footer">
-              <span class="ticket-category">{{ t.category }}</span>
-              <span class="ticket-meta">
-                <span *ngIf="t.assignedTo">
-                  Assigned to {{ t.assignedTo }}
-                </span>
-                <span *ngIf="!t.assignedTo">Pending assignment</span>
-                &nbsp;|&nbsp;
-                {{ t.createdAt | date:'dd MMM yyyy' }}
-              </span>
-              <span class="comments-badge" *ngIf="t.commentsCount > 0">
-                {{ t.commentsCount }} reply(s)
-              </span>
-            </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select formControlName="category">
+              <option *ngFor="let c of categories"
+                [value]="c">{{ c }}</option>
+            </select>
           </div>
         </div>
-      </div>
-    </mat-tab>
 
-  </mat-tab-group>
-</div>
+        <div class="form-actions">
+          <button type="button"
+            class="cancel-btn"
+            (click)="showCreateForm = false">
+            Cancel
+          </button>
+          <button type="submit"
+            class="submit-btn"
+            [disabled]="creating">
+            {{ creating
+              ? 'Submitting...' : 'Submit Ticket' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && myTickets.length === 0
+      && !showCreateForm"
+      class="empty-state">
+      <div class="empty-icon">🎫</div>
+      <h3>No tickets yet</h3>
+      <p>Create your first support ticket</p>
+      <button class="new-btn"
+        (click)="showCreateForm = true">
+        + New Ticket
+      </button>
+    </div>
+
+    <!-- Tickets List -->
+    <div *ngIf="!loading && myTickets.length > 0"
+      class="tickets-list">
+
+      <div class="ticket-card"
+        *ngFor="let t of myTickets"
+        (click)="router.navigate(
+          ['/customer/ticket', t.id])">
+
+        <div class="ticket-top">
+          <span class="ticket-num">
+            #TN{{ t.ticketNumber || t.id?.slice(0,6) }}
+          </span>
+          <span class="status-badge"
+            [style.background]="
+              getStatusColor(t.status) + '20'"
+            [style.color]="getStatusColor(t.status)">
+            {{ t.status }}
+          </span>
+        </div>
+
+        <div class="ticket-title">{{ t.title }}</div>
+
+        <div class="ticket-meta">
+          <span>📅 {{ t.createdAt
+            | date:'dd MMM yyyy' }}</span>
+          <span *ngIf="t.category">
+            📂 {{ t.category }}
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</app-layout>

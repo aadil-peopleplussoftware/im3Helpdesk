@@ -1,0 +1,103 @@
+<div class="groups-page">
+  <div class="groups-header">
+    <div>
+      <h2>Agent Groups</h2>
+      <p>Manage support groups and their members</p>
+    </div>
+    <button class="add-btn"
+      (click)="showForm = !showForm;
+        editingId = '';
+        form.reset();
+        selectedGroupMembers = []">
+      {{ showForm ? 'Cancel' : '+ New Group' }}
+    </button>
+  </div>
+
+  <!-- Form -->
+  <div class="form-card" *ngIf="showForm">
+    <h4>{{ editingId ? 'Edit' : 'New' }} Group</h4>
+    <form [formGroup]="form"
+      (ngSubmit)="saveGroup()">
+
+      <div class="form-group">
+        <label>Group Name *</label>
+        <input type="text"
+          formControlName="name"
+          placeholder="e.g. Customer Support Tier 1"/>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text"
+          formControlName="description"
+          placeholder="Optional description"/>
+      </div>
+
+      <div class="form-group">
+        <label>Add Agents</label>
+        <div class="agents-checkboxes">
+          <label class="agent-check"
+            *ngFor="let a of agents">
+            <input type="checkbox"
+              [checked]="isMember(a.id)"
+              (change)="toggleMember(a.id)"/>
+            <div class="ac-av"
+              [style.background]="'#3b82f6'">
+              {{ a.fullName?.charAt(0) }}
+            </div>
+            {{ a.fullName }}
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button"
+          class="cancel-btn"
+          (click)="showForm = false">
+          Cancel
+        </button>
+        <button type="submit"
+          class="save-btn"
+          [disabled]="form.invalid">
+          Save Group
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Groups List -->
+  <div class="groups-list"
+    *ngIf="groups.length > 0">
+    <div class="group-item"
+      *ngFor="let g of groups">
+      <div class="group-icon">👥</div>
+      <div class="group-info">
+        <div class="group-name">{{ g.name }}</div>
+        <div class="group-desc"
+          *ngIf="g.description">
+          {{ g.description }}
+        </div>
+        <div class="group-count"
+          *ngIf="g.memberCount >= 0">
+          {{ g.memberCount }} member(s)
+        </div>
+      </div>
+      <div class="group-actions">
+        <button class="edit-btn"
+          (click)="editGroup(g)">
+          Edit
+        </button>
+        <button class="del-btn"
+          (click)="deleteGroup(g.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state"
+    *ngIf="groups.length === 0 && !showForm">
+    <div>👥</div>
+    <p>No groups yet. Create your first group.</p>
+  </div>
+</div>

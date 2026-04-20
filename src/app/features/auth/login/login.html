@@ -24,7 +24,14 @@
       <p class="auth-subtitle">Enter your credentials to access your account</p>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
+          <!-- After form fields, before submit button: -->
+          <div class="error-alert" *ngIf="errorMessage">
+            <span>⚠</span> {{ errorMessage }}
+          </div>
 
+          <div class="success-alert" *ngIf="successMessage">
+            <span>✓</span> {{ successMessage }}
+          </div>
         <div class="form-group">
           <label>Email Address</label>
           <div class="input-wrap">
