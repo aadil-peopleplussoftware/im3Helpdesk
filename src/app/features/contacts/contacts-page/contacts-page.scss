@@ -191,6 +191,8 @@
   }
 }
 
+
+
 .contact-date {
   font-size: 11px;
   color: var(--text-muted, #bbb);
@@ -562,4 +564,245 @@
 .co-c-email {
   font-size: 12px;
   color: var(--text-muted, #9ca3af);
+}
+
+.cp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary, #1a1f36);
+  }
+}
+
+.cp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 240px;
+  font-size: 13px;
+
+  input {
+    border: none; outline: none;
+    font-size: 13px;
+    color: var(--text-primary, #333);
+    background: transparent;
+    width: 100%;
+  }
+}
+
+/* Contact list left */
+.cp-list {
+  width: 340px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 10px;
+}
+
+.cp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid
+    var(--border-color, #f0f0f0);
+  cursor: pointer;
+  transition: background 0.1s;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--hover-bg, #f8faff); }
+  &.selected {
+    background: var(--accent-light, #eff6ff);
+    border-left: 3px solid
+      var(--accent, #2563eb);
+  }
+}
+
+.cp-item-av {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px; font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cp-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #333);
+}
+
+.cp-item-email {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.cp-item-company {
+  font-size: 11px;
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.cp-item-meta {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.cp-src-badge {
+  background: #fef3c7;
+  color: #b45309;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.cp-item-date {
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+/* Detail panel */
+.cpd-profile {
+  background: white;
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.cpd-av {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px; font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.cpd-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #333);
+  margin-bottom: 4px;
+}
+
+.cpd-email {
+  font-size: 13px;
+  color: var(--accent, #2563eb);
+  margin-bottom: 4px;
+}
+
+.cpd-company {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  font-weight: 500;
+}
+
+.cpd-info-card {
+  background: white;
+  border: 1px solid var(--border-color, #e8e8e8);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.cpd-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  padding: 12px 16px;
+  border-bottom: 1px solid
+    var(--border-color, #f0f0f0);
+  background: #fafafa;
+  text-align: center;
+}
+
+.cpd-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid
+    var(--border-color, #f5f5f5);
+  &:last-child { border-bottom: none; }
+}
+
+.cpd-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #9ca3af);
+  text-transform: uppercase;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.cpd-val {
+  font-size: 13px;
+  color: var(--text-primary, #333);
+}
+
+.cpd-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ✅ Clean action buttons */
+.cpd-ticket-btn {
+  flex: 1;
+  padding: 10px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  &:hover { background: #1d4ed8; }
+}
+
+
+.cpd-email-btn {
+  flex: 1;
+  padding: 10px;
+  background: white;
+  color: var(--accent, #2563eb);
+  border: 1px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  &:hover { background: var(--accent-light); }
 }

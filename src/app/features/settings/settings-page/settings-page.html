@@ -20,13 +20,6 @@
 
       <!-- Content -->
       <div class="settings-content">
-
-        <!-- Reports -->
-        <div *ngIf="activeTab === 'reports'">
-          <app-reports-page [embedded]="true">
-          </app-reports-page>
-        </div>
-
         <!-- Templates -->
         <div *ngIf="activeTab === 'templates'">
           <app-ticket-templates [embedded]="true">

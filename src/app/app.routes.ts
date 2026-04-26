@@ -3,6 +3,7 @@ import { authGuard } from './guards/auth-guard';
 import { superAdminGuard } from './guards/super-admin-guard';
 import { customerGuard } from './guards/customer-guard';
 import { ContactsPageComponent } from './features/contacts/contacts-page/contacts-page';
+import { TodoListComponent } from './features/todo/todo-panel/todo-list.component'; 
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -29,6 +30,18 @@ export const routes: Routes = [
     component: ContactsPageComponent,
     canActivate: [authGuard]
   },
+    {
+    path: 'todo',
+    component: TodoListComponent,
+    canActivate: [authGuard]
+  },
+  // {
+  //   path: 'todo',
+  //   loadComponent: () =>
+  //     import('./features/todo/todo-panel/todo-panel')
+  //       .then(m => m.TodoPanelComponent),
+  //   canActivate: [authGuard]
+  // },
   {
     path: 'verify-email',
     loadComponent: () =>
@@ -65,8 +78,8 @@ export const routes: Routes = [
   },
   {
     path: 'tickets/:id',
-    loadComponent: () =>
-      import('./features/tickets/ticket-detail/ticket-detail')
+      loadComponent: () =>
+        import('./features/tickets/ticket-detail/ticket-detail')
         .then(m => m.TicketDetailComponent),
     canActivate: [authGuard]
   },
@@ -102,7 +115,7 @@ export const routes: Routes = [
   path: 'reports',
   loadComponent: () =>
     import('./features/reports/reports-page/reports-page')
-      .then(m => m.ReportsPageComponent),
+      .then(m => m.ReportsComponent),
   canActivate: [authGuard]
 },
 {

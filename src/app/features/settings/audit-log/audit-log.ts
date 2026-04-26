@@ -48,33 +48,13 @@ export class AuditLogComponent implements OnInit {
     this.loadLogs();
   }
 
-
-  loadLogs() {
-    this.loading = true;
-    const params = new URLSearchParams();
-    params.set('page', this.page.toString());
-    params.set('pageSize', this.pageSize.toString());
-    if (this.selectedType)
-      params.set('entityType', this.selectedType);
-
-    // ✅ /api/Audit — NOT /api/Notifications/activity
-    this.http.get<any>(
-      `https://localhost:7071/api/Audit?${params}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
-      next: (data) => {
-        this.logs = data.logs || [];
-        this.total = data.total || 0;
-        this.totalPages = data.totalPages || 0;
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
+loadLogs() {
+  this.http.get<any>(
+    `https://localhost:7071/api/Audit` +
+    `?page=${this.page}&pageSize=${this.pageSize}`,
+    { headers: this.getHeaders() }
+  ).subscribe({ /* ... */ });
+}
 
   prevPage() {
     if (this.page > 1) { this.page--; this.loadLogs(); }

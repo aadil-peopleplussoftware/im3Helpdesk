@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject ,Input} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -10,13 +10,10 @@ import { LayoutComponent } from '../../../shared/layout/layout';
 import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
 import { AuditLogComponent } from '../audit-log/audit-log';
-import { ReportsPageComponent } from '../../reports/reports-page/reports-page';
 import { CustomFieldsComponent } from '../custom-fields/custom-fields';
 import { WhatsappSettingsComponent } from '../whatsapp-settings/whatsapp-settings';
 import { IntegrationsComponent } from '../integrations/integrations';
 import { AgentGroupsSettingsComponent } from '../agent-groups-settings/agent-groups-settings';
-
-// imports array:
 
 
 @Component({
@@ -32,7 +29,6 @@ import { AgentGroupsSettingsComponent } from '../agent-groups-settings/agent-gro
     TicketTemplatesComponent,
     EmailNotificationsComponent,
     AuditLogComponent,
-    ReportsPageComponent,
     CustomFieldsComponent,
     WhatsappSettingsComponent,
     IntegrationsComponent,
@@ -46,16 +42,15 @@ export class SettingsPageComponent implements OnInit {
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
-
-  activeTab = 'reports';
+  @Input() embedded: boolean = false;
+  activeTab = 'settings';
 
 tabs = [
-  { id: 'reports', label: 'Reports', icon: '📊' },
+  { id: 'settings', label: 'General Settings', icon: '🎨' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'templates', label: 'Ticket Templates', icon: '📋' },
   { id: 'groups', label: 'Agent Groups', icon: '👥' },
   { id: 'custom-fields', label: 'Custom Fields', icon: '⚙' },
-  { id: 'settings', label: 'General Settings', icon: '🎨' },
-  { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'audit', label: 'Audit Log', icon: '🔍' },
   { id: 'integrations', label: 'Integrations', icon: '🔗' },
   { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },

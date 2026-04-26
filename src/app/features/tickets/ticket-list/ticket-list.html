@@ -8,12 +8,11 @@
         <span class="count-badge">
           {{ tickets.length }}
           <span *ngIf="hasActiveFilters()"
-            class="filter-active"> filtered</span>
+            class="filter-note"> filtered</span>
         </span>
       </div>
 
       <div class="header-right">
-        <!-- Search -->
         <div class="search-wrap">
           <span class="s-icon">🔍</span>
           <input class="search-input"
@@ -22,12 +21,11 @@
             placeholder="Search tickets..."/>
         </div>
 
-        <!-- Layout -->
         <div class="layout-btns">
           <button class="lb"
             [class.active]="currentLayout==='card'"
             (click)="currentLayout='card'"
-            title="Card">≡</button>
+            title="Card">☰</button>
           <button class="lb"
             [class.active]="currentLayout==='table'"
             (click)="currentLayout='table'"
@@ -38,7 +36,6 @@
             title="Grid">⊟</button>
         </div>
 
-        <!-- Column Picker (table only) -->
         <div class="col-wrap"
           *ngIf="currentLayout==='table'">
           <button class="icon-btn"
@@ -60,39 +57,55 @@
           </div>
         </div>
 
-        <!-- Filter Toggle -->
         <button class="icon-btn filter-btn-main"
           [class.has-filter]="hasActiveFilters()"
           (click)="showFilters=!showFilters">
           ⊟ Filters
           <span *ngIf="hasActiveFilters()"
-            class="filter-dot">
-          </span>
+            class="filter-dot"></span>
         </button>
 
-        <!-- Clear Filters -->
         <button class="icon-btn clear-btn"
           *ngIf="hasActiveFilters()"
           (click)="clearFilters()">
           ✕ Clear
         </button>
 
-        <!-- Export -->
         <button class="icon-btn"
           (click)="exportCsv()">
           ↓ Export
         </button>
 
-        <!-- New Ticket -->
         <button class="new-btn"
-          (click)="router.navigate(['/tickets/create'])">
+          (click)="router.navigate(
+            ['/tickets/create'])">
           + New Ticket
         </button>
       </div>
     </div>
 
+    <!-- Bulk Actions -->
+    <div class="bulk-bar"
+      *ngIf="selectedTicketIds.size > 0">
+      <span class="bulk-count">
+        {{ selectedTicketIds.size }} selected
+      </span>
+      <button class="bulk-btn todo-btn"
+        type="button"
+        (click)="addSelectedToTodo()">
+        📋 Add to To-Do
+      </button>
+      <button class="bulk-btn"
+        type="button"
+        (click)="selectedTicketIds.clear();
+          cdr.markForCheck()">
+        ✕ Clear
+      </button>
+    </div>
+
     <!-- Filters Panel -->
-    <div class="filters-panel" *ngIf="showFilters">
+    <div class="filters-panel"
+      *ngIf="showFilters">
       <div class="filter-row">
         <div class="filter-group">
           <label>Status</label>
@@ -104,7 +117,6 @@
               [value]="s">{{ s }}</option>
           </select>
         </div>
-
         <div class="filter-group">
           <label>Priority</label>
           <select class="filter-sel"
@@ -115,7 +127,6 @@
               [value]="p">{{ p }}</option>
           </select>
         </div>
-
         <div class="filter-group">
           <label>Category</label>
           <input class="filter-sel"
@@ -123,7 +134,6 @@
             (ngModelChange)="applyFilters()"
             placeholder="Filter category..."/>
         </div>
-
         <div class="filter-group">
           <label>Assigned To</label>
           <input class="filter-sel"
@@ -131,14 +141,12 @@
             (ngModelChange)="applyFilters()"
             placeholder="Agent name..."/>
         </div>
-
         <div class="filter-group">
           <label>From Date</label>
           <input type="date" class="filter-sel"
             [(ngModel)]="filters.dateFrom"
             (ngModelChange)="applyFilters()"/>
         </div>
-
         <div class="filter-group">
           <label>To Date</label>
           <input type="date" class="filter-sel"
@@ -162,14 +170,15 @@
         No tickets yet
       </h3>
       <h3 *ngIf="hasActiveFilters()">
-        No tickets match your filters
+        No tickets match filters
       </h3>
       <p *ngIf="!hasActiveFilters()">
-        Create your first ticket to get started
+        Create your first ticket
       </p>
       <button class="new-btn"
         *ngIf="!hasActiveFilters()"
-        (click)="router.navigate(['/tickets/create'])">
+        (click)="router.navigate(
+          ['/tickets/create'])">
         + New Ticket
       </button>
       <button class="clear-btn-lg"
@@ -183,19 +192,26 @@
     <div class="card-view"
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'card'">
-
       <div class="ticket-card"
         *ngFor="let t of tickets"
         (click)="viewTicket(t.id)">
 
         <div class="card-top">
-          <span class="t-num">
-            #TN{{ t.ticketNumber }}
-          </span>
+          <div class="card-top-left">
+            <input type="checkbox"
+              class="t-checkbox"
+              [checked]="selectedTicketIds.has(t.id)"
+              (click)="$event.stopPropagation()"
+              (change)="toggleSelect(t.id)"/>
+            <span class="t-num">
+              #TN{{ t.ticketNumber }}
+            </span>
+          </div>
           <span class="status-badge"
             [style.background]="
               getStatusColor(t.status) + '20'"
-            [style.color]="getStatusColor(t.status)">
+            [style.color]="
+              getStatusColor(t.status)">
             {{ t.status }}
           </span>
         </div>
@@ -213,16 +229,13 @@
           <span class="cat-chip">
             {{ t.category }}
           </span>
-          <span class="type-chip"
-            *ngIf="t.ticketType">
-            {{ t.ticketType }}
-          </span>
         </div>
 
         <div class="card-tags"
           *ngIf="getTagsArr(t.tags).length > 0">
           <span class="tag-pill"
-            *ngFor="let tag of getTagsArr(t.tags)">
+            *ngFor="let tag of
+              getTagsArr(t.tags)">
             {{ tag }}
           </span>
         </div>
@@ -240,7 +253,6 @@
               {{ t.assignedTo || 'Unassigned' }}
             </span>
           </div>
-
           <div class="card-right">
             <span class="sla-mini"
               *ngIf="t.slaStatus"
@@ -270,21 +282,21 @@
             </th>
             <th class="sort-th"
               (click)="sortBy_('ticketNumber')">
-              #
+              # {{ getSortIcon('ticketNumber') }}
             </th>
             <th class="sort-th title-th"
               (click)="sortBy_('title')">
-              Title
+              Title {{ getSortIcon('title') }}
             </th>
             <th *ngIf="isColumnVisible('status')"
               class="sort-th"
               (click)="sortBy_('status')">
-              Status
+              Status {{ getSortIcon('status') }}
             </th>
             <th *ngIf="isColumnVisible('priority')"
               class="sort-th"
               (click)="sortBy_('priority')">
-              Priority
+              Priority {{ getSortIcon('priority') }}
             </th>
             <th *ngIf="isColumnVisible('category')">
               Category
@@ -295,13 +307,16 @@
             <th *ngIf="isColumnVisible('ticketType')">
               Type
             </th>
+            <th *ngIf="isColumnVisible('tags')">
+              Tags
+            </th>
             <th *ngIf="isColumnVisible('sla')">
               SLA
             </th>
             <th *ngIf="isColumnVisible('createdAt')"
               class="sort-th"
               (click)="sortBy_('createdAt')">
-              Date
+              Date {{ getSortIcon('createdAt') }}
             </th>
           </tr>
         </thead>
@@ -311,8 +326,7 @@
             (click)="viewTicket(t.id)">
             <td (click)="$event.stopPropagation()">
               <input type="checkbox"
-                [checked]="selectedTicketIds
-                  .has(t.id)"
+                [checked]="selectedTicketIds.has(t.id)"
                 (change)="toggleSelect(t.id)"/>
             </td>
             <td class="num-cell">
@@ -348,6 +362,19 @@
             <td *ngIf="isColumnVisible('ticketType')">
               {{ t.ticketType }}
             </td>
+            <td *ngIf="isColumnVisible('tags')">
+              <ng-container
+                *ngIf="t.tags && t.tags.trim()">
+                <span class="tag-pill"
+                  *ngFor="let tag of
+                    getTagsArr(t.tags)">
+                  {{ tag }}
+                </span>
+              </ng-container>
+              <span
+                *ngIf="!t.tags ||
+                  !t.tags.trim()">—</span>
+            </td>
             <td *ngIf="isColumnVisible('sla')">
               <span *ngIf="t.slaStatus"
                 [style.color]="
@@ -359,15 +386,6 @@
               {{ t.createdAt
                 | date:'dd MMM yy' }}
             </td>
-            <td *ngIf="isColumnVisible('tags')">
-              <span class="tag-pill"
-                *ngFor="let tag of getTagsArr(t.tags)">
-                {{ tag }}
-              </span>
-              <span *ngIf="!t.tags || t.tags.trim() === ''">
-                —
-              </span>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -377,11 +395,9 @@
     <div class="grid-view"
       *ngIf="!loading && tickets.length > 0
         && currentLayout === 'grid'">
-
       <div class="grid-card"
         *ngFor="let t of tickets"
         (click)="viewTicket(t.id)">
-
         <div class="grid-top">
           <span class="t-num small">
             #TN{{ t.ticketNumber }}
@@ -394,9 +410,7 @@
             {{ t.status }}
           </span>
         </div>
-
         <div class="grid-title">{{ t.title }}</div>
-
         <div class="grid-meta">
           <span [style.color]="
             getPriorityColor(t.priority)">
@@ -405,7 +419,6 @@
           <span class="sep">·</span>
           {{ t.category }}
         </div>
-
         <div class="grid-footer">
           <span class="time-ago">
             {{ getTimeAgo(t.createdAt) }}
@@ -417,7 +430,6 @@
             ⏱ {{ t.slaStatus }}
           </span>
         </div>
-
       </div>
     </div>
 

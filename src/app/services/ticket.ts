@@ -23,11 +23,12 @@ export class TicketService {
     });
   }
 
+
   getById(id: string): Observable<any> {
     return this.http.get<any>(
-      `${this.apiUrl}/${id}`, {
-      headers: this.getHeaders()
-    });
+      `https://localhost:7071/api/Tickets/${id}`,
+      { headers: this.getHeaders() }
+    );
   }
 
   create(data: any): Observable<any> {

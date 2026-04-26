@@ -48,6 +48,13 @@
         </a>
 
         <a class="nav-item"
+          routerLink="/todo"
+          routerLinkActive="active">
+          <span class="nav-icon">📋</span>
+          <span>To Do</span>
+        </a>
+
+        <a class="nav-item"
           routerLink="/kb"
           routerLinkActive="active">
           <span class="nav-icon">📚</span>
@@ -173,10 +180,14 @@
 
   <!-- MAIN AREA -->
   <div class="main-area">
-
+   
     <!-- TOPBAR -->
     <div class="topbar">
-
+      <!-- In topbar, before search: -->
+      <button class="hamburger"
+        (click)="sidebarOpen = !sidebarOpen">
+        ☰
+      </button>
       <!-- Search (agents/admin only) -->
       <div class="topbar-search"
         *ngIf="!isSuperAdmin && !isCustomer">
@@ -238,6 +249,25 @@
           (click)="router.navigate(['/tickets/create'])">
           + New Ticket
         </button>
+        
+                    <!-- In topbar-right, after bell: -->
+            <div class="todo-trigger"
+              (click)="toggleTodoPanel()">
+              📋
+              <span class="todo-count"
+                *ngIf="todoCount > 0">
+                {{ todoCount }}
+              </span>
+
+              <!-- Panel -->
+              <div class="todo-dropdown"
+                *ngIf="showTodoPanel"
+                (click)="$event.stopPropagation()">
+                <app-todo-panel
+                  (close)="showTodoPanel = false">
+                </app-todo-panel>
+              </div>
+            </div>
 
         <!-- Bell -->
         <div class="notif-bell"

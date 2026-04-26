@@ -1,132 +1,162 @@
-import { Component, OnInit, ChangeDetectorRef, inject, Input } from '@angular/core';
+import {
+  Component,Input, OnInit, AfterViewInit,
+  ChangeDetectorRef, inject,
+  ViewChild, ElementRef
+} from '@angular/core';
+import Chart from 'chart.js/auto';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatCardModule } from '@angular/material/card';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../services/auth.service';
-import { FormControl, FormGroup } from '@angular/forms';
+import { LayoutComponent } from '../../../shared/layout/layout';
 
 
 @Component({
-  selector: 'app-reports-page',
+  selector: 'app-reports',
   standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatButtonModule, MatFormFieldModule, MatInputModule,
-    MatToolbarModule, MatCardModule, MatProgressSpinnerModule,
-    MatDatepickerModule, MatNativeDateModule
-  ],
+  imports: [CommonModule, FormsModule, LayoutComponent],
   templateUrl: './reports-page.html',
   styleUrls: ['./reports-page.scss']
 })
-export class ReportsPageComponent implements OnInit {
+export class ReportsComponent
+  implements OnInit, AfterViewInit {
+
   private http = inject(HttpClient);
   private authService = inject(AuthService);
-  public router = inject(Router);
-  private toastr = inject(ToastrService);
-  private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  @Input() embedded: boolean = false;
+  @ViewChild('statusChart')
+    statusChartRef!: ElementRef;
+  @ViewChild('trendChart')
+    trendChartRef!: ElementRef;
+  @ViewChild('priorityChart')
+    priorityChartRef!: ElementRef;
+  @ViewChild('categoryChart')
+    categoryChartRef!: ElementRef;
 
-  @Input() embedded = false;
-  private apiUrl = 'https://localhost:7071/api/Reports';
-  loading = false;
-  report: any = null;
 
-  dateForm = new FormGroup({
-    from: new FormControl<Date>(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)),
-    to: new FormControl<Date>(new Date())
-  });
+  stats: any = null;
+  dashStats: any = null;
+  loading = true;
+  dateRange = '30';
+  charts: Chart[] = [];
 
-  ngOnInit() {
-    this.loadReport();
-  }
-  
-
-  private getHeaders() {
+  private getHeaders(): HttpHeaders {
     return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
     });
   }
 
-  loadReport() {
+  ngOnInit() {
+    this.loadStats();
+    this.loadDashStats();
+  }
+
+  ngAfterViewInit() {}
+
+  loadStats() {
     this.loading = true;
-    this.cdr.detectChanges();
-
-    const from = this.dateForm.value.from?.toISOString();
-    const to = this.dateForm.value.to?.toISOString();
-
     this.http.get<any>(
-      `${this.apiUrl}/summary?from=${from}&to=${to}`,
+      `https://localhost:7071/api/Dashboard/widgets`,
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        this.report = data;
+        this.stats = data;
         this.loading = false;
         this.cdr.detectChanges();
+        setTimeout(() => this.renderCharts(), 200);
       },
-      error: () => {
-        this.loading = false;
-        this.toastr.error('Failed to load report');
+      error: () => { this.loading = false; }
+    });
+  }
+
+  loadDashStats() {
+    this.http.get<any>(
+      `https://localhost:7071/api/Dashboard/stats`,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.dashStats = data;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  renderCharts() {
+    this.charts.forEach(c => c.destroy());
+    this.charts = [];
+
+    const compact = {
+      responsive: true,
+      maintainAspectRatio: false
+    };
+
+    if (this.statusChartRef && this.stats?.byStatus?.length) {
+      const ctx = this.statusChartRef.nativeElement.getContext('2d');
+      this.charts.push(new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: this.stats.byStatus.map((s: any) => s.status),
+          datasets: [{
+            data: this.stats.byStatus.map((s: any) => s.count),
+            backgroundColor: ['#22c55e','#f59e0b','#3b82f6','#8b5cf6','#9ca3af'],
+            borderWidth: 1
+          }]
+        },
+        options: { ...compact, plugins: { legend: { position: 'right', labels: { font: { size: 11 }, padding: 8, boxWidth: 10 } } } }
+      }));
+    }
+
+    if (this.priorityChartRef && this.stats?.byPriority?.length) {
+      const ctx = this.priorityChartRef.nativeElement.getContext('2d');
+      this.charts.push(new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: this.stats.byPriority.map((p: any) => p.priority),
+          datasets: [{ data: this.stats.byPriority.map((p: any) => p.count), backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#ef4444'], borderRadius: 6, borderWidth: 0 }]
+        },
+        options: { ...compact, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } }, x: { grid: { display: false }, ticks: { font: { size: 11 } } } } }
+      }));
+    }
+
+    if (this.trendChartRef && this.stats?.trend?.length) {
+      const ctx = this.trendChartRef.nativeElement.getContext('2d');
+      this.charts.push(new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: this.stats.trend.map((t: any) => new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+          datasets: [{ label: 'Tickets', data: this.stats.trend.map((t: any) => t.count), borderColor: '#2563eb', backgroundColor: '#2563eb18', fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2 }]
+        },
+        options: { ...compact, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } }, x: { grid: { display: false }, ticks: { font: { size: 11 } } } } }
+      }));
+    }
+
+    if (this.categoryChartRef && this.stats?.byCategory?.length) {
+      const ctx = this.categoryChartRef.nativeElement.getContext('2d');
+      this.charts.push(new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: this.stats.byCategory.map((c: any) => c.category || 'Other'),
+          datasets: [{ data: this.stats.byCategory.map((c: any) => c.count), backgroundColor: '#3b82f680', borderColor: '#3b82f6', borderRadius: 6, borderWidth: 1 }]
+        },
+        options: { ...compact, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { font: { size: 11 } } }, x: { grid: { display: false }, ticks: { font: { size: 11 } } } } }
+      }));
+    }
   }
 
   exportCsv() {
-    const from = this.dateForm.value.from?.toISOString();
-    const to = this.dateForm.value.to?.toISOString();
-
-    this.http.get(
-      `${this.apiUrl}/export-csv?from=${from}&to=${to}`,
-      { headers: this.getHeaders(), responseType: 'blob' }
-    ).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tickets-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.toastr.success('CSV exported!');
-      },
-      error: () => {
-        this.toastr.error('Export failed');
-      }
-    });
+    const csv = 'Status,Count\n' +
+      (this.stats?.byStatus || [])
+        .map((s: any) => `${s.status},${s.count}`)
+        .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report-${Date.now()}.csv`;
+    a.click();
   }
 
-  getBarWidth(count: number): string {
-    if (!this.report) return '0%';
-    const max = this.report.totalTickets || 1;
-    return Math.round((count / max) * 100) + '%';
-  }
-
-  getStatusColor(status: string): string {
-    const colors: any = {
-      'Open': '#f44336', 'InProgress': '#ff9800',
-      'Resolved': '#4caf50', 'Closed': '#9e9e9e'
-    };
-    return colors[status] || '#2196f3';
-  }
-
-  getPriorityColor(priority: string): string {
-    const colors: any = {
-      'Critical': '#f44336', 'High': '#ff9800',
-      'Medium': '#2196f3', 'Low': '#4caf50'
-    };
-    return colors[priority] || '#666';
-  }
-
-  logout() {
-    this.authService.logout();
-  }
+  exportPdf() { window.print(); }
 }

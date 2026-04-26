@@ -173,3 +173,32 @@
   border-radius: 8px;
   margin-top: 16px;
 }
+.ticket-description,
+.comment-body,
+.note-body,
+.erc-body {
+  img {
+    max-width: 100% !important;
+    max-height: 400px !important;
+    height: auto !important;
+    width: auto !important;
+    border-radius: 6px;
+    display: block;
+    margin: 8px 0;
+    object-fit: contain;
+  }
+
+  /* Prevent content overflow */
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Attachment thumbnails — fixed size */
+.att-thumb {
+  img {
+    width: 36px !important;
+    height: 36px !important;
+    object-fit: cover !important;
+    max-height: 36px !important;
+  }
+}

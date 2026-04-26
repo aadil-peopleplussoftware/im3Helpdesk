@@ -9,11 +9,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
+import { TodoPanelComponent }from '../../features/todo/todo-panel/todo-panel';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule,TodoPanelComponent],
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
 })
@@ -34,6 +35,7 @@ export class LayoutComponent
   orgName = '';
   isSuperAdmin = false;
   isCustomer = false;
+  sidebarOpen = false;
 
   notifications: any[] = [];
   unreadCount = 0;
@@ -41,6 +43,30 @@ export class LayoutComponent
 
   searchQuery = '';
   searchResults: any[] = [];
+
+  todoCount = 0;
+  showTodoPanel = false;
+  todos: any[] = [];
+
+  loadTodos() {
+    this.http.get<any[]>(
+      'https://localhost:7071/api/Todo',
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => {
+        this.todos = data;
+        this.todoCount =
+          data.filter(t => !t.isCompleted).length;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  toggleTodoPanel() {
+    this.showTodoPanel = !this.showTodoPanel;
+    if (this.showTodoPanel) this.loadTodos();
+    this.cdr.detectChanges();
+  }
 
   private getHeaders(): HttpHeaders {
     return new HttpHeaders({

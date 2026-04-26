@@ -514,6 +514,7 @@
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -535,4 +536,39 @@
   padding-top: 10px;
   border-top: 1px solid
     var(--border-color, #f0f0f0);
+}
+/* Bulk actions */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--accent-light, #eff6ff);
+  border: 1px solid var(--accent, #2563eb);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.bulk-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent, #2563eb);
+}
+
+.bulk-btn {
+  padding: 6px 14px;
+  background: var(--accent, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+
+  &:hover { background: #1d4ed8; }
+}
+
+.todo-btn {
+  background: #f59e0b;
+  &:hover { background: #d97706; }
 }

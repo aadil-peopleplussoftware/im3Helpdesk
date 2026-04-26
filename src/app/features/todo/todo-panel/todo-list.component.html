@@ -1,0 +1,196 @@
+<app-layout>
+  <div class="tl-page">
+
+    <!-- Page Header -->
+    <div class="tl-header">
+      <div class="tl-header-left">
+        <h1 class="tl-title">📋 My To-Do List</h1>
+        <div class="tl-stats">
+          <span class="tl-stat pending">
+            {{ pendingCount }} pending
+          </span>
+          <span class="tl-stat-sep">·</span>
+          <span class="tl-stat done">
+            {{ doneCount }} done
+          </span>
+        </div>
+      </div>
+      <button class="tl-clear-btn"
+        type="button"
+        *ngIf="doneCount > 0"
+        (click)="clearAllDone()">
+        🗑 Clear completed
+      </button>
+    </div>
+
+    <!-- Add Task -->
+    <div class="tl-add-card">
+      <div class="tl-add-row">
+        <span class="tl-add-icon">+</span>
+        <input class="tl-add-input"
+          [(ngModel)]="newTitle"
+          placeholder="Add a new task..."
+          (keyup.enter)="addTodo()"/>
+        <button class="tl-add-btn"
+          type="button"
+          (click)="addTodo()">
+          Add Task
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter + Search bar -->
+    <div class="tl-toolbar">
+      <div class="tl-filter-tabs">
+        <button class="tl-ftab"
+          type="button"
+          [class.active]="filterStatus==='all'"
+          (click)="setFilter('all')">
+          All
+          <span class="tl-ftab-count">
+            {{ todos.length }}
+          </span>
+        </button>
+        <button class="tl-ftab"
+          type="button"
+          [class.active]="filterStatus==='pending'"
+          (click)="setFilter('pending')">
+          Pending
+          <span class="tl-ftab-count pending">
+            {{ pendingCount }}
+          </span>
+        </button>
+        <button class="tl-ftab"
+          type="button"
+          [class.active]="filterStatus==='done'"
+          (click)="setFilter('done')">
+          Done
+          <span class="tl-ftab-count done">
+            {{ doneCount }}
+          </span>
+        </button>
+      </div>
+
+      <div class="tl-toolbar-right">
+        <!-- Search -->
+        <div class="tl-search">
+          <span>🔍</span>
+          <input
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="applyFilter()"
+            placeholder="Search tasks..."/>
+        </div>
+
+        <!-- Sort -->
+        <div class="tl-sort-btns">
+          <button class="tl-sort-btn"
+            type="button"
+            [class.active]="sortField==='createdAt'"
+            (click)="toggleSort('createdAt')">
+            Date
+            <span *ngIf="sortField==='createdAt'">
+              {{ sortDir==='asc' ? '↑':'↓' }}
+            </span>
+          </button>
+          <button class="tl-sort-btn"
+            type="button"
+            [class.active]="sortField==='title'"
+            (click)="toggleSort('title')">
+            Name
+            <span *ngIf="sortField==='title'">
+              {{ sortDir==='asc' ? '↑':'↓' }}
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="tl-loading" *ngIf="loading">
+      <div class="tl-spinner"></div>
+    </div>
+
+    <!-- Empty -->
+    <div class="tl-empty"
+      *ngIf="!loading && filteredTodos.length === 0">
+      <div class="tl-empty-icon">✅</div>
+      <h3 *ngIf="filterStatus === 'all'">
+        No tasks yet!
+      </h3>
+      <h3 *ngIf="filterStatus === 'pending'">
+        No pending tasks 🎉
+      </h3>
+      <h3 *ngIf="filterStatus === 'done'">
+        No completed tasks yet
+      </h3>
+      <p *ngIf="filterStatus === 'all'">
+        Add your first task above
+      </p>
+    </div>
+
+    <!-- Todo List -->
+    <div class="tl-list"
+      *ngIf="!loading && filteredTodos.length > 0">
+
+      <div class="tl-item"
+        *ngFor="let t of filteredTodos"
+        [class.tl-done]="t.isCompleted">
+
+        <!-- Checkbox -->
+        <div class="tl-check-wrap">
+          <input type="checkbox"
+            class="tl-checkbox"
+            [checked]="t.isCompleted"
+            (change)="toggleTodo(t)"/>
+        </div>
+
+        <!-- Content -->
+        <div class="tl-content">
+          <div class="tl-task-title"
+            [class.tl-striked]="t.isCompleted">
+            {{ t.title }}
+          </div>
+
+          <!-- Ticket reference -->
+          <div class="tl-ticket-ref"
+            *ngIf="t.ticketNumber"
+            (click)="goToTicket(t)">
+            <span class="tl-ticket-icon">🎫</span>
+            <span class="tl-ticket-num">
+              #TN{{ t.ticketNumber }}
+            </span>
+            <span class="tl-ticket-hint">
+              → View ticket
+            </span>
+          </div>
+
+          <!-- Meta -->
+          <div class="tl-meta">
+            <span class="tl-date">
+              {{ getTimeAgo(t.createdAt) }}
+            </span>
+            <span class="tl-completed-at"
+              *ngIf="t.isCompleted
+                && t.completedAt">
+              · Completed
+              {{ getTimeAgo(t.completedAt) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="tl-actions">
+          <button class="tl-del-btn"
+            type="button"
+            title="Delete"
+            (click)="deleteTodo(t.id, $event)">
+            🗑
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</app-layout>

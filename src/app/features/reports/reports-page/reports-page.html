@@ -1,129 +1,125 @@
-<div class="reports-wrap">
-  <div class="reports-header">
-    <h2>Reports</h2>
-    <p>Generate and view ticket analytics</p>
-  </div>
+<app-layout>
+  <div class="reports-page">
 
-  <!-- Date Filter -->
-  <div class="reports-filter">
-    <mat-form-field appearance="outline" class="date-field">
-      <mat-label>From Date</mat-label>
-      <input matInput [matDatepicker]="picker1"
-        [formControl]="dateForm.controls.from"/>
-      <mat-datepicker-toggle matSuffix
-        [for]="picker1">
-      </mat-datepicker-toggle>
-      <mat-datepicker #picker1></mat-datepicker>
-    </mat-form-field>
-
-    <mat-form-field appearance="outline" class="date-field">
-      <mat-label>To Date</mat-label>
-      <input matInput [matDatepicker]="picker2"
-        [formControl]="dateForm.controls.to"/>
-      <mat-datepicker-toggle matSuffix
-        [for]="picker2">
-      </mat-datepicker-toggle>
-      <mat-datepicker #picker2></mat-datepicker>
-    </mat-form-field>
-
-    <button class="gen-btn"
-      (click)="loadReport()" [disabled]="loading">
-      Generate Report
-    </button>
-    <button class="export-btn-r"
-      (click)="exportCsv()">
-      Export CSV
-    </button>
-  </div>
-
-  <div *ngIf="loading" class="loading-center">
-    <div class="spinner"></div>
-  </div>
-
-  <div *ngIf="!loading && report" class="reports-content">
-
-    <!-- Summary Cards -->
-    <div class="report-summary">
-      <div class="sum-card blue">
-        <div class="sum-num">{{ report.totalTickets }}</div>
-        <div class="sum-label">Total Tickets</div>
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <h1>Reports & Analytics</h1>
+        <p>Track your team's performance</p>
       </div>
-      <div class="sum-card green">
-        <div class="sum-num">{{ report.avgResolutionHours }}h</div>
-        <div class="sum-label">Avg Resolution Time</div>
-      </div>
-      <div class="sum-card gray">
-        <div class="sum-num">
-          {{ report.period.from | date:'dd MMM' }}
-          — {{ report.period.to | date:'dd MMM' }}
-        </div>
-        <div class="sum-label">Report Period</div>
+      <div class="header-actions">
+        <select [(ngModel)]="dateRange"
+          (change)="loadStats()"
+          class="range-sel">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+        <button class="export-btn"
+          (click)="exportCsv()">
+          ↓ CSV
+        </button>
+        <button class="export-btn pdf"
+          (click)="exportPdf()">
+          ↓ PDF
+        </button>
       </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="charts-row">
-      <div class="chart-card">
-        <h4>By Status</h4>
-        <div class="bar-list">
-          <div class="bar-row"
-            *ngFor="let s of report.byStatus">
-            <span class="bar-label">{{ s.status }}</span>
-            <div class="bar-track">
-              <div class="bar-fill"
-                [style.width]="getBarWidth(s.count)"
-                [style.background]="getStatusColor(s.status)">
-              </div>
-            </div>
-            <span class="bar-count">{{ s.count }}</span>
-          </div>
-          <div *ngIf="!report.byStatus?.length"
-            class="no-data">No data</div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <h4>By Priority</h4>
-        <div class="bar-list">
-          <div class="bar-row"
-            *ngFor="let p of report.byPriority">
-            <span class="bar-label">{{ p.priority }}</span>
-            <div class="bar-track">
-              <div class="bar-fill"
-                [style.width]="getBarWidth(p.count)"
-                [style.background]="getPriorityColor(p.priority)">
-              </div>
-            </div>
-            <span class="bar-count">{{ p.count }}</span>
-          </div>
-          <div *ngIf="!report.byPriority?.length"
-            class="no-data">No data</div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <h4>By Category</h4>
-        <div class="bar-list">
-          <div class="bar-row"
-            *ngFor="let c of report.byCategory">
-            <span class="bar-label">{{ c.category }}</span>
-            <div class="bar-track">
-              <div class="bar-fill"
-                [style.width]="getBarWidth(c.count)"
-                style="background:#3b82f6">
-              </div>
-            </div>
-            <span class="bar-count">{{ c.count }}</span>
-          </div>
-          <div *ngIf="!report.byCategory?.length"
-            class="no-data">No data</div>
-        </div>
-      </div>
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-center">
+      <div class="spinner"></div>
     </div>
 
-  </div>
+    <!-- Content -->
+    <div *ngIf="!loading">
 
-  <div *ngIf="!loading && !report" class="empty-report">
-    <p>Click "Generate Report" to view analytics</p>
+      <!-- Stats Row -->
+      <div class="stats-row" *ngIf="dashStats">
+        <div class="stat-card">
+          <div class="stat-num">
+            {{ dashStats.totalTickets }}
+          </div>
+          <div class="stat-label">Total Tickets</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-num">
+            {{ dashStats.openTickets }}
+          </div>
+          <div class="stat-label">Open</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-num">
+            {{ dashStats.inProgressTickets }}
+          </div>
+          <div class="stat-label">In Progress</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-num">
+            {{ dashStats.resolvedTickets }}
+          </div>
+          <div class="stat-label">Resolved</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-num">
+            {{ dashStats.newTicketsToday }}
+          </div>
+          <div class="stat-label">Today</div>
+        </div>
+        <div class="stat-card gray">
+          <div class="stat-num">
+            {{ dashStats.avgResolutionHours }}h
+          </div>
+          <div class="stat-label">Avg Resolution</div>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+
+        <!-- Status Donut -->
+        <div class="chart-card">
+          <h3 class="chart-title">
+            Tickets by Status
+          </h3>
+          <div class="chart-wrap small">
+            <canvas #statusChart></canvas>
+          </div>
+        </div>
+
+        <!-- Priority Bar -->
+        <div class="chart-card">
+          <h3 class="chart-title">
+            Tickets by Priority
+          </h3>
+          <div class="chart-wrap small">
+            <canvas #priorityChart></canvas>
+          </div>
+        </div>
+
+        <!-- Trend Line — full width -->
+        <div class="chart-card wide">
+          <h3 class="chart-title">
+            Ticket Trend (7 Days)
+          </h3>
+          <div class="chart-wrap medium">
+            <canvas #trendChart></canvas>
+          </div>
+        </div>
+
+        <!-- Category Bar -->
+        <div class="chart-card wide"
+          *ngIf="stats?.byCategory?.length">
+          <h3 class="chart-title">
+            By Category
+          </h3>
+          <div class="chart-wrap medium">
+            <canvas #categoryChart></canvas>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
   </div>
-</div>
+</app-layout>

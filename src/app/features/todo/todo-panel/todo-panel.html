@@ -1,0 +1,74 @@
+<div class="todo-panel">
+
+  <!-- Header -->
+  <div class="tp-header">
+    <span class="tp-title">📋 My To-Do</span>
+    <button class="tp-close"
+      type="button"
+      (click)="close.emit()">✕</button>
+  </div>
+
+  <!-- Add new -->
+  <div class="tp-add-row">
+    <input class="tp-input"
+      [(ngModel)]="newTitle"
+      placeholder="Add a task..."
+      (keyup.enter)="addTodo()"/>
+    <button class="tp-add-btn"
+      type="button"
+      (click)="addTodo()">+</button>
+  </div>
+
+  <!-- Empty state -->
+  <div class="tp-empty"
+    *ngIf="todos.length === 0">
+    No tasks yet 🎉
+  </div>
+
+  <!-- List -->
+  <div class="tp-list">
+    <div class="tp-item"
+      *ngFor="let t of todos"
+      [class.tp-done]="t.isCompleted">
+
+      <input type="checkbox"
+        class="tp-check"
+        [checked]="t.isCompleted"
+        (change)="toggleTodo(t)"/>
+
+      <div class="tp-body">
+        <div class="tp-title-text"
+          [class.tp-striked]="t.isCompleted">
+          {{ t.title }}
+        </div>
+        <div class="tp-ticket-ref"
+          *ngIf="t.ticketNumber"
+          (click)="goToTicket(t)">
+          🎫 #TN{{ t.ticketNumber }}
+        </div>
+      </div>
+
+      <button class="tp-del-btn"
+        type="button"
+        (click)="deleteTodo(t.id)">
+        🗑
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="tp-footer"
+    *ngIf="todos.length > 0">
+    <span class="tp-stats">
+      {{ pendingCount }} pending ·
+      {{ doneCount }} done
+    </span>
+    <button class="tp-clear-btn"
+      type="button"
+      *ngIf="doneCount > 0"
+      (click)="clearDone()">
+      Clear done
+    </button>
+  </div>
+
+</div>

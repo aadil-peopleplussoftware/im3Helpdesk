@@ -1,43 +1,54 @@
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject,
-  ViewChild, ElementRef
+  ViewChild, ElementRef,
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
+import {
+  FormsModule, ReactiveFormsModule,
+  FormBuilder, FormGroup, Validators
+} from '@angular/forms';
+import { ActivatedRoute, Router, RouterModule }
+  from '@angular/router';
+import { MatProgressSpinnerModule }
+  from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { Subject, interval, takeUntil } from 'rxjs';
+import { Subject, interval } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { TicketService } from '../../../services/ticket';
 import { AgentService } from '../../../services/agent';
-import { AgentGroupService } from '../../../services/agent-group';
+import { AgentGroupService }
+  from '../../../services/agent-group';
 import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent } from '../../../shared/layout/layout';
-import { LiveChatComponent } from '../../chat/live-chat/live-chat';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { LayoutComponent }
+  from '../../../shared/layout/layout';
+import { DomSanitizer, SafeHtml }
+  from '@angular/platform-browser';
 
 @Component({
   selector: 'app-ticket-detail',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Default,
   imports: [
-    CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
-    MatButtonModule, MatToolbarModule,
-    MatProgressSpinnerModule, MatDividerModule, LayoutComponent,LiveChatComponent
+    CommonModule, FormsModule,
+    ReactiveFormsModule, RouterModule,
+    MatProgressSpinnerModule,
+    LayoutComponent 
   ],
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']
 })
-export class TicketDetailComponent implements OnInit, OnDestroy {
+export class TicketDetailComponent
+  implements OnInit, OnDestroy {
+
   private route = inject(ActivatedRoute);
   public router = inject(Router);
   private ticketService = inject(TicketService);
   private agentService = inject(AgentService);
-  private agentGroupService = inject(AgentGroupService);
+  private agentGroupService =
+    inject(AgentGroupService);
   private authService = inject(AuthService);
   private toastr = inject(ToastrService);
   private http = inject(HttpClient);
@@ -46,22 +57,14 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private sanitizer = inject(DomSanitizer);
 
-  private showToast(type: 'success'|'error'|'info',
-    msg: string) {
-    Promise.resolve().then(() => {
-      if (type === 'success') this.toastr.success(msg);
-      else if (type === 'error') this.toastr.error(msg);
-      else this.toastr.info(msg);
-    });
-  }
+  @ViewChild('replyEditor')
+    replyEditorRef!: ElementRef;
+  @ViewChild('noteEditor')
+    noteEditorRef!: ElementRef;
+  @ViewChild('forwardEditor')
+    forwardEditorRef!: ElementRef;
 
-  private getHeaders(): HttpHeaders {
-  return new HttpHeaders({
-    'Authorization':
-      `Bearer ${this.authService.getToken()}`
-  });
-}
-
+  // ─── State ───────────────────────────
   ticket: any = null;
   loading = true;
   updating = false;
@@ -70,132 +73,157 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   ticketId = '';
   isAgent = false;
 
-  selectedAgentId = '';
-  selectedGroupId = '';
+  // ─── Composer ────────────────────────
+  // ✅ single variable controls tabs
+  activeComposerTab:
+    'reply' | 'note' | 'forward' = 'reply';
+
   quickReplyText = '';
-  isInternalNote = false;
-  newTag = '';
-  timeToLog: number | null = null;
-
-  statuses = ['Open', 'InProgress', 'Resolved', 'Closed'];
-
-  activeTab = 'reply';
-  expandReply = false;
-  showPrevThread = false;
-  showCc = false;
-  showBcc = false;
-  ccEmails = '';
-  bccEmails = '';
   noteText = '';
+  noteIsPrivate = true;
   forwardEmail = '';
   forwardText = '';
   pendingFiles: File[] = [];
   attachments: any[] = [];
 
+  // ─── Notify ──────────────────────────
   notifyTo = '';
   notifyAgents: any[] = [];
   mentionResults: any[] = [];
-  agentSignature = '';
-  expandComposer = false;
+
+  // ─── Props ───────────────────────────
+  selectedAgentId = '';
+  selectedGroupId = '';
+  newTag = '';
+
+  // ─── Org / Signature ─────────────────
   orgSupportEmail = '';
+  agentSignature = '';
+
+  // ─── Custom Fields ───────────────────
   customFields: any[] = [];
-  customFieldValues: { [key: string]: string } = {};
+  customFieldValues: { [key: string]: any } = {};
 
-
-  @ViewChild('replyEditor') replyEditorRef: any;
-  @ViewChild('noteEditor') noteEditorRef: any;
-  @ViewChild('forwardEditor') forwardEditorRef: any;
-
-  commentForm: FormGroup = this.fb.group({
-    comment: ['', [Validators.required, Validators.minLength(3)]]
-  });
+  // ─── Viewers / Timeline ──────────────
   viewers: any[] = [];
   timeline: any[] = [];
-  showTimeline = false;
-  noteIsPrivate = true;
+  showTimeline = true;
 
-      loadTimeline() {
-        this.http.get<any[]>(
-          `https://localhost:7071/api/Tickets/${this.ticketId}/timeline`,
-          { headers: this.getHeaders() }
-        ).subscribe({
-          next: (data) => {
-            this.timeline = data;
-            this.cdr.detectChanges();
-          }
-        });
-      }
+  statuses = [
+    'Open', 'InProgress', 'Pending',
+    'Resolved', 'Closed'
+  ];
 
-      getTimelineLabel(action: string): string {
-        const labels: any = {
-          'Created': 'created this ticket',
-          'StatusChanged': 'changed status',
-          'Assigned': 'assigned ticket',
-          'Commented': 'added a reply',
-          'Updated': 'updated ticket',
-          'TimeLogged': 'logged time',
-          'TagAdded': 'added a tag',
-          'PriorityChanged': 'changed priority',
-          'GroupChanged': 'changed group'
-        };
-        return labels[action] || action?.toLowerCase();
-      }  
+  // ─────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────
+  private showToast(
+    type: 'success' | 'error' | 'info',
+    msg: string) {
+    Promise.resolve().then(() => {
+      if (type === 'success')
+        this.toastr.success(msg);
+      else if (type === 'error')
+        this.toastr.error(msg);
+      else this.toastr.info(msg);
+    });
+  }
 
-    loadTicket() {
-      this.ticketService.getById(this.ticketId).subscribe({
-        next: (data: any) => {
-          this.ticket = data;
-          this.loading = false;
-          // Record view
-          this.recordView();
-          this.loadViewers();
-          this.loadCustomFieldValues();
-          if (data.assignedTo) {
-            const found = this.agents.find(
-              a => a.fullName === data.assignedTo?.fullName
-            );
-            if (found) this.selectedAgentId = found.id;
-          }
-          this.cdr.detectChanges();
-        }
-      });
-    }
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+  }
 
-    recordView() {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${this.authService.getToken()}`
-      });
-      this.http.post(
-        `https://localhost:7071/api/Tickets/${this.ticketId}/view`,
-        {}, { headers }
-      ).subscribe();
-    }
+  sanitizeHtml(html: string): SafeHtml {
+    if (!html) return '';
+    return this.sanitizer
+      .bypassSecurityTrustHtml(html);
+  }
 
-    loadViewers() {
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${this.authService.getToken()}`
-      });
-      this.http.get<any[]>(
-        `https://localhost:7071/api/Tickets/${this.ticketId}/viewers`,
-        { headers }
-      ).subscribe({
-        next: (data) => {
-          this.viewers = data;
-          this.cdr.detectChanges();
-        }
-      });
-    }
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#ef4444', '#f97316', '#eab308',
+      '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'
+    ];
+    return colors[
+      (name?.charCodeAt(0) || 0) % colors.length];
+  }
 
+  getTagsArray(): string[] {
+    if (!this.ticket?.tags) return [];
+    return this.ticket.tags
+      .split(',')
+      .map((t: string) => t.trim())
+      .filter((t: string) => t.length > 0);
+  }
+
+  getCommentAttachments(commentId: string): any[] {
+    if (!this.attachments) return [];
+    return this.attachments.filter(
+      a => a.commentId === commentId);
+  }
+
+  getTicketAttachments(): any[] {
+    if (!this.attachments) return [];
+    return this.attachments.filter(
+      a => !a.commentId);
+  }
+
+  getFileIcon(type: string): string {
+    if (type?.startsWith('image/')) return '🖼';
+    if (type?.includes('pdf')) return '📄';
+    if (type?.includes('word')) return '📝';
+    if (type?.includes('excel') ||
+        type?.includes('sheet')) return '📊';
+    if (type?.includes('zip')) return '🗜';
+    return '📎';
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1048576)
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1048576).toFixed(1)} MB`;
+  }
+
+  getTimelineLabel(action: string): string {
+    const m: any = {
+      'Created': 'created this ticket',
+      'StatusChanged': 'changed status',
+      'Assigned': 'assigned ticket',
+      'Commented': 'added a reply',
+      'NoteAdded': 'added a note',
+      'Updated': 'updated ticket',
+      'TagAdded': 'added a tag',
+      'PriorityChanged': 'changed priority',
+      'GroupChanged': 'changed group',
+      'TimeLogged': 'logged time'
+    };
+    return m[action] || action?.toLowerCase() || '';
+  }
+
+  // ─────────────────────────────────────
+  // LIFECYCLE
+  // ─────────────────────────────────────
   ngOnInit() {
-    this.ticketId = this.route.snapshot.paramMap.get('id') || '';
+    this.ticketId =
+      this.route.snapshot.paramMap
+        .get('id') || '';
 
     const token = this.authService.getToken();
     if (token) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const role = payload[
-        'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'
-      ] || payload.role || '';
-      this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
+      try {
+        const p = JSON.parse(
+          atob(token.split('.')[1]));
+        const role = p[
+          'http://schemas.microsoft.com/ws/' +
+          '2008/06/identity/claims/role'
+        ] || p.role || '';
+        this.isAgent = ['Agent', 'CompanyAdmin',
+          'SuperAdmin'].includes(role);
+      } catch {}
     }
 
     Promise.resolve().then(() => {
@@ -205,111 +233,15 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
       this.loadGroups();
       this.loadOrgInfo();
       this.loadAgentSignature();
-      this.startPolling();
-      this.loadCustomFieldValues()
       this.loadTimeline();
+      this.loadCustomFieldValues();
+      this.startPolling();
     });
   }
-
-loadCustomFieldValues() {
-  const headers = new HttpHeaders({
-    'Authorization': `Bearer ${this.authService.getToken()}`
-  });
-
-  this.http.get<any[]>(
-    'https://localhost:7071/api/CustomFields',
-    { headers }
-  ).subscribe({
-    next: (fields) => {
-      this.customFields = fields;
-      if (fields.length > 0) {
-        this.http.get<any[]>(
-          `https://localhost:7071/api/CustomFields/ticket/${this.ticketId}/values`,
-          { headers }
-        ).subscribe({
-          next: (values) => {
-            // Initialize all fields
-            fields.forEach(f => {
-              this.customFieldValues[f.id] = '';
-            });
-            // Fill existing values
-            values.forEach(v => {
-              this.customFieldValues[v.customFieldId] = v.value;
-            });
-            this.cdr.detectChanges();
-          }
-        });
-      }
-    }
-  });
-}
-
-  saveCustomFields() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-
-    const values = Object.entries(this.customFieldValues)
-      .filter(([, v]) => v !== undefined && v !== '')
-      .map(([k, v]) => ({
-        customFieldId: k,
-        value: String(v)
-      }));
-
-    this.http.post(
-      `https://localhost:7071/api/CustomFields/ticket/${this.ticketId}/values`,
-      values, { headers }
-    ).subscribe({
-      next: () => this.showToast('success', 'Custom fields saved!')
-    });
-  }
-
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  loadAttachments() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.get<any[]>(
-      `https://localhost:7071/api/Attachments/ticket/${this.ticketId}`,
-      { headers }
-    ).subscribe({
-      next: (data) => {
-        this.attachments = data;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  loadAgents() {
-    this.agentService.getAll().subscribe({
-      next: (data: any[]) => {
-        this.agents = data;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  sanitizeHtml(html: string): SafeHtml {
-  if (!html) return '';
-  // Convert plain text line breaks to HTML
-  const withBreaks = html
-    .replace(/\n/g, '<br>')
-    .replace(/\r\n/g, '<br>');
-  return this.sanitizer.bypassSecurityTrustHtml(withBreaks);
-}
-
-  loadGroups() {
-    this.agentGroupService.getAll().subscribe({
-      next: (data: any[]) => {
-        this.groups = data;
-        this.cdr.detectChanges();
-      }
-    });
   }
 
   startPolling() {
@@ -318,317 +250,102 @@ loadCustomFieldValues() {
       .subscribe(() => {
         this.loadTicket();
         this.loadAttachments();
+        this.recordView();
       });
+    this.recordView();
   }
 
-  updateStatus(status: string) {
-    this.ticketService.updateStatus(this.ticketId, status).subscribe({
-      next: () => {
-        this.showToast('success', 'Status updated!');
-        this.loadTicket();
-      }
-    });
-  }
+  // ─────────────────────────────────────
+  // DATA LOAD
+  // ─────────────────────────────────────
+loadTicket() {
+  this.ticketService.getById(this.ticketId)
+    .subscribe({
+      next: (data: any) => {
+        this.ticket = data;
+        this.loading = false;
 
-  updatePriority(priority: string) {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.put(
-      `https://localhost:7071/api/Tickets/${this.ticketId}/priority`,
-      { priority }, { headers }
-    ).subscribe({
-      next: () => {
-        this.showToast('success', 'Priority updated!');
-      }
-    });
-  }
+        if (data.assignedTo?.id)
+          this.selectedAgentId = data.assignedTo.id;
+        if (data.agentGroup?.id)
+          this.selectedGroupId = data.agentGroup.id;
 
-  updateTicketType() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.put(
-      `https://localhost:7071/api/Tickets/${this.ticketId}/type`,
-      { ticketType: this.ticket.ticketType }, { headers }
-    ).subscribe({
-      next: () => {
-        this.showToast('success', 'Type updated!');
-      }
-    });
-  }
-
-  updateAllProps() {
-    this.updating = true;
-    this.cdr.detectChanges();
-
-    const updates: Promise<any>[] = [];
-
-    if (this.selectedAgentId !== undefined) {
-      updates.push(this.ticketService.assign(
-        this.ticketId,
-        this.selectedAgentId || null
-      ).toPromise());
-    }
-
-    if (this.selectedGroupId !== undefined) {
-      updates.push(this.assignGroup());
-    }
-
-    Promise.all(updates).then(() => {
-      this.updating = false;
-      this.cdr.detectChanges();
-      this.showToast('success', 'Ticket updated successfully!');
-      this.loadTicket();
-    }).catch(() => {
-      this.updating = false;
-      this.cdr.detectChanges();
-      this.showToast('error', 'Update failed');
-    });
-  }
-
-  assignGroup(): Promise<any> {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    return this.http.put(
-      `https://localhost:7071/api/Tickets/${this.ticketId}/group`,
-      { agentGroupId: this.selectedGroupId || null },
-      { headers }
-    ).toPromise();
-  }
-
-  assignTicket() {
-    this.ticketService.assign(
-      this.ticketId, this.selectedAgentId || null
-    ).subscribe({
-      next: () => {
-        this.cdr.detectChanges();
-        this.showToast('success', 'Assigned!');
-        this.loadTicket();
-      }
-    });
-  }
-
-  addTag() {
-    if (!this.newTag.trim()) return;
-    const tags = this.getTagsArray();
-    if (!tags.includes(this.newTag.trim().toLowerCase())) {
-      tags.push(this.newTag.trim().toLowerCase());
-    }
-    this.ticketService.updateTags(this.ticketId, tags).subscribe({
-      next: () => {
-        this.newTag = '';
-        this.loadTicket();
-      }
-    });
-  }
-
-  getTagsArray(): string[] {
-    if (!this.ticket?.tags) return [];
-    return this.ticket.tags.split(',').filter((t: string) => t.trim());
-  }
-
-  getCommentAttachments(commentId: string): any[] {
-    if (!this.attachments) return [];
-    return this.attachments.filter(a => a.commentId === commentId);
-  }
-
-  getAvatarColor(name: string): string {
-    const colors = [
-      '#ef4444', '#f97316', '#eab308', '#22c55e',
-      '#3b82f6', '#8b5cf6', '#ec4899'
-    ];
-    const idx = (name?.charCodeAt(0) || 0) % colors.length;
-    return colors[idx];
-  }
-
-  logTime() {
-    if (!this.timeToLog || this.timeToLog < 1) return;
-    this.updating = true;
-    this.cdr.detectChanges();
-
-    this.ticketService.logTime(this.ticketId, this.timeToLog).subscribe({
-      next: (res: any) => {
-        this.timeToLog = null;
-        this.updating = false;
-        this.cdr.detectChanges();
-        this.showToast('success', `${res.totalMinutes} min logged`);
-        this.loadTicket();
+        this.cdr.detectChanges(); // ← YE ADD KARO
+        this.loadViewers();
       },
-      error: () => {
-        this.updating = false;
-        this.cdr.detectChanges();
+      error: (err) => {
+        this.loading = false;
+        this.cdr.detectChanges(); // ← YE BHI
+        if (err.status === 404)
+          this.router.navigate(['/tickets']);
+      }
+    });
+}
+
+  loadAttachments() {
+    this.http.get<any[]>(
+      `https://localhost:7071/api/Attachments` +
+      `/ticket/${this.ticketId}`,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => { this.attachments = data; }
+    });
+  }
+
+  loadAgents() {
+    this.agentService.getAll().subscribe({
+      next: (data: any[]) => {
+        this.agents = data;
       }
     });
   }
 
-
-    onReplyInput(event: any) {
-      this.quickReplyText = event.target.innerHTML || '';
-    }
-
-    onNoteInput(event: any) {
-      this.noteText = event.target.innerHTML || '';
-    }
-
-  onForwardInput(event: any) {
-    this.forwardText = event.target.innerText || '';
-  }
-
-  formatText(command: string) {
-    document.execCommand(command, false);
-  }
-
-  insertLink() {
-    const url = prompt('Enter URL:');
-    if (url) document.execCommand('createLink', false, url);
-  }
-
-  onFileSelect(event: any) {
-    const files = Array.from(event.target.files) as File[];
-    this.pendingFiles.push(...files);
-    this.cdr.detectChanges();
-  }
-
-  removePendingFile(index: number) {
-    this.pendingFiles.splice(index, 1);
-    this.cdr.detectChanges();
-  }
-
-  getFileIcon(type: string): string {
-    if (type?.startsWith('image/')) return '🖼';
-    if (type?.includes('pdf')) return '📄';
-    if (type?.includes('word')) return '📝';
-    if (type?.includes('excel') || type?.includes('sheet')) return '📊';
-    if (type?.includes('zip')) return '🗜';
-    return '📎';
-  }
-
-  formatFileSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  clearReply() {
-    this.quickReplyText = '';
-    if (this.replyEditorRef?.nativeElement) {
-      this.replyEditorRef.nativeElement.innerText = '';
-    }
-    this.pendingFiles = [];
-  }
-
-    async sendReply() {
-    // Get HTML content from contenteditable editor
-    const editorContent = this.replyEditorRef?.nativeElement?.innerHTML?.trim()
-      || this.quickReplyText?.trim();
-
-    if (!editorContent || editorContent === '<br>') return;
-
-    this.updating = true;
-    this.cdr.detectChanges();
-
-    try {
-      const res: any = await this.ticketService.addComment(
-        this.ticketId,
-        editorContent, // HTML content
-        false
-      ).toPromise();
-
-      const commentId = res?.commentId;
-
-      // Upload files with commentId
-      if (commentId && this.pendingFiles.length > 0) {
-        const headers = new HttpHeaders({
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        });
-        for (const file of this.pendingFiles) {
-          const formData = new FormData();
-          formData.append('file', file);
-          await this.http.post(
-            `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
-            formData, { headers }
-          ).toPromise();
-        }
+  loadGroups() {
+    this.agentGroupService.getAll().subscribe({
+      next: (data: any[]) => {
+        this.groups = data;
       }
-
-      this.clearComposer();
-      this.updating = false;
-      this.cdr.detectChanges();
-      this.showToast('success', 'Reply sent!');
-      this.loadTicket();
-      this.loadAttachments();
-    } catch {
-      this.updating = false;
-      this.cdr.detectChanges();
-    }
+    });
   }
-    async sendNote() {
-      const content =
-        this.noteEditorRef?.nativeElement
-          ?.innerHTML?.trim()
-        || this.noteText?.trim();
 
-      if (!content || content === '<br>') return;
-      this.updating = true;
-      this.cdr.detectChanges();
+  loadTimeline() {
+    this.http.get<any[]>(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/timeline`,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => { this.timeline = data; }
+    });
+  }
 
-      try {
-        const res: any = await this.ticketService
-          // ✅ noteIsPrivate controls visibility
-          .addComment(
-            this.ticketId,
-            content,
-            this.noteIsPrivate  // true=private, false=public
-          ).toPromise();
+  recordView() {
+    this.http.post(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/view`,
+      {},
+      { headers: this.getHeaders() }
+    ).subscribe();
+  }
 
-        const commentId = res?.commentId;
-
-        if (commentId && this.pendingFiles.length > 0) {
-          const headers = new HttpHeaders({
-            'Authorization': `Bearer ${this.authService.getToken()}`
-          });
-          for (const file of this.pendingFiles) {
-            const formData = new FormData();
-            formData.append('file', file);
-            await this.http.post(
-              `https://localhost:7071/api/Attachments/upload/${this.ticketId}?commentId=${commentId}`,
-              formData, { headers }
-            ).toPromise();
-          }
-        }
-
-        this.noteText = '';
-        if (this.noteEditorRef?.nativeElement)
-          this.noteEditorRef.nativeElement.innerHTML = '';
-        this.pendingFiles = [];
-        this.updating = false;
-        this.cdr.detectChanges();
-        this.showToast('success', 'Note added!');
-        this.loadTicket();
-        this.loadAttachments();
-      } catch {
-        this.updating = false;
-        this.cdr.detectChanges();
-      }
-    } 
-
-  logout() {
-    this.authService.logout();
+  loadViewers() {
+    this.http.get<any[]>(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/viewers`,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: (data) => { this.viewers = data; }
+    });
   }
 
   loadOrgInfo() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
     this.http.get<any>(
-      'https://localhost:7071/api/Organizations/current',
-      { headers }
+      'https://localhost:7071/api/Organizations' +
+      '/current',
+      { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        this.orgSupportEmail = data.supportEmail || '';
-        this.cdr.detectChanges();
+        this.orgSupportEmail =
+          data.supportEmail || '';
       }
     });
   }
@@ -636,93 +353,211 @@ loadCustomFieldValues() {
   loadAgentSignature() {
     const token = this.authService.getToken();
     if (!token) return;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub
-      || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
-    if (!userId) return;
+    try {
+      const p = JSON.parse(
+        atob(token.split('.')[1]));
+      const userId = p.sub ||
+        p['http://schemas.xmlsoap.org/ws/2005/' +
+          '05/identity/claims/nameidentifier'];
+      if (!userId) return;
 
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`
-    });
-    this.http.get<any>(
-      `https://localhost:7071/api/Agents/${userId}`,
-      { headers }
+      this.http.get<any>(
+        `https://localhost:7071/api/Agents` +
+        `/${userId}`,
+        { headers: this.getHeaders() }
+      ).subscribe({
+        next: (d) => {
+          this.agentSignature = d.signature || '';
+        }
+      });
+    } catch {}
+  }
+
+  loadCustomFieldValues() {
+    this.http.get<any[]>(
+      'https://localhost:7071/api/CustomFields',
+      { headers: this.getHeaders() }
     ).subscribe({
-      next: (data) => {
-        this.agentSignature = data.signature || '';
-        this.cdr.detectChanges();
+      next: (fields) => {
+        this.customFields = fields;
+        if (!fields.length) return;
+
+        this.http.get<any[]>(
+          `https://localhost:7071/api/CustomFields` +
+          `/ticket/${this.ticketId}/values`,
+          { headers: this.getHeaders() }
+        ).subscribe({
+          next: (values) => {
+            fields.forEach(f => {
+              this.customFieldValues[f.id] = '';
+            });
+            values.forEach(v => {
+              this.customFieldValues[
+                v.customFieldId] = v.value;
+            });
+          }
+        });
       }
     });
   }
 
-  searchAgentsForMention(event: any) {
-    const q = event.target.value?.toLowerCase();
-    if (!q || q.length < 1) {
-      this.mentionResults = [];
-      return;
-    }
-    this.mentionResults = this.agents.filter(a =>
-      a.fullName?.toLowerCase().includes(q)
-    ).slice(0, 5);
-    this.cdr.detectChanges();
+  saveCustomFields() {
+    const values = Object.entries(
+      this.customFieldValues)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => ({
+        customFieldId: k,
+        value: String(v)
+      }));
+
+    this.http.post(
+      `https://localhost:7071/api/CustomFields` +
+      `/ticket/${this.ticketId}/values`,
+      values,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () =>
+        this.showToast('success',
+          'Custom fields saved!')
+    });
   }
 
-  addMention(agent: any) {
-    if (!this.notifyAgents.find(a => a.id === agent.id)) {
-      this.notifyAgents.push(agent);
-    }
-    this.notifyTo = '';
-    this.mentionResults = [];
-    this.cdr.detectChanges();
+  // ─────────────────────────────────────
+  // TICKET UPDATES
+  // ─────────────────────────────────────
+  updateStatus(status: string) {
+    this.http.put(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/status`,
+      { status: status },
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () => {
+        this.showToast('success',
+          'Status updated!');
+        this.loadTimeline();
+      },
+      error: (err) => {
+        this.showToast('error',
+          err.error?.message ||
+          'Status update failed');
+        this.loadTicket(); // revert
+      }
+    });
   }
 
-  removeNotify(agent: any) {
-    this.notifyAgents = this.notifyAgents.filter(a => a.id !== agent.id);
-    this.cdr.detectChanges();
+  updatePriority(priority: string) {
+    this.http.put(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/priority`,
+      { priority },
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () => {
+        this.showToast('success',
+          'Priority updated!');
+      }
+    });
   }
 
-  doForward() {
-  if (!this.forwardEmail?.trim()) return;
+  updateTicketType() {
+    this.http.put(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/type`,
+      { ticketType: this.ticket.ticketType },
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () =>
+        this.showToast('success', 'Type updated!')
+    });
+  }
 
-  // Save forward as internal note
-  const forwardContent = `
-    <div style="border:1px solid #e0e0e0;padding:12px;border-radius:8px;background:#f9fafb">
-      <p style="color:#666;font-size:12px;margin-bottom:8px">
-        ↗ Forwarded to: <strong>${this.forwardEmail}</strong>
-      </p>
-      ${this.forwardText || '(No additional message)'}
-    </div>
-  `;
+  addTag() {
+    if (!this.newTag.trim()) return;
+    const tags = this.getTagsArray();
+    const tag = this.newTag.trim().toLowerCase();
+    if (!tags.includes(tag)) tags.push(tag);
 
-  this.ticketService.addComment(
-    this.ticketId,
-    forwardContent,
-    true // internal note
-  ).subscribe({
-    next: () => {
-      this.forwardEmail = '';
-      this.forwardText = '';
-      this.activeTab = 'reply';
-      if (this.forwardEditorRef?.nativeElement)
-        this.forwardEditorRef.nativeElement.innerHTML = '';
-      this.cdr.detectChanges();
-      Promise.resolve().then(() =>
-        this.toastr.success(
-          `Ticket forwarded to ${this.forwardEmail}!`
-        )
-      );
-      this.loadTicket();
-    },
-    error: () => {
-      Promise.resolve().then(() =>
-        this.toastr.error('Forward failed')
-      );
-    }
-  });
-}
+    this.ticketService
+      .updateTags(this.ticketId, tags)
+      .subscribe({
+        next: () => {
+          this.newTag = '';
+          this.loadTicket();
+        }
+      });
+  }
+
+  removeTag(tag: string) {
+    const tags = this.getTagsArray()
+      .filter(t => t !== tag);
+    this.ticketService
+      .updateTags(this.ticketId, tags)
+      .subscribe({ next: () => this.loadTicket() });
+  }
+
+  deleteTicket() {
+    if (!confirm(
+      'Delete this ticket permanently?')) return;
+
+    this.http.delete(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}`,
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () => {
+        this.showToast('success', 'Ticket deleted');
+        this.router.navigate(['/tickets']);
+      },
+      error: () =>
+        this.showToast('error', 'Delete failed')
+    });
+  }
+
+  // ─────────────────────────────────────
+  // COMPOSER METHODS
+  // ─────────────────────────────────────
+  onReplyInput(event: any) {
+    this.quickReplyText =
+      event.target.innerHTML || '';
+  }
+
+  onNoteInput(event: any) {
+    this.noteText = event.target.innerHTML || '';
+  }
+
+  onForwardInput(event: any) {
+    this.forwardText =
+      event.target.innerHTML || '';
+  }
 
   execCmd(command: string, value?: string) {
     document.execCommand(command, false, value);
+  }
+
+  insertLink() {
+    const url = prompt('Enter URL:');
+    if (url)
+      document.execCommand(
+        'createLink', false, url);
+  }
+
+  onFileSelect(event: any) {
+    const files =
+      Array.from(event.target.files) as File[];
+    this.pendingFiles.push(...files);
+  }
+
+  removePendingFile(index: number) {
+    this.pendingFiles.splice(index, 1);
+  }
+
+  clearReply() {
+    this.quickReplyText = '';
+    if (this.replyEditorRef?.nativeElement)
+      this.replyEditorRef.nativeElement.innerHTML
+        = '';
+    this.pendingFiles = [];
   }
 
   clearComposer() {
@@ -730,9 +565,257 @@ loadCustomFieldValues() {
     this.noteText = '';
     this.pendingFiles = [];
     if (this.replyEditorRef?.nativeElement)
-      this.replyEditorRef.nativeElement.innerHTML = '';
+      this.replyEditorRef.nativeElement.innerHTML
+        = '';
     if (this.noteEditorRef?.nativeElement)
-      this.noteEditorRef.nativeElement.innerHTML = '';
-    this.cdr.detectChanges();
+      this.noteEditorRef.nativeElement.innerHTML
+        = '';
+  }
+
+// ✅ Remove ngZone dependency
+// Simply wrap state changes in setTimeout
+
+// Find these methods and update:
+
+async sendReply() {
+  const content =
+    this.replyEditorRef?.nativeElement
+      ?.innerHTML?.trim()
+    || this.quickReplyText?.trim();
+
+  if (!content || content === '<br>') return;
+  if (this.updating) return;
+
+  // ✅ Use setTimeout to avoid ExpressionChanged
+  setTimeout(() => {
+    this.updating = true;
+  }, 0);
+
+  try {
+    const uploadHeaders = new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+
+    const res: any = await this.http.post(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/comments`,
+      { comment: content, isInternal: false },
+      { headers: this.getHeaders() }
+    ).toPromise();
+
+    const commentId = res?.commentId;
+
+    if (commentId &&
+        this.pendingFiles.length > 0) {
+      for (const file of this.pendingFiles) {
+        const fd = new FormData();
+        fd.append('file', file);
+        await this.http.post(
+          `https://localhost:7071` +
+          `/api/Attachments/upload` +
+          `/${this.ticketId}` +
+          `?commentId=${commentId}`,
+          fd,
+          { headers: uploadHeaders }
+        ).toPromise();
+      }
+    }
+
+    this.clearReply();
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+
+    this.showToast('success', 'Reply sent!');
+    this.loadTicket();
+    this.loadAttachments();
+    this.loadTimeline();
+  } catch {
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+    this.showToast('error', 'Reply failed');
+  }
+}
+
+async sendNote() {
+  const content =
+    this.noteEditorRef?.nativeElement
+      ?.innerHTML?.trim()
+    || this.noteText?.trim();
+
+  if (!content || content === '<br>') return;
+  if (this.updating) return;
+
+  setTimeout(() => { this.updating = true; }, 0);
+
+  try {
+    const uploadHeaders = new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+
+    const res: any = await this.http.post(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/comments`,
+      {
+        comment: content,
+        isInternal: this.noteIsPrivate
+      },
+      { headers: this.getHeaders() }
+    ).toPromise();
+
+    const commentId = res?.commentId;
+
+    if (commentId &&
+        this.pendingFiles.length > 0) {
+      for (const file of this.pendingFiles) {
+        const fd = new FormData();
+        fd.append('file', file);
+        await this.http.post(
+          `https://localhost:7071` +
+          `/api/Attachments/upload` +
+          `/${this.ticketId}` +
+          `?commentId=${commentId}`,
+          fd,
+          { headers: uploadHeaders }
+        ).toPromise();
+      }
+    }
+
+    this.noteText = '';
+    if (this.noteEditorRef?.nativeElement)
+      this.noteEditorRef.nativeElement.innerHTML
+        = '';
+    this.pendingFiles = [];
+
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+
+    this.showToast('success', 'Note added!');
+    this.loadTicket();
+    this.loadAttachments();
+    this.loadTimeline();
+  } catch {
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+    this.showToast('error', 'Note failed');
+  }
+}
+
+updateAllProps() {
+  if (this.updating) return;
+
+  setTimeout(() => { this.updating = true; }, 0);
+
+  const p1 = this.http.put(
+    `https://localhost:7071/api/Tickets` +
+    `/${this.ticketId}/assign`,
+    { agentId: this.selectedAgentId || null },
+    { headers: this.getHeaders() }
+  ).toPromise();
+
+  const p2 = this.http.put(
+    `https://localhost:7071/api/Tickets` +
+    `/${this.ticketId}/group`,
+    { agentGroupId:
+        this.selectedGroupId || null },
+    { headers: this.getHeaders() }
+  ).toPromise();
+
+  Promise.all([p1, p2]).then(() => {
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+    this.showToast('success',
+      'Updated successfully!');
+    this.loadTicket();
+    this.loadTimeline();
+  }).catch(() => {
+    setTimeout(() => {
+      this.updating = false;
+    }, 0);
+    this.showToast('error', 'Update failed');
+  });
+}
+
+  // ─────────────────────────────────────
+  // FORWARD
+  // ─────────────────────────────────────
+  doForward() {
+    if (!this.forwardEmail?.trim()) {
+      this.showToast('error',
+        'Enter forwarding email');
+      return;
+    }
+
+    if (this.updating) return;
+    this.updating = true;
+
+    // Forward via API email
+    this.http.post(
+      `https://localhost:7071/api/Tickets` +
+      `/${this.ticketId}/forward`,
+      {
+        toEmail: this.forwardEmail,
+        message: this.forwardText
+      },
+      { headers: this.getHeaders() }
+    ).subscribe({
+      next: () => {
+        this.forwardEmail = '';
+        this.forwardText = '';
+        this.activeComposerTab = 'reply';
+        if (this.forwardEditorRef?.nativeElement)
+          this.forwardEditorRef.nativeElement
+            .innerHTML = '';
+        this.updating = false;
+        this.showToast('success',
+          'Forwarded successfully!');
+        this.loadTicket();
+        this.loadTimeline();
+      },
+      error: (err) => {
+        this.updating = false;
+        this.showToast('error',
+          err.error?.message || 'Forward failed');
+      }
+    });
+  }
+
+  // ─────────────────────────────────────
+  // MENTION
+  // ─────────────────────────────────────
+  searchAgentsForMention(event: any) {
+    const q = event.target.value?.toLowerCase();
+    if (!q || q.length < 1) {
+      this.mentionResults = [];
+      return;
+    }
+    this.mentionResults = this.agents
+      .filter(a =>
+        a.fullName?.toLowerCase().includes(q))
+      .slice(0, 5);
+  }
+
+  addMention(agent: any) {
+    if (!this.notifyAgents.find(
+      a => a.id === agent.id))
+      this.notifyAgents.push(agent);
+    this.notifyTo = '';
+    this.mentionResults = [];
+  }
+
+  removeNotify(agent: any) {
+    this.notifyAgents =
+      this.notifyAgents.filter(
+        a => a.id !== agent.id);
+  }
+
+  logout() {
+    this.authService.logout();
   }
 }

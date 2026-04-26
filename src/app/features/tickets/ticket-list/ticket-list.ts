@@ -5,21 +5,27 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import {
+  Router, RouterModule,
+  ActivatedRoute
+} from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { TicketService } from '../../../services/ticket';
-import { AuthService } from '../../../services/auth.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { LayoutComponent }
+  from '../../../shared/layout/layout';
+import { AuthService }
+  from '../../../services/auth.service';
 
 @Component({
   selector: 'app-ticket-list',
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-    RouterModule, LayoutComponent
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    LayoutComponent
   ],
   templateUrl: './ticket-list.html',
   styleUrls: ['./ticket-list.scss'],
@@ -28,12 +34,11 @@ import { LayoutComponent } from '../../../shared/layout/layout';
 export class TicketListComponent
   implements OnInit, OnDestroy {
 
-  private ticketService = inject(TicketService);
   private authService = inject(AuthService);
   public router = inject(Router);
   private route = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
-  private cdr = inject(ChangeDetectorRef);
+  public cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
   private destroy$ = new Subject<void>();
 
@@ -45,7 +50,6 @@ export class TicketListComponent
   showColumnPicker = false;
   selectedTicketIds = new Set<string>();
 
-  // ✅ Filters — start empty so ALL data loads
   filters = {
     status: '',
     priority: '',
@@ -70,10 +74,10 @@ export class TicketListComponent
     { id: 'priority', label: 'Priority' },
     { id: 'category', label: 'Category' },
     { id: 'assignedTo', label: 'Assigned To' },
-    { id: 'createdAt', label: 'Date' },
-    { id: 'sla', label: 'SLA' },
     { id: 'ticketType', label: 'Type' },
-    { id: 'tags', label: 'Tags' }
+    { id: 'tags', label: 'Tags' },
+    { id: 'sla', label: 'SLA' },
+    { id: 'createdAt', label: 'Date' }
   ];
 
   statusOptions = [
@@ -85,21 +89,20 @@ export class TicketListComponent
     'Low', 'Medium', 'High', 'Critical'
   ];
 
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization':
+        `Bearer ${this.authService.getToken()}`
+    });
+  }
+
   ngOnInit() {
-    // ✅ Load all tickets on init — no filters
     this.loadTickets();
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
   }
 
   loadTickets() {
@@ -110,33 +113,26 @@ export class TicketListComponent
       'https://localhost:7071/api/Tickets',
       { headers: this.getHeaders() }
     ).pipe(takeUntil(this.destroy$))
-     .subscribe({
-       next: (data) => {
-         this.allTickets = data;
-         // ✅ Apply filters AFTER load
-         this.applyFilters();
-         this.loading = false;
-         this.cdr.markForCheck();
-       },
-       error: (err) => {
-         this.loading = false;
-         this.cdr.markForCheck();
-         if (err.status === 401) {
-           this.authService.logout();
-           return;
-         }
-         Promise.resolve().then(() =>
-           this.toastr.error(
-             'Failed to load tickets')
-         );
-       }
-     });
+      .subscribe({
+        next: (data) => {
+          this.allTickets = data;
+          this.applyFilters();
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.loading = false;
+          this.cdr.markForCheck();
+          if (err.status === 401) {
+            this.authService.logout();
+          }
+        }
+      });
   }
 
   applyFilters() {
     let result = [...this.allTickets];
 
-    // ✅ Only filter if value set
     if (this.filters.status)
       result = result.filter(t =>
         t.status === this.filters.status);
@@ -156,16 +152,19 @@ export class TicketListComponent
           this.filters.assignedTo.toLowerCase()));
 
     if (this.filters.search) {
-      const q = this.filters.search.toLowerCase();
+      const q =
+        this.filters.search.toLowerCase();
       result = result.filter(t =>
         t.title?.toLowerCase().includes(q) ||
         t.tags?.toLowerCase().includes(q) ||
         t.category?.toLowerCase().includes(q) ||
-        `#TN${t.ticketNumber}`.includes(q));
+        `tn${t.ticketNumber}`.includes(q) ||
+        `#tn${t.ticketNumber}`.includes(q));
     }
 
     if (this.filters.dateFrom) {
-      const from = new Date(this.filters.dateFrom);
+      const from =
+        new Date(this.filters.dateFrom);
       result = result.filter(t =>
         new Date(t.createdAt) >= from);
     }
@@ -181,7 +180,8 @@ export class TicketListComponent
     result.sort((a, b) => {
       const valA = a[this.sortBy];
       const valB = b[this.sortBy];
-      const dir = this.sortDir === 'asc' ? 1 : -1;
+      const dir =
+        this.sortDir === 'asc' ? 1 : -1;
       if (valA < valB) return -1 * dir;
       if (valA > valB) return 1 * dir;
       return 0;
@@ -209,7 +209,25 @@ export class TicketListComponent
       .some(v => v !== '');
   }
 
+  sortBy_(field: string) {
+    if (this.sortBy === field)
+      this.sortDir =
+        this.sortDir === 'asc' ? 'desc' : 'asc';
+    else {
+      this.sortBy = field;
+      this.sortDir =
+        field === 'createdAt' ? 'desc' : 'asc';
+    }
+    this.applyFilters();
+  }
+
+  getSortIcon(field: string): string {
+    if (this.sortBy !== field) return '';
+    return this.sortDir === 'asc' ? '↑' : '↓';
+  }
+
   viewTicket(id: string) {
+    if (!id) return;
     this.router.navigate(['/tickets', id]);
   }
 
@@ -223,12 +241,11 @@ export class TicketListComponent
 
   selectAll() {
     if (this.selectedTicketIds.size ===
-        this.tickets.length) {
+        this.tickets.length)
       this.selectedTicketIds.clear();
-    } else {
+    else
       this.tickets.forEach(t =>
         this.selectedTicketIds.add(t.id));
-    }
     this.cdr.markForCheck();
   }
 
@@ -237,7 +254,8 @@ export class TicketListComponent
   }
 
   toggleColumn(colId: string) {
-    const idx = this.visibleColumns.indexOf(colId);
+    const idx =
+      this.visibleColumns.indexOf(colId);
     if (idx > -1) {
       if (this.visibleColumns.length > 2)
         this.visibleColumns.splice(idx, 1);
@@ -247,32 +265,13 @@ export class TicketListComponent
     this.cdr.markForCheck();
   }
 
-
-    getTagsArr(tags: string): string[] {
-      if (!tags || tags.trim() === '') return [];
-      return tags.split(',')
-        .map(t => t.trim())
-        .filter(t => t.length > 0)
-        .slice(0, 3); 
-    }
-
-    sortBy_(field: string) {
-      if (this.sortBy === field) {
-        this.sortDir =
-          this.sortDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        this.sortBy = field;
-        this.sortDir = field === 'createdAt'
-          ? 'desc' : 'asc';
-      }
-      this.applyFilters();
-    }
-
-// Sort icon helper
-getSortIcon(field: string): string {
-  if (this.sortBy !== field) return '↕';
-  return this.sortDir === 'asc' ? '↑' : '↓';
-}
+  getTagsArr(tags: string): string[] {
+    if (!tags || !tags.trim()) return [];
+    return tags.split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0)
+      .slice(0, 3);
+  }
 
   getStatusColor(s: string): string {
     const c: any = {
@@ -306,9 +305,11 @@ getSortIcon(field: string): string {
   }
 
   getTimeAgo(dateStr: string): string {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
+    const diff =
+      now.getTime() - date.getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'just now';
     if (mins < 60) return `${mins}m ago`;
@@ -320,12 +321,55 @@ getSortIcon(field: string): string {
 
   getAvatarColor(name: string): string {
     const colors = [
-      '#ef4444','#f97316','#eab308',
-      '#22c55e','#3b82f6','#8b5cf6','#ec4899'
+      '#ef4444', '#f97316', '#eab308',
+      '#22c55e', '#3b82f6',
+      '#8b5cf6', '#ec4899'
     ];
-    const idx = (name?.charCodeAt(0) || 0)
-      % colors.length;
+    const idx =
+      (name?.charCodeAt(0) || 0)
+        % colors.length;
     return colors[idx];
+  }
+
+  // ✅ ADD TO TODO
+  addSelectedToTodo() {
+    const selected = this.tickets.filter(t =>
+      this.selectedTicketIds.has(t.id));
+
+    if (!selected.length) {
+      Promise.resolve().then(() =>
+        this.toastr.warning(
+          'Select at least one ticket')
+      );
+      return;
+    }
+
+    const promises = selected.map(t =>
+      this.http.post(
+        'https://localhost:7071/api/Todo',
+        {
+          title: t.title,
+          ticketNumber:
+            t.ticketNumber?.toString(),
+          ticketId: t.id
+        },
+        { headers: this.getHeaders() }
+      ).toPromise()
+    );
+
+    Promise.all(promises).then(() => {
+      Promise.resolve().then(() =>
+        this.toastr.success(
+          `${selected.length} ticket(s)` +
+          ` added to To-Do!`)
+      );
+      this.selectedTicketIds.clear();
+      this.cdr.markForCheck();
+    }).catch(() => {
+      Promise.resolve().then(() =>
+        this.toastr.error('Failed to add to To-Do')
+      );
+    });
   }
 
   exportCsv() {
@@ -355,7 +399,8 @@ getSortIcon(field: string): string {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tickets-${Date.now()}.csv`;
+    a.download =
+      `tickets-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

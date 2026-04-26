@@ -141,6 +141,21 @@ export class ContactsPageComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  filterContacts() {
+    const q = this.searchQuery?.toLowerCase() ?? '';
+    if (!q) {
+      this.filteredContacts = [...this.contacts];
+      this.cdr.detectChanges();
+      return;
+    }
+    this.filteredContacts = this.contacts.filter(c =>
+      c.fullName?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.company?.toLowerCase().includes(q)
+    );
+    this.cdr.detectChanges();
+  }
+
   selectContact(c: any) {
     this.selectedContact =
       this.selectedContact?.id === c.id ? null : c;

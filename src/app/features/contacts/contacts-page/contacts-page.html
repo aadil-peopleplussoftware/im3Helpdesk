@@ -13,15 +13,12 @@
             [(ngModel)]="searchQuery"
             (ngModelChange)="activeView === 'companies'
               ? searchCompanies()
-              : search()"
+              : filterContacts()"
             [placeholder]="activeView === 'companies'
               ? 'Search companies...'
               : 'Search contacts...'"/>
         </div>
-        <button class="new-btn"
-          (click)="showCreateForm = true">
-          + New Contact
-        </button>
+        <!-- ✅ Removed Add Contact button -->
       </div>
     </div>
 
@@ -89,8 +86,8 @@
 
           <div class="contact-meta">
             <span class="source-badge email-src"
-              *ngIf="c.source === 'email'">
-              email
+              *ngIf="c.source">
+              {{ c.source }}
             </span>
             <div class="contact-date">
               {{ c.createdAt | date:'dd MMM' }}
@@ -172,7 +169,7 @@
 
     </div>
 
-    <!-- COMPANIES VIEW (Image jaisa) -->
+    <!-- COMPANIES VIEW -->
     <div *ngIf="!loading && activeView === 'companies'">
 
       <!-- Company not selected: list -->
@@ -228,7 +225,7 @@
         </table>
       </div>
 
-      <!-- Company selected: detail (Image jaisa) -->
+      <!-- Company selected: detail -->
       <div *ngIf="selectedCompany"
         class="company-detail">
         <div class="co-detail-header">
@@ -252,7 +249,7 @@
           </div>
         </div>
 
-        <!-- Tabs: Timeline/Tickets -->
+        <!-- Tabs: Contacts -->
         <div class="co-detail-tabs">
           <button class="co-tab"
             [class.active]="coActiveTab==='contacts'"
