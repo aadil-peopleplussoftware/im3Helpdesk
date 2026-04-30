@@ -97,9 +97,11 @@ public class KnowledgeBaseController : ControllerBase
   }
 
   [HttpPost]
-  public async Task<IActionResult> Create([FromBody] CreateArticleDto dto)
+  public async Task<IActionResult> Create(
+      [FromBody] CreateArticleDto dto)
   {
-    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
 
     if (!Guid.TryParse(userIdClaim, out var userId))
@@ -123,8 +125,8 @@ public class KnowledgeBaseController : ControllerBase
   }
 
   [HttpPut("{id}")]
-  public async Task<IActionResult> Update(Guid id,
-      [FromBody] CreateArticleDto dto)
+  public async Task<IActionResult> Update(
+      Guid id, [FromBody] CreateArticleDto dto)
   {
     var article = await _context.KbArticles.FindAsync(id);
     if (article == null) return NotFound();
@@ -163,21 +165,63 @@ public class KnowledgeBaseController : ControllerBase
     return Ok(categories);
   }
 
+  // ✅ NAYA — KB unread count
+  [HttpGet("unread-count")]
+  public async Task<IActionResult> GetUnreadCount()
+  {
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Ok(new { count = 0, articles = new List<object>() });
+
+    // User ne jo articles view kiye hain unke IDs
+    var viewedIds = await _context.ActivityLogs
+        .AsNoTracking()
+        .Where(a =>
+            a.UserId == userId &&
+            a.Action == "Viewed" &&
+            a.EntityType == "KbArticle")
+        .Select(a => a.EntityId)
+        .Distinct()
+        .ToListAsync();
+
+    // Published articles jo user ne nahi dekhe
+    var unread = await _context.KbArticles
+        .AsNoTracking()
+        .Where(a =>
+            a.IsPublished &&
+            !viewedIds.Contains(a.Id))
+        .OrderByDescending(a => a.CreatedAt)
+        .Take(10)
+        .Select(a => new
+        {
+          a.Id,
+          a.Title,
+          a.Category,
+          a.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(new
+    {
+      count = unread.Count,
+      articles = unread
+    });
+  }
+
   [HttpPost("{id}/view")]
   public async Task<IActionResult> RecordView(Guid id)
   {
-    var article = await _context.KbArticles
-        .FindAsync(id);
+    var article = await _context.KbArticles.FindAsync(id);
     if (article == null) return NotFound();
 
-    // ✅ Get current user
     var userIdClaim =
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? User.FindFirst("sub")?.Value;
     Guid.TryParse(userIdClaim, out var userId);
 
-    // ✅ Check if this user already has
-    // a view log for today
     var today = DateTime.UtcNow.Date;
     var alreadyViewed = await _context.ActivityLogs
         .AnyAsync(a =>
@@ -188,7 +232,6 @@ public class KnowledgeBaseController : ControllerBase
 
     if (!alreadyViewed)
     {
-      // Increment count only once per user per day
       article.ViewCount++;
 
       _context.ActivityLogs.Add(new ActivityLog
@@ -197,7 +240,8 @@ public class KnowledgeBaseController : ControllerBase
         OrganizationId =
               _tenantService.OrganizationId!.Value,
         Action = "Viewed",
-        Description = $"Viewed article: {article.Title}",
+        Description =
+              $"Viewed article: {article.Title}",
         EntityType = "KbArticle",
         EntityId = id
       });
@@ -211,7 +255,6 @@ public class KnowledgeBaseController : ControllerBase
   [HttpGet("{id}/viewers")]
   public async Task<IActionResult> GetViewers(Guid id)
   {
-    // ✅ DISTINCT users — one entry per user
     var viewers = await _context.ActivityLogs
         .AsNoTracking()
         .Include(a => a.User)
@@ -219,7 +262,7 @@ public class KnowledgeBaseController : ControllerBase
             a.EntityType == "KbArticle" &&
             a.EntityId == id &&
             a.Action == "Viewed")
-        .GroupBy(a => a.UserId)  // ✅ Group by user
+        .GroupBy(a => a.UserId)
         .Select(g => new
         {
           UserId = g.Key,
@@ -244,7 +287,6 @@ public class KnowledgeBaseController : ControllerBase
       viewers
     });
   }
-
 }
 
 public class CreateArticleDto

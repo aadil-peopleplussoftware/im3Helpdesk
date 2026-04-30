@@ -410,6 +410,43 @@ public class ChatController : ControllerBase
     return Ok(result);
   }
 
+
+  [HttpPost("groups/{groupId}/members")]
+  public async Task<IActionResult> AddGroupMembers(
+      Guid groupId,
+      [FromBody] ChatAddMembersDto dto)
+  {
+    var myId = GetUserId();
+
+    var isMember = await _context.ChatGroupMembers
+        .AnyAsync(m =>
+            m.GroupId == groupId &&
+            m.UserId == myId);
+
+    if (!isMember) return Forbid();
+
+    var existing = await _context.ChatGroupMembers
+        .Where(m => m.GroupId == groupId)
+        .Select(m => m.UserId)
+        .ToListAsync();
+
+    foreach (var uid in dto.MemberIds)
+    {
+      if (!existing.Contains(uid))
+      {
+        _context.ChatGroupMembers.Add(
+            new ChatGroupMember
+            {
+              GroupId = groupId,
+              UserId = uid
+            });
+      }
+    }
+
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Members added" });
+  }
+
   [HttpGet("group/{groupId}/messages")]
   public async Task<IActionResult>
       GetGroupMessages(Guid groupId,

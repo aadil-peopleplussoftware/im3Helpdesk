@@ -57,14 +57,8 @@ public class DashboardController : ControllerBase
              u.Role == UserRole.CompanyAdmin));
 
     var org = await _context.Organizations
-        .AsNoTracking()
-        .Select(o => new
-        {
-          o.Name,
-          o.TrialEndsAt
-        })
-        .FirstOrDefaultAsync(o =>
-            o.Name != null);
+    .AsNoTracking()
+    .FirstOrDefaultAsync(o => o.Id == orgId); // ✅ orgId se filter karo
 
     var recent = await _context.Tickets
         .AsNoTracking()
