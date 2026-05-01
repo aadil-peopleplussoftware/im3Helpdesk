@@ -1,4 +1,5 @@
 using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,18 +11,20 @@ public class ApplicationDbContext : DbContext
   private readonly bool _isSuperAdmin;
 
   public ApplicationDbContext(
-      DbContextOptions<ApplicationDbContext> options,
+      DbContextOptions<ApplicationDbContext>
+          options,
       ICurrentTenantService tenantService)
           : base(options)
   {
     _currentTenantId =
         tenantService.OrganizationId;
-    _isSuperAdmin = tenantService.IsSuperAdmin;
+    _isSuperAdmin =
+        tenantService.IsSuperAdmin;
   }
 
-  // ══════════════════════════════════════
-  // DbSets
-  // ══════════════════════════════════════
+  // ════════════════════════════════════
+  // DbSets — All Tables
+  // ════════════════════════════════════
   public DbSet<Organization> Organizations
       => Set<Organization>();
   public DbSet<User> Users
@@ -42,9 +45,11 @@ public class ApplicationDbContext : DbContext
       => Set<EmailQueue>();
   public DbSet<AgentGroup> AgentGroups
       => Set<AgentGroup>();
-  public DbSet<AgentGroupMember> AgentGroupMembers
+  public DbSet<AgentGroupMember>
+      AgentGroupMembers
       => Set<AgentGroupMember>();
-  public DbSet<TicketAttachment> TicketAttachments
+  public DbSet<TicketAttachment>
+      TicketAttachments
       => Set<TicketAttachment>();
   public DbSet<CustomField> CustomFields
       => Set<CustomField>();
@@ -60,8 +65,6 @@ public class ApplicationDbContext : DbContext
       => Set<Contact>();
   public DbSet<TodoItem> TodoItems
       => Set<TodoItem>();
-
-  // ✅ Chat DbSets — ALL added
   public DbSet<ChatMessage> ChatMessages
       => Set<ChatMessage>();
   public DbSet<UserOnlineStatus>
@@ -70,35 +73,47 @@ public class ApplicationDbContext : DbContext
   public DbSet<ChatGroup> ChatGroups
       => Set<ChatGroup>();
   public DbSet<ChatGroupMember>
-      ChatGroupMembers    // ✅ This was missing
+      ChatGroupMembers
       => Set<ChatGroupMember>();
 
-  // ══════════════════════════════════════
-  // Model Configuration
-  // ══════════════════════════════════════
+  // ✅ NEW — Call Log
+  public DbSet<CallLog> CallLogs
+      => Set<CallLog>();
+
+  // ════════════════════════════════════
+  // OnModelCreating
+  // ════════════════════════════════════
   protected override void OnModelCreating(
       ModelBuilder modelBuilder)
   {
-    // ── Organization ──────────────────
+    base.OnModelCreating(modelBuilder);
+
+    // ── Organization ──────────────
     modelBuilder.Entity<Organization>(e =>
     {
       e.HasKey(x => x.Id);
-      e.HasIndex(x => x.Slug).IsUnique();
+      e.HasIndex(x => x.Slug)
+          .IsUnique();
       e.Property(x => x.Name)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.Property(x => x.Slug)
-          .HasMaxLength(100).IsRequired();
+          .HasMaxLength(100)
+          .IsRequired();
     });
 
-    // ── User ──────────────────────────
+    // ── User ──────────────────────
     modelBuilder.Entity<User>(e =>
     {
       e.HasKey(x => x.Id);
-      e.HasIndex(x => x.Email).IsUnique();
+      e.HasIndex(x => x.Email)
+          .IsUnique();
       e.Property(x => x.Email)
-          .HasMaxLength(256).IsRequired();
+          .HasMaxLength(256)
+          .IsRequired();
       e.Property(x => x.FullName)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.HasQueryFilter(u =>
           _isSuperAdmin ||
           u.OrganizationId ==
@@ -109,25 +124,32 @@ public class ApplicationDbContext : DbContext
               u.OrganizationId);
     });
 
-    // ── Ticket ────────────────────────
+    // ── Ticket ────────────────────
     modelBuilder.Entity<Ticket>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Title)
-          .HasMaxLength(500).IsRequired();
+          .HasMaxLength(500)
+          .IsRequired();
       e.Property(x => x.Category)
           .HasMaxLength(100);
+
+      // ✅ CRITICAL: No IDENTITY
+      // ValueGeneratedNever = no IDENTITY
       e.Property(x => x.TicketNumber)
           .ValueGeneratedNever()
           .HasDefaultValue(0);
+
       e.Property(x => x.Description)
           .HasColumnType("nvarchar(max)");
       e.Property(x => x.Tags)
           .HasColumnType("nvarchar(max)");
+
       e.HasQueryFilter(t =>
           _isSuperAdmin ||
           t.OrganizationId ==
               _currentTenantId);
+
       e.HasOne(t => t.CreatedBy)
           .WithMany()
           .HasForeignKey(t =>
@@ -146,7 +168,7 @@ public class ApplicationDbContext : DbContext
               t.OrganizationId)
           .OnDelete(
               DeleteBehavior.Restrict);
-      // Indexes
+
       e.HasIndex(t => t.OrganizationId);
       e.HasIndex(t => t.CreatedAt);
       e.HasIndex(t => t.Status);
@@ -157,7 +179,7 @@ public class ApplicationDbContext : DbContext
       });
     });
 
-    // ── TicketComment ─────────────────
+    // ── TicketComment ─────────────
     modelBuilder.Entity<TicketComment>(e =>
     {
       e.HasKey(x => x.Id);
@@ -177,14 +199,16 @@ public class ApplicationDbContext : DbContext
               DeleteBehavior.Restrict);
     });
 
-    // ── Notification ──────────────────
+    // ── Notification ──────────────
     modelBuilder.Entity<Notification>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Title)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.Property(x => x.Message)
-          .HasMaxLength(500).IsRequired();
+          .HasMaxLength(500)
+          .IsRequired();
       e.HasQueryFilter(n =>
           _isSuperAdmin ||
           n.OrganizationId ==
@@ -206,12 +230,13 @@ public class ApplicationDbContext : DbContext
       });
     });
 
-    // ── ActivityLog ───────────────────
+    // ── ActivityLog ───────────────
     modelBuilder.Entity<ActivityLog>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Action)
-          .HasMaxLength(100).IsRequired();
+          .HasMaxLength(100)
+          .IsRequired();
       e.Property(x => x.Description)
           .HasColumnType("nvarchar(max)");
       e.HasQueryFilter(a =>
@@ -223,15 +248,17 @@ public class ApplicationDbContext : DbContext
           .HasForeignKey(a => a.UserId)
           .OnDelete(
               DeleteBehavior.Restrict);
-      e.HasIndex(a => a.OrganizationId);
+      e.HasIndex(a =>
+          a.OrganizationId);
     });
 
-    // ── KbArticle ─────────────────────
+    // ── KbArticle ─────────────────
     modelBuilder.Entity<KbArticle>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Title)
-          .HasMaxLength(300).IsRequired();
+          .HasMaxLength(300)
+          .IsRequired();
       e.Property(x => x.Content)
           .IsRequired();
       e.Property(x => x.Category)
@@ -248,92 +275,101 @@ public class ApplicationDbContext : DbContext
               DeleteBehavior.Restrict);
     });
 
-    // ── TicketTemplate ────────────────
+    // ── TicketTemplate ────────────
     modelBuilder.Entity<TicketTemplate>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Name)
-          .HasMaxLength(100).IsRequired();
+          .HasMaxLength(100)
+          .IsRequired();
       e.HasQueryFilter(t =>
           _isSuperAdmin ||
           t.OrganizationId ==
               _currentTenantId);
     });
 
-    // ── EmailQueue ────────────────────
+    // ── EmailQueue ────────────────
     modelBuilder.Entity<EmailQueue>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.ToEmail)
-          .HasMaxLength(256).IsRequired();
+          .HasMaxLength(256)
+          .IsRequired();
       e.Property(x => x.Subject)
-          .HasMaxLength(500).IsRequired();
+          .HasMaxLength(500)
+          .IsRequired();
     });
 
-    // ── AgentGroup ────────────────────
+    // ── AgentGroup ────────────────
     modelBuilder.Entity<AgentGroup>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Name)
-          .HasMaxLength(100).IsRequired();
+          .HasMaxLength(100)
+          .IsRequired();
       e.HasQueryFilter(g =>
           _isSuperAdmin ||
           g.OrganizationId ==
               _currentTenantId);
     });
 
-    // ── AgentGroupMember ──────────────
-    modelBuilder.Entity<AgentGroupMember>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.HasOne(m => m.Group)
-          .WithMany(g => g.Members)
-          .HasForeignKey(m =>
-              m.AgentGroupId)
-          .OnDelete(
-              DeleteBehavior.Cascade)
-          .IsRequired(false);
-      e.HasOne(m => m.User)
-          .WithMany()
-          .HasForeignKey(m => m.UserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-      e.HasQueryFilter(m =>
-          _isSuperAdmin ||
-          (m.Group != null &&
-           m.Group.OrganizationId ==
-              _currentTenantId));
-    });
+    // ── AgentGroupMember ──────────
+    modelBuilder.Entity<AgentGroupMember>(
+        e =>
+        {
+          e.HasKey(x => x.Id);
+          e.HasOne(m => m.Group)
+                  .WithMany(g => g.Members)
+                  .HasForeignKey(m =>
+                      m.AgentGroupId)
+                  .OnDelete(
+                      DeleteBehavior.Cascade)
+                  .IsRequired(false);
+          e.HasOne(m => m.User)
+                  .WithMany()
+                  .HasForeignKey(m => m.UserId)
+                  .OnDelete(
+                      DeleteBehavior.Restrict);
+          // ✅ NEW — tenant filter via Group
+          e.HasQueryFilter(m =>
+                  _isSuperAdmin ||
+                  (m.Group != null &&
+                   m.Group.OrganizationId ==
+                      _currentTenantId));
+        });
 
-    // ── TicketAttachment ──────────────
-    modelBuilder.Entity<TicketAttachment>(e =>
-    {
-      e.HasKey(x => x.Id);
-      e.Property(x => x.FileName)
-          .HasMaxLength(300).IsRequired();
-      e.HasQueryFilter(a =>
-          _isSuperAdmin ||
-          a.OrganizationId ==
-              _currentTenantId);
-      e.HasOne(a => a.Ticket)
-          .WithMany()
-          .HasForeignKey(a => a.TicketId)
-          .OnDelete(
-              DeleteBehavior.Cascade);
-      e.HasOne(a => a.UploadedBy)
-          .WithMany()
-          .HasForeignKey(a =>
-              a.UploadedByUserId)
-          .OnDelete(
-              DeleteBehavior.Restrict);
-    });
+    // ── TicketAttachment ──────────
+    modelBuilder.Entity<TicketAttachment>(
+        e =>
+        {
+          e.HasKey(x => x.Id);
+          e.Property(x => x.FileName)
+                  .HasMaxLength(300)
+                  .IsRequired();
+          e.HasQueryFilter(a =>
+                  _isSuperAdmin ||
+                  a.OrganizationId ==
+                      _currentTenantId);
+          e.HasOne(a => a.Ticket)
+                  .WithMany()
+                  .HasForeignKey(a => a.TicketId)
+                  .OnDelete(
+                      DeleteBehavior.Cascade);
+          e.HasOne(a => a.UploadedBy)
+                  .WithMany()
+                  .HasForeignKey(a =>
+                      a.UploadedByUserId)
+                  .OnDelete(
+                      DeleteBehavior.Restrict);
+        });
 
-    // ── CustomField ───────────────────
+    // ── CustomField ───────────────
     modelBuilder.Entity<CustomField>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Label)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.Property(x => x.FieldType)
           .HasMaxLength(50);
       e.HasQueryFilter(f =>
@@ -342,7 +378,7 @@ public class ApplicationDbContext : DbContext
               _currentTenantId);
     });
 
-    // ── TicketCustomFieldValue ────────
+    // ── TicketCustomFieldValue ────
     modelBuilder.Entity<
         TicketCustomFieldValue>(e =>
         {
@@ -364,7 +400,7 @@ public class ApplicationDbContext : DbContext
                       _currentTenantId);
         });
 
-    // ── TicketViewer ──────────────────
+    // ── TicketViewer ──────────────
     modelBuilder.Entity<TicketViewer>(e =>
     {
       e.HasKey(x => x.Id);
@@ -375,7 +411,7 @@ public class ApplicationDbContext : DbContext
       });
     });
 
-    // ── EmailNotificationSetting ──────
+    // ── EmailNotificationSetting ──
     modelBuilder.Entity<
         EmailNotificationSetting>(e =>
         {
@@ -391,7 +427,7 @@ public class ApplicationDbContext : DbContext
                       _currentTenantId);
         });
 
-    // ── Contact ───────────────────────
+    // ── Contact ───────────────────
     modelBuilder.Entity<Contact>(e =>
     {
       e.HasKey(x => x.Id);
@@ -401,28 +437,40 @@ public class ApplicationDbContext : DbContext
         x.Email
       }).IsUnique();
       e.Property(x => x.FullName)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.Property(x => x.Email)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.HasQueryFilter(c =>
           _isSuperAdmin ||
           c.OrganizationId ==
               _currentTenantId);
     });
 
-    // ── TodoItem ──────────────────────
+    // ── TodoItem ──────────────────
+    // ✅ FIX WARNING: IsRequired(false)
+    // fixes "User required end" warning
     modelBuilder.Entity<TodoItem>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Title)
-          .HasMaxLength(500).IsRequired();
+          .HasMaxLength(500)
+          .IsRequired();
+      e.HasOne<User>()
+          .WithMany()
+          .HasForeignKey(
+              (TodoItem x) => x.UserId)
+          .OnDelete(
+              DeleteBehavior.Restrict)
+          .IsRequired(false);
     });
 
-    // ════════════════════════════════════
-    // CHAT ENTITIES
-    // ════════════════════════════════════
+    // ════════════════════════════════
+    // CHAT
+    // ════════════════════════════════
 
-    // ── ChatMessage ───────────────────
+    // ── ChatMessage ───────────────
     modelBuilder.Entity<ChatMessage>(e =>
     {
       e.HasKey(x => x.Id);
@@ -440,7 +488,8 @@ public class ApplicationDbContext : DbContext
           .IsRequired(false);
       e.HasOne(x => x.Receiver)
           .WithMany()
-          .HasForeignKey(x => x.ReceiverId)
+          .HasForeignKey(x =>
+              x.ReceiverId)
           .OnDelete(
               DeleteBehavior.Restrict)
           .IsRequired(false);
@@ -450,7 +499,8 @@ public class ApplicationDbContext : DbContext
           .OnDelete(
               DeleteBehavior.Cascade)
           .IsRequired(false);
-      e.HasIndex(x => x.ConversationId);
+      e.HasIndex(x =>
+          x.ConversationId);
       e.HasIndex(x => new
       {
         x.SenderId,
@@ -459,12 +509,12 @@ public class ApplicationDbContext : DbContext
       e.HasIndex(x => x.CreatedAt);
     });
 
-    // ── UserOnlineStatus ──────────────
+    // ── UserOnlineStatus ──────────
+    // ✅ IsRequired(false) fixes warning
     modelBuilder.Entity<
         UserOnlineStatus>(e =>
         {
           e.HasKey(x => x.Id);
-          // Unique per user
           e.HasIndex(x => x.UserId)
                   .IsUnique();
           e.HasOne(x => x.User)
@@ -475,12 +525,13 @@ public class ApplicationDbContext : DbContext
                   .IsRequired(false);
         });
 
-    // ── ChatGroup ─────────────────────
+    // ── ChatGroup ─────────────────
     modelBuilder.Entity<ChatGroup>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Name)
-          .HasMaxLength(200).IsRequired();
+          .HasMaxLength(200)
+          .IsRequired();
       e.HasQueryFilter(g =>
           _isSuperAdmin ||
           g.OrganizationId ==
@@ -493,7 +544,10 @@ public class ApplicationDbContext : DbContext
               DeleteBehavior.Restrict);
     });
 
-    // ✅ ChatGroupMember ──────────────
+    // ── ChatGroupMember ───────────
+    // ✅ FIX WARNING: IsRequired(false)
+    // on Group fixes "ChatGroup required
+    // end" warning
     modelBuilder.Entity<
         ChatGroupMember>(e =>
         {
@@ -507,12 +561,46 @@ public class ApplicationDbContext : DbContext
                   .WithMany(g => g.Members)
                   .HasForeignKey(x => x.GroupId)
                   .OnDelete(
-                      DeleteBehavior.Cascade);
+                      DeleteBehavior.Cascade)
+                  .IsRequired(false); // ✅ KEY FIX
           e.HasOne(x => x.User)
                   .WithMany()
                   .HasForeignKey(x => x.UserId)
                   .OnDelete(
                       DeleteBehavior.Restrict);
         });
+
+    // ✅ NEW — CallLog ─────────────
+    modelBuilder.Entity<CallLog>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.CallType)
+          .HasMaxLength(10)
+          .HasDefaultValue("audio");
+      e.Property(x => x.Status)
+          .HasMaxLength(20)
+          .HasDefaultValue("missed");
+      // Caller FK
+      e.HasOne(x => x.Caller)
+          .WithMany()
+          .HasForeignKey(x => x.CallerId)
+          .OnDelete(
+              DeleteBehavior.Restrict);
+      // Receiver FK
+      e.HasOne(x => x.Receiver)
+          .WithMany()
+          .HasForeignKey(x => x.ReceiverId)
+          .OnDelete(
+              DeleteBehavior.Restrict);
+      // Indexes for fast history queries
+      e.HasIndex(x => x.CallerId);
+      e.HasIndex(x => x.ReceiverId);
+      e.HasIndex(x => x.StartedAt);
+      e.HasIndex(x => new
+      {
+        x.ReceiverId,
+        x.Status
+      });
+    });
   }
 }

@@ -11,8 +11,17 @@ namespace iM3Helpdesk.API.Hubs;
 public class ChatHub : Hub
 {
   private readonly ApplicationDbContext _context;
-  private static readonly Dictionary<string, Guid>
-      _connections = new();
+
+  private static readonly
+      Dictionary<string, Guid> _connections
+      = new();
+
+  // ✅ NEW — tracks active call log IDs
+  // key = "callerId_receiverId"
+  // value = CallLog.Id
+  private static readonly
+      Dictionary<string, Guid> _activeCalls
+      = new();
 
   public ChatHub(ApplicationDbContext context)
   {
@@ -45,7 +54,6 @@ public class ChatHub : Hub
         Context.ConnectionId,
         $"user-{userId}");
 
-    // Mark online
     var status = await _context
         .UserOnlineStatuses
         .FirstOrDefaultAsync(s =>
@@ -66,13 +74,11 @@ public class ChatHub : Hub
     {
       status.IsOnline = true;
       status.LastSeen = DateTime.UtcNow;
-      status.ConnectionId =
-          Context.ConnectionId;
+      status.ConnectionId = Context.ConnectionId;
     }
 
     await _context.SaveChangesAsync();
 
-    // Get user + join org group
     var user = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
@@ -93,7 +99,6 @@ public class ChatHub : Hub
           });
     }
 
-    // Join all chat groups the user belongs to
     var groupIds = await _context
         .ChatGroupMembers
         .Where(m => m.UserId == userId)
@@ -145,10 +150,15 @@ public class ChatHub : Hub
               lastSeen = DateTime.UtcNow
             });
       }
+
+      // ✅ Auto-close any open calls
+      await AutoCloseCallsOnDisconnect(userId);
     }
 
     await base.OnDisconnectedAsync(exception);
   }
+
+  // ── Messaging ─────────────────────────────
 
   public async Task SendMessage(
       string receiverIdStr,
@@ -185,21 +195,18 @@ public class ChatHub : Hub
       AttachmentName = attachmentName,
       AttachmentType = attachmentType,
       OrganizationId =
-            sender.OrganizationId ?? Guid.Empty
+          sender.OrganizationId ?? Guid.Empty
     };
 
     _context.ChatMessages.Add(msg);
     await _context.SaveChangesAsync();
 
-    var dto = BuildMessageDto(
-        msg, sender, false);
+    var dto = BuildMessageDto(msg, sender, false);
 
-    // Send to receiver
     await Clients
         .Group($"user-{receiverId}")
         .SendAsync("ReceiveMessage", dto);
 
-    // Echo back to sender
     await Clients
         .Group($"user-{senderId}")
         .SendAsync("ReceiveMessage", dto);
@@ -224,7 +231,6 @@ public class ChatHub : Hub
         .AnyAsync(m =>
             m.GroupId == groupId &&
             m.UserId == senderId);
-
     if (!isMember) return;
 
     var sender = await _context.Users
@@ -244,16 +250,14 @@ public class ChatHub : Hub
       AttachmentName = attachmentName,
       AttachmentType = attachmentType,
       OrganizationId =
-            sender.OrganizationId ?? Guid.Empty
+          sender.OrganizationId ?? Guid.Empty
     };
 
     _context.ChatMessages.Add(msg);
     await _context.SaveChangesAsync();
 
-    var dto = BuildMessageDto(
-        msg, sender, true);
+    var dto = BuildMessageDto(msg, sender, true);
 
-    // Send to all group members
     await Clients
         .Group($"group-{groupId}")
         .SendAsync("ReceiveMessage", dto);
@@ -308,12 +312,15 @@ public class ChatHub : Hub
         });
   }
 
+  // ── CALLS WITH LOGGING ────────────────────
+
   public async Task InitiateCall(
       string receiverIdStr,
       string callType,
       string offer)
   {
     var callerId = GetUserId();
+    if (callerId == Guid.Empty) return;
     if (!Guid.TryParse(
         receiverIdStr, out var receiverId))
       return;
@@ -322,14 +329,47 @@ public class ChatHub : Hub
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
             u.Id == callerId);
+    if (caller == null) return;
+
+    // ── Create call log (safe — won't break
+    //    the call even if DB save fails) ──
+    Guid logId = Guid.Empty;
+    try
+    {
+      var log = new CallLog
+      {
+        CallerId = callerId,
+        ReceiverId = receiverId,
+        CallType = callType,
+        Status = "ringing",
+        // Only set OrgId if valid
+        OrganizationId =
+            caller.OrganizationId
+            ?? Guid.Empty,
+        StartedAt = DateTime.UtcNow
+      };
+      _context.CallLogs.Add(log);
+      await _context.SaveChangesAsync();
+      logId = log.Id;
+      _activeCalls[
+          CallKey(callerId, receiverId)]
+          = log.Id;
+    }
+    catch (Exception ex)
+    {
+      // Log but don't crash the call
+      Console.WriteLine(
+          $"CallLog save failed: {ex.Message}");
+    }
 
     await Clients
         .Group($"user-{receiverId}")
         .SendAsync("IncomingCall", new
         {
+          callLogId = logId,
           callerId,
-          callerName = caller?.FullName,
-          callerPhoto = caller?.PhotoUrl,
+          callerName = caller.FullName,
+          callerPhoto = caller.PhotoUrl,
           callType,
           offer
         });
@@ -338,11 +378,15 @@ public class ChatHub : Hub
   public async Task AcceptCall(
       string callerIdStr, string answer)
   {
+    var myId = GetUserId();
     if (!Guid.TryParse(
         callerIdStr, out var callerId))
       return;
 
-    var myId = GetUserId();
+    // ✅ Update log: ringing → answered
+    await UpdateCallStatusAsync(
+        callerId, myId, "answered");
+
     await Clients
         .Group($"user-{callerId}")
         .SendAsync("CallAccepted", new
@@ -355,11 +399,15 @@ public class ChatHub : Hub
   public async Task RejectCall(
       string callerIdStr)
   {
+    var myId = GetUserId();
     if (!Guid.TryParse(
         callerIdStr, out var callerId))
       return;
 
-    var myId = GetUserId();
+    // ✅ Receiver rejected → missed
+    await FinaliseCallAsync(
+        callerId, myId, "missed");
+
     await Clients
         .Group($"user-{callerId}")
         .SendAsync("CallRejected", new
@@ -371,11 +419,15 @@ public class ChatHub : Hub
   public async Task EndCall(
       string otherUserIdStr)
   {
+    var myId = GetUserId();
     if (!Guid.TryParse(
         otherUserIdStr, out var otherUserId))
       return;
 
-    var myId = GetUserId();
+    // ✅ null = auto-detect final status
+    await FinaliseCallAsync(
+        myId, otherUserId, null);
+
     await Clients
         .Group($"user-{otherUserId}")
         .SendAsync("CallEnded", new
@@ -387,11 +439,11 @@ public class ChatHub : Hub
   public async Task SendIceCandidate(
       string targetIdStr, string candidate)
   {
+    var myId = GetUserId();
     if (!Guid.TryParse(
         targetIdStr, out var targetId))
       return;
 
-    var myId = GetUserId();
     await Clients
         .Group($"user-{targetId}")
         .SendAsync("IceCandidate", new
@@ -400,6 +452,131 @@ public class ChatHub : Hub
           candidate
         });
   }
+
+  // ── Call log private helpers ──────────────
+
+  private async Task UpdateCallStatusAsync(
+      Guid callerId,
+      Guid receiverId,
+      string status)
+  {
+    try
+    {
+      var key = CallKey(callerId, receiverId);
+      if (!_activeCalls.TryGetValue(key,
+          out var logId)) return;
+
+      var log = await _context.CallLogs
+          .FirstOrDefaultAsync(l =>
+              l.Id == logId);
+      if (log == null) return;
+
+      log.Status = status;
+      await _context.SaveChangesAsync();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine(
+          $"UpdateCallStatus failed: " +
+          $"{ex.Message}");
+    }
+  }
+
+  private async Task FinaliseCallAsync(
+      Guid callerId,
+      Guid receiverId,
+      string? status)
+  {
+    try
+    {
+      var key1 = CallKey(callerId, receiverId);
+      var key2 = CallKey(receiverId, callerId);
+
+      Guid logId = Guid.Empty;
+      string? usedKey = null;
+
+      if (_activeCalls.TryGetValue(
+          key1, out var id1))
+      { logId = id1; usedKey = key1; }
+      else if (_activeCalls.TryGetValue(
+          key2, out var id2))
+      { logId = id2; usedKey = key2; }
+
+      if (logId == Guid.Empty) return;
+      if (usedKey != null)
+        _activeCalls.Remove(usedKey);
+
+      var log = await _context.CallLogs
+          .FirstOrDefaultAsync(l =>
+              l.Id == logId);
+      if (log == null) return;
+
+      var now = DateTime.UtcNow;
+
+      log.Status = status ??
+          (log.Status == "answered"
+              ? "answered"
+              : "cancelled");
+
+      log.EndedAt = now;
+
+      if (log.Status == "answered")
+        log.DurationSeconds = (int)(
+            now - log.StartedAt).TotalSeconds;
+
+      await _context.SaveChangesAsync();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine(
+          $"FinaliseCall failed: " +
+          $"{ex.Message}");
+    }
+  }
+
+  private async Task AutoCloseCallsOnDisconnect(
+      Guid userId)
+  {
+    var toClose = _activeCalls
+        .Where(kv =>
+        {
+          var p = kv.Key.Split('_');
+          return p.Length >= 2 &&
+              ((Guid.TryParse(p[0], out var a)
+                && a == userId) ||
+               (Guid.TryParse(p[1], out var b)
+                && b == userId));
+        })
+        .ToList();
+
+    foreach (var kv in toClose)
+    {
+      var log = await _context.CallLogs
+          .FirstOrDefaultAsync(l =>
+              l.Id == kv.Value);
+
+      if (log != null)
+      {
+        log.EndedAt = DateTime.UtcNow;
+        log.Status =
+            log.Status == "answered"
+                ? "answered" : "missed";
+
+        if (log.Status == "answered")
+          log.DurationSeconds = (int)(
+              log.EndedAt.Value -
+              log.StartedAt).TotalSeconds;
+      }
+
+      _activeCalls.Remove(kv.Key);
+    }
+
+    if (toClose.Any())
+      await _context.SaveChangesAsync();
+  }
+
+  private static string CallKey(
+      Guid a, Guid b) => $"{a}_{b}";
 
   private static object BuildMessageDto(
       ChatMessage msg,

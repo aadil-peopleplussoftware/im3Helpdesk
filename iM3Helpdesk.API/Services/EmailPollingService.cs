@@ -274,41 +274,44 @@ public class EmailPollingService : BackgroundService
 
     var contact = await UpsertContactAsync(
         fromEmail, fromName, org.Id, null, context, ct);
-    var customer = await context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.Email.ToLower() == fromEmail.ToLower() &&
-            u.OrganizationId == org.Id, ct);
+    // ❌ DISABLED: User auto-creation from email is turned off.
+    // Only Contact should be created, not a User account.
+    // var customer = await context.Users
+    //     .IgnoreQueryFilters()
+    //     .FirstOrDefaultAsync(u =>
+    //         u.Email.ToLower() == fromEmail.ToLower() &&
+    //         u.OrganizationId == org.Id, ct);
 
-    if (customer == null)
-    {
-      customer = new User
-      {
-        FullName = fromName,
-        Email = fromEmail,
-        PhoneNumber = "",
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-        Role = UserRole.Customer,
-        OrganizationId = org.Id,
-        IsEmailVerified = true
-      };
-      context.Users.Add(customer);
-      await context.SaveChangesAsync(ct);
-      _logger.LogInformation("Auto-created customer: {E}", fromEmail);
-      if (contact != null)
-      {
-        contact.LinkedUserId = customer.Id;
-        await context.SaveChangesAsync(ct);
-      }
-    }
+    // if (customer == null)
+    // {
+    //   customer = new User
+    //   {
+    //     FullName = fromName,
+    //     Email = fromEmail,
+    //     PhoneNumber = "",
+    //     PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+    //     Role = UserRole.Customer,
+    //     OrganizationId = org.Id,
+    //     IsEmailVerified = true
+    //   };
+    //   context.Users.Add(customer);
+    //   await context.SaveChangesAsync(ct);
+    //   _logger.LogInformation("Auto-created customer: {E}", fromEmail);
+    //   if (contact != null)
+    //   {
+    //     contact.LinkedUserId = customer.Id;
+    //     await context.SaveChangesAsync(ct);
+    //   }
+    // }
 
     var description = BuildDescription(message);
+    var cutoff = DateTime.UtcNow.AddHours(-1);
     var isDuplicate = await context.Tickets
+        .IgnoreQueryFilters()
         .AnyAsync(t =>
             t.OrganizationId == org.Id &&
-            t.CreatedByUserId == customer.Id &&
             t.Title == subject &&
-            t.CreatedAt >= DateTime.UtcNow.AddHours(-1), ct);
+            t.CreatedAt >= cutoff, ct);
 
     if (isDuplicate)
     {
@@ -321,6 +324,22 @@ public class EmailPollingService : BackgroundService
         .MaxAsync(t => (int?)t.TicketNumber, ct)
         ?? 1000;
     var nameTag = MakeTag(fromName);
+
+    // ✅ FIX: customer removed, use CompanyAdmin as system actor
+    var systemUser = await context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u =>
+            u.OrganizationId == org.Id &&
+            u.Role == UserRole.CompanyAdmin, ct);
+
+    if (systemUser == null)
+    {
+      _logger.LogWarning(
+          "No CompanyAdmin found for org {O} — cannot create ticket",
+          org.Name);
+      return;
+    }
+
     var ticket = new Ticket
     {
       Title = subject,
@@ -330,7 +349,7 @@ public class EmailPollingService : BackgroundService
       Status = TicketStatus.Open,
       TicketType = "Support",
       OrganizationId = org.Id,
-      CreatedByUserId = customer.Id,
+      CreatedByUserId = systemUser.Id, // ✅ CompanyAdmin as system actor
       Tags = $"email,support-email,{nameTag}",
       SlaDeadline = DateTime.UtcNow.AddHours(24),
       SlaStatus = "OnTrack",
