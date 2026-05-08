@@ -14,21 +14,34 @@ import { AuthService } from '../../services/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 import { ChatService } from '../../services/chat.service';
 
+// ✅ NEW: Global call imports
+import { GlobalCallNotificationService }
+  from '../../services/global-call-notification.service';
+import { GlobalCallPopupComponent }
+  from '../global-call-popup/global-call-popup.component';
+
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TodoPanelComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    TodoPanelComponent,
+    GlobalCallPopupComponent   // ✅ NEW
+  ],
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
 
-  private authService = inject(AuthService);
-  public  router      = inject(Router);
-  private http        = inject(HttpClient);
-  private cdr         = inject(ChangeDetectorRef);
-  private destroy$    = new Subject<void>();
-  private chatService = inject(ChatService);
+  private authService    = inject(AuthService);
+  public  router         = inject(Router);
+  private http           = inject(HttpClient);
+  private cdr            = inject(ChangeDetectorRef);
+  private destroy$       = new Subject<void>();
+  private chatService    = inject(ChatService);
+  private globalCallSvc  = inject(GlobalCallNotificationService); // ✅ NEW
 
   isSidebarCollapsed = localStorage.getItem('im3_sidebar_collapsed') === 'true';
   chatUnreadCount    = 0;
@@ -119,8 +132,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   // ──────────────────────────────────────────────
-  // ✅ Missed Call Count — FIX: response mein
-  //    count ya missedCount dono handle karo
+  // Missed Call Count
   // ──────────────────────────────────────────────
   loadMissedCallCount() {
     this.http.get<any>(
@@ -128,8 +140,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        // ✅ FIX: API { count } ya { missedCount } dono support
-         this.missedCallCount = data.count || 0; 
         this.missedCallCount =
           data.count       ??
           data.missedCount ??
@@ -190,8 +200,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.userPhotoUrl = '';
     }
 
-    // ── SignalR connect ──
+    // ✅ SignalR globally connect — taaki kisi bhi page pe call aaye
     this.chatService.connect();
+
+    // ✅ NEW: Global call notification init
+    // Ye globally IncomingCall$ listen karega
+    // Chahe user kisi bhi page pe ho
+    this.globalCallSvc.init(() => {
+      this.router.navigate(['/chat']);
+    });
 
     // ✅ Chat unread badge
     this.chatService.unreadCount$
@@ -201,17 +218,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       });
 
-    // ──────────────────────────────────────────
-    // ✅ FIX: Missed call badge — SignalR events
-    //
-    // SIRF callRejected$ aur callEnded$ pe
-    // loadMissedCallCount() call karo.
-    //
-    // incomingCall$ pe NAHI karna — call tab
-    // abhi miss hua nahi hota.
-    // ──────────────────────────────────────────
+    // ✅ FIX: missedCallCount$ — instant badge clear when calls tab opened
+    this.chatService.missedCallCount$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(count => {
+        this.missedCallCount = count;
+        this.cdr.detectChanges();
+      });
 
-    // Call reject hua → missed count update karo
+    // ✅ Missed call badge — callRejected/callEnded pe update
     this.chatService.callRejected$
       .pipe(takeUntil(this.destroy$))
       .subscribe(d => {
@@ -219,7 +234,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
         setTimeout(() => this.loadMissedCallCount(), 800);
       });
 
-    // Call end hua (unanswered) → missed count update karo
     this.chatService.callEnded$
       .pipe(takeUntil(this.destroy$))
       .subscribe(d => {
@@ -227,12 +241,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
         setTimeout(() => this.loadMissedCallCount(), 800);
       });
 
-// layout.ts line ~107
     this.chatService.incomingCall$
       .pipe(takeUntil(this.destroy$))
       .subscribe(d => {
         if (!d) return;
-        setTimeout(() => this.loadMissedCallCount(), 2000);  // ← 2 second wait
+        setTimeout(() => this.loadMissedCallCount(), 2000);
       });
 
     // ── Initial data load ──
@@ -241,7 +254,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.startNotifPolling();
     this.loadTodoCount();
     this.loadKbUnread();
-    this.loadMissedCallCount(); // ✅ app open hote hi load karo
+    this.loadMissedCallCount();
 
     // ── Periodic refresh (60s) ──
     interval(60000)
@@ -295,7 +308,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-
         this.notifications = data;
         this.unreadCount   = data.filter(n => !n.isRead).length;
         this.cdr.detectChanges();

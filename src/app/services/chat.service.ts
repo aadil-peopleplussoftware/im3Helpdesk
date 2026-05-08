@@ -1,5 +1,8 @@
 // ✅ FILE: src/app/services/chat.service.ts
-// NOTE: Purani chat.ts file DELETE karo — sirf ye file rakho
+// FIXES:
+// 1. unreadCount$ MarkRead ke baad properly reset hoti hai
+// 2. MessagesRead event pe specific sender ki count clear hoti hai
+// 3. Call notification streams global service ke through flow karti hain
 
 import {
   Injectable, inject
@@ -29,7 +32,7 @@ export class ChatService {
   unreadCount$   = new BehaviorSubject<number>(0);
   isConnected$   = new BehaviorSubject<boolean>(false);
 
-  // ✅ Call streams — ye sab hone chahiye
+  // ✅ Call streams
   incomingCall$  = new BehaviorSubject<any>(null);
   callAccepted$  = new BehaviorSubject<any>(null);
   callRejected$  = new BehaviorSubject<any>(null);
@@ -42,9 +45,18 @@ export class ChatService {
     type: 'audio' | 'video'
   } | null>(null);
 
-  // ✅ Ticket SignalR (purani chat.ts ki functionality)
+  // ✅ Missed call count — layout badge ke liye
+  missedCallCount$ = new BehaviorSubject<number>(0);
+
+  // ✅ Ticket SignalR
   messages$      = new BehaviorSubject<any[]>([]);
   newTicket$     = new BehaviorSubject<any>(null);
+
+  // ✅ MessagesRead stream — specific senderId
+  // Chat page is subscribe karega taaki unread badge clear ho
+  messagesRead$  = new BehaviorSubject<{
+    readBy: string
+  } | null>(null);
 
   // ── Connection state check ─────────────
   get isConnected(): boolean {
@@ -143,7 +155,6 @@ export class ChatService {
 
   clearMessages() {
     this.newMessage$.next(null);
-    // ✅ Ticket messages bhi clear
     this.messages$.next([]);
   }
 
@@ -167,10 +178,21 @@ export class ChatService {
   }
 
   markCallsRead(): Observable<any> {
-    return this.http.post<any>(
-      `${this.BASE}/api/CallLog/mark-read`,
-      {},
-      { headers: this.getHeaders() });
+    return new Observable(observer => {
+      this.http.post<any>(
+        `${this.BASE}/api/CallLog/mark-read`,
+        {},
+        { headers: this.getHeaders() }
+      ).subscribe({
+        next: (d) => {
+          // ✅ Instantly badge 0 karo
+          this.missedCallCount$.next(0);
+          observer.next(d);
+          observer.complete();
+        },
+        error: (e) => observer.error(e)
+      });
+    });
   }
 
   startCallFromLog(
@@ -180,7 +202,7 @@ export class ChatService {
     this.startCallRequest$.next({ userId, type });
   }
 
-  // ── Ticket room methods (purani chat.ts se) ──
+  // ── Ticket room methods ──
   joinTicketRoom(ticketId: string): Promise<void> {
     if (!this.isConnected) return Promise.resolve();
     return this.hub.invoke('JoinTicketRoom', ticketId);
@@ -215,7 +237,6 @@ export class ChatService {
       this.newMessage$.next(msg);
       this.loadUnreadCount();
 
-      // ✅ Ticket messages bhi update karo
       const current = this.messages$.getValue();
       this.messages$.next([...current, msg]);
     });
@@ -236,10 +257,16 @@ export class ChatService {
     this.hub.on('UserOffline', (d) =>
       this.userStatus$.next({ ...d, isOnline: false }));
 
-    this.hub.on('MessagesRead', () =>
-      this.loadUnreadCount());
+    // ✅ BUG FIX: MessagesRead — stream emit karo taaki
+    // chat page us sender ka unreadCount = 0 kar sake
+    // Pehle sirf loadUnreadCount() tha jo total count reload karta tha
+    // Ab specific sender info bhi milti hai
+    this.hub.on('MessagesRead', (d) => {
+      this.messagesRead$.next({ readBy: d?.ReadBy || d?.readBy });
+      this.loadUnreadCount();
+    });
 
-    // ✅ Call signals — ye zaroor hone chahiye
+    // ✅ Call signals
     this.hub.on('IncomingCall',  (d) => this.incomingCall$.next(d));
     this.hub.on('CallAccepted',  (d) => this.callAccepted$.next(d));
     this.hub.on('CallRejected',  (d) => this.callRejected$.next(d));
@@ -318,7 +345,6 @@ export class ChatService {
       attachmentType ?? null);
   }
 
-  // ✅ Ticket send message (purani chat.ts se)
   sendTicketMessage(
     ticketId: string,
     message: string,

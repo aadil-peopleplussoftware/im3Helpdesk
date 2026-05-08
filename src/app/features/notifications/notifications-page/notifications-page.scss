@@ -1,5 +1,26 @@
 .spacer { flex: 1 1 auto; }
 
+// Tab label badge fix
+.tab-label-text {
+  margin-right: 6px;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #f44336;
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .page-container {
   padding: 24px;
   max-width: 800px;

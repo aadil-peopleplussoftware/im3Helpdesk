@@ -9,13 +9,13 @@
         <div class="call-av-ring"
           [style.background]="
             getAvatarColor(
-              incomingCallData?.callerName)">
+              callSvc.incomingCallData?.callerName)">
           {{ getInitials(
-            incomingCallData?.callerName) }}
+            callSvc.incomingCallData?.callerName) }}
         </div>
       </div>
       <div class="call-name">
-        {{ incomingCallData?.callerName }}
+        {{ callSvc.incomingCallData?.callerName }}
       </div>
       <div class="call-subtitle">
         Incoming
@@ -69,14 +69,14 @@
           [style.background]="
             getAvatarColor(
               selectedUser?.fullName
-              || incomingCallData?.callerName)">
+              || callSvc.incomingCallData?.callerName)">
           {{ getInitials(
             selectedUser?.fullName
-            || incomingCallData?.callerName) }}
+            || callSvc.incomingCallData?.callerName) }}
         </div>
         <div class="call-name">
           {{ selectedUser?.fullName
-            || incomingCallData?.callerName }}
+            || callSvc.incomingCallData?.callerName }}
         </div>
       </ng-container>
 
@@ -106,6 +106,14 @@
           (click)="toggleCamera()"
           title="Camera">
           {{ isCameraOff ? '📵' : '📷' }}
+        </button>
+        <!-- ✅ Minimize button -->
+        <button class="ctrl-btn minimize"
+          type="button"
+          *ngIf="callState==='active'"
+          (click)="minimizeCall()"
+          title="Minimize — call continues">
+          ⬇
         </button>
         <button class="ctrl-btn end"
           type="button"

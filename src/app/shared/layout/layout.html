@@ -42,24 +42,6 @@
         </a>
 
         <a class="nav-item"
-          routerLink="/contacts"
-          routerLinkActive="active">
-          <span class="nav-icon">👤</span>
-          <span>Contacts</span>
-        </a>
-
-        <!-- ✅ To Do with badge — same as notifications -->
-        <a class="nav-item"
-          routerLink="/todo"
-          routerLinkActive="active">
-          <span class="nav-icon">📋</span>
-          <span>To Do</span>
-          <span class="badge" *ngIf="todoCount > 0">
-            {{ todoCount > 99 ? '99+' : todoCount }}
-          </span>
-        </a>
-
-        <a class="nav-item"
           routerLink="/chat"
           routerLinkActive="active">
           <span class="nav-icon">💬</span>
@@ -71,13 +53,13 @@
             {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
           </span>
 
-          <!-- Sirf missed calls — red badge with 📞 -->
+          <!-- Sirf missed calls -->
           <span class="badge badge-call"
             *ngIf="missedCallCount > 0 && chatUnreadCount === 0">
             {{ missedCallCount > 99 ? '99+' : missedCallCount }}
           </span>
 
-          <!-- Dono hain — alag alag dikhao -->
+          <!-- Dono hain -->
           <ng-container *ngIf="chatUnreadCount > 0 && missedCallCount > 0">
             <span class="badge">
               {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
@@ -89,10 +71,28 @@
         </a>
 
         <a class="nav-item"
+          routerLink="/contacts"
+          routerLinkActive="active">
+          <span class="nav-icon">👤</span>
+          <span>Contacts</span>
+        </a>
+
+        <!-- ✅ To Do with badge -->
+        <a class="nav-item"
+          routerLink="/todo"
+          routerLinkActive="active">
+          <span class="nav-icon">📋</span>
+          <span>To Do</span>
+          <span class="badge" *ngIf="todoCount > 0">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </span>
+        </a>
+
+        <a class="nav-item"
           routerLink="/kb"
           routerLinkActive="active">
           <span class="nav-icon">📚</span>
-          <span>Knowledge Base</span>
+          <span>Insights</span>
         </a>
 
         <a class="nav-item"
@@ -104,12 +104,12 @@
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
         </a>
-        
+
         <a class="nav-item"
           routerLink="/ai-dashboard"
           routerLinkActive="active">
           <span class="nav-icon">🤖</span>
-          <span>AI Dashboard</span>
+          <span>AI Forecast Dashboard</span>
         </a>
 
       </div>
@@ -300,7 +300,7 @@
           + New Ticket
         </button>
 
-        <!-- ✅ Todo trigger with count (agents/admin only) -->
+        <!-- Todo trigger -->
         <div class="todo-trigger"
           *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleTodoPanel()">
@@ -320,7 +320,7 @@
           </div>
         </div>
 
-        <!-- KB Bell (agents/admin only) -->
+        <!-- KB Bell -->
         <div class="notif-bell"
           *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleKbDropdown()">
@@ -367,7 +367,7 @@
           </div>
         </div>
 
-        <!-- Bell (agents/admin only) -->
+        <!-- Bell -->
         <div class="notif-bell"
           *ngIf="!isSuperAdmin && !isCustomer"
           (click)="toggleNotifDropdown()">
@@ -457,3 +457,6 @@
   <!-- End Main Area -->
 
 </div>
+
+<!-- ✅ NEW: Global Call Popup — har page pe dikhega -->
+<app-global-call-popup></app-global-call-popup>
