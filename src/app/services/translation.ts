@@ -23,4 +23,5 @@ export class TranslationService {
   getCurrentLang(): string {
     return this.langSignal();
   }
+  
 }

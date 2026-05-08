@@ -1,175 +1,117 @@
 <div class="app-shell">
 
   <!-- SIDEBAR -->
-<div class="sidebar" [class.collapsed]="isSidebarCollapsed">
+  <div class="sidebar" [class.collapsed]="isSidebarCollapsed">
+
     <!-- Logo -->
- <div class="sidebar-logo" 
-      routerLink="/dashboard" 
-      style="cursor:pointer">
+    <div class="sidebar-logo" routerLink="/dashboard" style="cursor:pointer">
       <div class="logo-icon">⚡</div>
       <span class="logo-text">
-        <ng-container *ngIf="!isSuperAdmin && !isCustomer">
-          iM3 Helpdesk
-        </ng-container>
-        <ng-container *ngIf="isSuperAdmin">
-          Super Admin
-        </ng-container>
-        <ng-container *ngIf="isCustomer">
-          My Support
-        </ng-container>
+        <ng-container *ngIf="!isSuperAdmin && !isCustomer">iM3 Helpdesk</ng-container>
+        <ng-container *ngIf="isSuperAdmin">Super Admin</ng-container>
+        <ng-container *ngIf="isCustomer">My Support</ng-container>
       </span>
     </div>
 
     <!-- Agent/Admin Nav -->
-    <nav class="sidebar-nav"
-      *ngIf="!isSuperAdmin && !isCustomer">
+    <nav class="sidebar-nav" *ngIf="!isSuperAdmin && !isCustomer">
 
       <div class="nav-section">
-        <div class="nav-label">Main Menu</div>
+        <div class="nav-label">{{ tr.t('mainMenu') || 'Main Menu' }}</div>
 
-        <a class="nav-item"
-          routerLink="/dashboard"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
           <span class="nav-icon">📊</span>
-          <span>Dashboard</span>
+          <span>{{ tr.t('dashboard') }}</span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/tickets"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/tickets" routerLinkActive="active">
           <span class="nav-icon">🎫</span>
-          <span>Tickets</span>
+          <span>{{ tr.t('tickets') }}</span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/chat"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/chat" routerLinkActive="active">
           <span class="nav-icon">💬</span>
-          <span>Chat</span>
-
-          <!-- Sirf chat unread -->
-          <span class="badge"
-            *ngIf="chatUnreadCount > 0 && missedCallCount === 0">
+          <span>{{ tr.t('chat') }}</span>
+          <span class="badge" *ngIf="chatUnreadCount > 0 && missedCallCount === 0">
             {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
           </span>
-
-          <!-- Sirf missed calls -->
-          <span class="badge badge-call"
-            *ngIf="missedCallCount > 0 && chatUnreadCount === 0">
+          <span class="badge badge-call" *ngIf="missedCallCount > 0 && chatUnreadCount === 0">
             {{ missedCallCount > 99 ? '99+' : missedCallCount }}
           </span>
-
-          <!-- Dono hain -->
           <ng-container *ngIf="chatUnreadCount > 0 && missedCallCount > 0">
-            <span class="badge">
-              {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
-            </span>
-            <span class="badge badge-call">
-              {{ missedCallCount > 99 ? '99+' : missedCallCount }}
-            </span>
+            <span class="badge">{{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}</span>
+            <span class="badge badge-call">{{ missedCallCount > 99 ? '99+' : missedCallCount }}</span>
           </ng-container>
         </a>
 
-        <a class="nav-item"
-          routerLink="/contacts"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/contacts" routerLinkActive="active">
           <span class="nav-icon">👤</span>
-          <span>Contacts</span>
+          <span>{{ tr.t('contacts') }}</span>
         </a>
 
-        <!-- ✅ To Do with badge -->
-        <a class="nav-item"
-          routerLink="/todo"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/todo" routerLinkActive="active">
           <span class="nav-icon">📋</span>
-          <span>To Do</span>
+          <span>{{ tr.t('todo') }}</span>
           <span class="badge" *ngIf="todoCount > 0">
             {{ todoCount > 99 ? '99+' : todoCount }}
           </span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/kb"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/kb" routerLinkActive="active">
           <span class="nav-icon">📚</span>
-          <span>Insights</span>
+          <span>{{ tr.t('insights') }}</span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/notifications"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/notifications" routerLinkActive="active">
           <span class="nav-icon">🔔</span>
-          <span>Notifications</span>
+          <span>{{ tr.t('notifications') }}</span>
           <span class="badge" *ngIf="unreadCount > 0">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/ai-dashboard"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/ai-dashboard" routerLinkActive="active">
           <span class="nav-icon">🤖</span>
-          <span>AI Forecast Dashboard</span>
+          <span>AI Forecast</span>
         </a>
-
       </div>
 
       <div class="nav-section">
-        <div class="nav-label">Manage</div>
+        <div class="nav-label">{{ tr.t('manage') || 'Manage' }}</div>
 
-        <a class="nav-item"
-          routerLink="/agents"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/agents" routerLinkActive="active">
           <span class="nav-icon">👥</span>
-          <span>Team</span>
+          <span>{{ tr.t('team') }}</span>
         </a>
 
-        <a class="nav-item"
-          routerLink="/reports"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/reports" routerLinkActive="active">
           <span class="nav-icon">📈</span>
-          <span>Reports</span>
+          <span>{{ tr.t('reports') }}</span>
         </a>
       </div>
 
       <div class="nav-section">
-        <div class="nav-label">System</div>
+        <div class="nav-label">{{ tr.t('system') || 'System' }}</div>
 
-        <a class="nav-item"
-          routerLink="/settings"
-          routerLinkActive="active">
+        <a class="nav-item" routerLink="/settings" routerLinkActive="active">
           <span class="nav-icon">⚙</span>
-          <span>Settings</span>
+          <span>{{ tr.t('settings') }}</span>
         </a>
       </div>
-
     </nav>
 
     <!-- SuperAdmin Nav -->
     <nav class="sidebar-nav" *ngIf="isSuperAdmin">
       <div class="nav-section">
         <div class="nav-label">Super Admin</div>
-
-        <a class="nav-item"
-          routerLink="/admin"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{exact: true}">
-          <span class="nav-icon">🏠</span>
-          <span>Overview</span>
+        <a class="nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <span class="nav-icon">🏠</span><span>Overview</span>
         </a>
-
-        <a class="nav-item"
-          routerLink="/admin/organizations"
-          routerLinkActive="active">
-          <span class="nav-icon">🏢</span>
-          <span>Organizations</span>
+        <a class="nav-item" routerLink="/admin/organizations" routerLinkActive="active">
+          <span class="nav-icon">🏢</span><span>Organizations</span>
         </a>
-
-        <a class="nav-item"
-          routerLink="/admin/users"
-          routerLinkActive="active">
-          <span class="nav-icon">👤</span>
-          <span>All Users</span>
+        <a class="nav-item" routerLink="/admin/users" routerLinkActive="active">
+          <span class="nav-icon">👤</span><span>All Users</span>
         </a>
       </div>
     </nav>
@@ -178,53 +120,37 @@
     <nav class="sidebar-nav" *ngIf="isCustomer">
       <div class="nav-section">
         <div class="nav-label">My Support</div>
-
-        <a class="nav-item"
-          routerLink="/customer"
-          routerLinkActive="active">
-          <span class="nav-icon">🎫</span>
-          <span>My Tickets</span>
+        <a class="nav-item" routerLink="/customer" routerLinkActive="active">
+          <span class="nav-icon">🎫</span><span>{{ tr.t('tickets') }}</span>
         </a>
-
-        <a class="nav-item"
-          routerLink="/kb"
-          routerLinkActive="active">
-          <span class="nav-icon">📚</span>
-          <span>Help Articles</span>
+        <a class="nav-item" routerLink="/kb" routerLinkActive="active">
+          <span class="nav-icon">📚</span><span>{{ tr.t('insights') }}</span>
         </a>
       </div>
     </nav>
 
     <!-- Sidebar Bottom User -->
-    <div class="sidebar-user"
-      (click)="router.navigate(['/profile'])">
-      <div class="user-av"
-        [style.background]="userPhotoUrl
-          ? 'transparent'
-          : getAvatarColor(userName)">
-        <img *ngIf="userPhotoUrl"
-          [src]="userPhotoUrl"
-          [alt]="userName"
+    <div class="sidebar-user" (click)="router.navigate(['/profile'])">
+      <div class="user-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
+        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
           (error)="userPhotoUrl = ''"
-          style="width:100%;height:100%;
-            object-fit:cover;border-radius:50%"/>
-        <span *ngIf="!userPhotoUrl">
-          {{ getInitials(userName) }}
-        </span>
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+        <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
       </div>
       <div class="user-info">
         <div class="user-name">{{ userName }}</div>
         <div class="user-role">{{ userRole }}</div>
       </div>
     </div>
-  
+
     <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
       <span class="nav-icon" style="font-size: 18px;">
         {{ isSidebarCollapsed ? '⇥' : '⇤' }}
       </span>
-      <span class="collapse-text" *ngIf="!isSidebarCollapsed">Collapse</span>
+      <span class="collapse-text" *ngIf="!isSidebarCollapsed">
+        {{ tr.t('collapse') || 'Collapse' }}
+      </span>
     </div>
-
   </div>
   <!-- End Sidebar -->
 
@@ -233,27 +159,19 @@
 
     <!-- TOPBAR -->
     <div class="topbar">
-      <button class="hamburger"
-        (click)="sidebarOpen = !sidebarOpen">
-        ☰
-      </button>
+      <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 
-      <!-- Search (agents/admin only) -->
-      <div class="topbar-search"
-        *ngIf="!isSuperAdmin && !isCustomer">
+      <!-- Search -->
+      <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer">
         <span class="ts-icon">🔍</span>
         <input class="ts-input"
           [(ngModel)]="searchQuery"
           (ngModelChange)="onSearch()"
-          placeholder="Search tickets, agents, KB..."/>
-        <div class="search-dropdown"
-          *ngIf="searchResults.length > 0">
-          <div class="sr-item"
-            *ngFor="let r of searchResults"
-            (click)="goToResult(r)">
+          [placeholder]="tr.t('search') + ' tickets, agents, KB...'"/>
+        <div class="search-dropdown" *ngIf="searchResults.length > 0">
+          <div class="sr-item" *ngFor="let r of searchResults" (click)="goToResult(r)">
             <span class="sr-icon">
-              {{ r.type === 'ticket' ? '🎫'
-                : r.type === 'agent' ? '👤' : '📚' }}
+              {{ r.type === 'ticket' ? '🎫' : r.type === 'agent' ? '👤' : '📚' }}
             </span>
             <span>{{ r.title }}</span>
           </div>
@@ -261,32 +179,15 @@
       </div>
 
       <!-- Customer header -->
-      <div class="customer-header" *ngIf="isCustomer">
-        Support Portal
-      </div>
+      <div class="customer-header" *ngIf="isCustomer">Support Portal</div>
 
       <!-- SuperAdmin Topbar -->
       <div class="super-header" *ngIf="isSuperAdmin">
-        <span class="super-label">
-          🔧 Platform Administration
-        </span>
+        <span class="super-label">🔧 Platform Administration</span>
         <div class="super-nav">
-          <a class="super-nav-item"
-            routerLink="/admin"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{exact: true}">
-            🏠 Overview
-          </a>
-          <a class="super-nav-item"
-            routerLink="/admin/organizations"
-            routerLinkActive="active">
-            🏢 Organizations
-          </a>
-          <a class="super-nav-item"
-            routerLink="/admin/users"
-            routerLinkActive="active">
-            👤 All Users
-          </a>
+          <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">🏠 Overview</a>
+          <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">🏢 Organizations</a>
+          <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">👤 All Users</a>
         </div>
       </div>
 
@@ -297,141 +198,85 @@
         <button class="new-ticket-btn"
           *ngIf="!isSuperAdmin && !isCustomer"
           (click)="router.navigate(['/tickets/create'])">
-          + New Ticket
+          + {{ tr.t('newTicket') }}
         </button>
 
         <!-- Todo trigger -->
-        <div class="todo-trigger"
-          *ngIf="!isSuperAdmin && !isCustomer"
-          (click)="toggleTodoPanel()">
+        <div class="todo-trigger" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleTodoPanel()">
           📋
-          <span class="todo-count"
-            *ngIf="todoCount > 0">
+          <span class="todo-count" *ngIf="todoCount > 0">
             {{ todoCount > 99 ? '99+' : todoCount }}
           </span>
-
-          <!-- Panel -->
-          <div class="todo-dropdown"
-            *ngIf="showTodoPanel"
-            (click)="$event.stopPropagation()">
-            <app-todo-panel
-              (close)="showTodoPanel = false; onTodoPanelChange()">
-            </app-todo-panel>
+          <div class="todo-dropdown" *ngIf="showTodoPanel" (click)="$event.stopPropagation()">
+            <app-todo-panel (close)="showTodoPanel = false; onTodoPanelChange()"></app-todo-panel>
           </div>
         </div>
 
         <!-- KB Bell -->
-        <div class="notif-bell"
-          *ngIf="!isSuperAdmin && !isCustomer"
-          (click)="toggleKbDropdown()">
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleKbDropdown()">
           <span class="bell-icon">📚</span>
-          <span class="notif-count"
-            *ngIf="kbUnreadCount > 0">
+          <span class="notif-count" *ngIf="kbUnreadCount > 0">
             {{ kbUnreadCount > 99 ? '99+' : kbUnreadCount }}
           </span>
-
-          <!-- KB Dropdown -->
-          <div class="notif-dropdown"
-            *ngIf="showKbDropdown"
-            (click)="$event.stopPropagation()">
+          <div class="notif-dropdown" *ngIf="showKbDropdown" (click)="$event.stopPropagation()">
             <div class="nd-header">
-              <span>New KB Articles</span>
-              <button (click)="router.navigate(['/kb']); showKbDropdown=false">
-                View All
-              </button>
+              <span>{{ tr.t('insights') }}</span>
+              <button (click)="router.navigate(['/kb']); showKbDropdown=false">View All</button>
             </div>
-
-            <div class="nd-empty"
-              *ngIf="kbUnreadArticles.length === 0">
-              No new articles
-            </div>
-
+            <div class="nd-empty" *ngIf="kbUnreadArticles.length === 0">No new articles</div>
             <div class="nd-scroll-area">
-            <div class="nd-item"
-              *ngFor="let a of kbUnreadArticles"
-              (click)="goToKbArticle(a.id)">
-              <div class="nd-content">
-                <div class="nd-title">{{ a.title }}</div>
-                <div class="nd-msg">{{ a.category }}</div>
-                <div class="nd-time">
-                  {{ a.createdAt | date:'dd MMM, hh:mm a' }}
+              <div class="nd-item" *ngFor="let a of kbUnreadArticles" (click)="goToKbArticle(a.id)">
+                <div class="nd-content">
+                  <div class="nd-title">{{ a.title }}</div>
+                  <div class="nd-msg">{{ a.category }}</div>
+                  <div class="nd-time">{{ a.createdAt | date:'dd MMM, hh:mm a' }}</div>
                 </div>
               </div>
             </div>
-            </div>
-
-            <div class="nd-footer"
-              (click)="router.navigate(['/kb']); showKbDropdown=false">
+            <div class="nd-footer" (click)="router.navigate(['/kb']); showKbDropdown=false">
               Browse Knowledge Base
             </div>
           </div>
         </div>
 
-        <!-- Bell -->
-        <div class="notif-bell"
-          *ngIf="!isSuperAdmin && !isCustomer"
-          (click)="toggleNotifDropdown()">
+        <!-- Notification Bell -->
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleNotifDropdown()">
           <span class="bell-icon">🔔</span>
-          <span class="notif-count"
-            *ngIf="unreadCount > 0">
+          <span class="notif-count" *ngIf="unreadCount > 0">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
-
-          <!-- Dropdown -->
-          <div class="notif-dropdown"
-            *ngIf="showNotifDropdown"
-            (click)="$event.stopPropagation()">
+          <div class="notif-dropdown" *ngIf="showNotifDropdown" (click)="$event.stopPropagation()">
             <div class="nd-header">
-              <span>Notifications</span>
-              <button (click)="markAllRead()">
-                Mark all read
-              </button>
+              <span>{{ tr.t('notifications') }}</span>
+              <button (click)="markAllRead()">Mark all read</button>
             </div>
-
-            <div class="nd-empty"
-              *ngIf="notifications.length === 0">
-              No notifications
-            </div>
-
+            <div class="nd-empty" *ngIf="notifications.length === 0">No notifications</div>
             <div class="nd-scroll-area">
-            <div class="nd-item"
-              *ngFor="let n of notifications.slice(0,8)"
-              [class.unread]="!n.isRead"
-              (click)="goToNotification(n)">
-              <div class="nd-dot" *ngIf="!n.isRead"></div>
-              <div class="nd-content">
-                <div class="nd-title">{{ n.title }}</div>
-                <div class="nd-msg">{{ n.message }}</div>
-                <div class="nd-time">
-                  {{ n.createdAt | date:'dd MMM, hh:mm a' }}
+              <div class="nd-item"
+                *ngFor="let n of notifications.slice(0,8)"
+                [class.unread]="!n.isRead"
+                (click)="goToNotification(n)">
+                <div class="nd-dot" *ngIf="!n.isRead"></div>
+                <div class="nd-content">
+                  <div class="nd-title">{{ n.title }}</div>
+                  <div class="nd-msg">{{ n.message }}</div>
+                  <div class="nd-time">{{ n.createdAt | date:'dd MMM, hh:mm a' }}</div>
                 </div>
               </div>
             </div>
-            </div>
-
-            <div class="nd-footer"
-              (click)="router.navigate(['/notifications'])">
+            <div class="nd-footer" (click)="router.navigate(['/notifications'])">
               View all notifications
             </div>
           </div>
         </div>
 
         <!-- Topbar User Avatar -->
-        <div class="topbar-user"
-          (click)="router.navigate(['/profile'])">
-          <div class="u-av"
-            [style.background]="userPhotoUrl
-              ? 'transparent'
-              : getAvatarColor(userName)">
-            <img *ngIf="userPhotoUrl"
-              [src]="userPhotoUrl"
-              [alt]="userName"
+        <div class="topbar-user" (click)="router.navigate(['/profile'])">
+          <div class="u-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
+            <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
               (error)="userPhotoUrl = ''"
-              style="width:100%;height:100%;
-                object-fit:cover;border-radius:50%"/>
-            <span *ngIf="!userPhotoUrl">
-              {{ getInitials(userName) }}
-            </span>
+              style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+            <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
           </div>
           <div class="u-info">
             <span class="u-name">{{ userName }}</span>
@@ -439,10 +284,9 @@
           </div>
         </div>
 
-        <a class="nav-item logout-item"
-          (click)="logout()">
+        <a class="nav-item logout-item" (click)="logout()">
           <span class="nav-icon">→</span>
-          <span>Logout</span>
+          <span>{{ tr.t('logout') }}</span>
         </a>
       </div>
     </div>
@@ -458,5 +302,5 @@
 
 </div>
 
-<!-- ✅ NEW: Global Call Popup — har page pe dikhega -->
+<!-- Global Call Popup -->
 <app-global-call-popup></app-global-call-popup>

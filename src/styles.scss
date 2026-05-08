@@ -354,3 +354,51 @@ html, body {
 
 /* ✅ Remove this if present: */
 /* overflow: hidden;  <-- DELETE */
+
+// ===== ARCTIC TEAL THEME =====
+body.theme-teal {
+  --bg-primary:    #f0fdfa;
+  --bg-secondary:  #ffffff;
+  --bg-card:       #ffffff;
+  --text-primary:  #0d2b28;
+  --text-secondary:#1a5c55;
+  --text-muted:    #5eada5;
+  --border-color:  #ccf0eb;
+  --accent:        #0d9488;
+  --accent-light:  #e6faf8;
+  --hover-bg:      #e6faf8;
+  --toolbar-bg:    #0d9488;
+  --shadow:        0 2px 8px rgba(13,148,136,0.13);
+}
+
+// ===== GOLDEN AMBER THEME =====
+body.theme-amber {
+  --bg-primary:    #fffbeb;
+  --bg-secondary:  #ffffff;
+  --bg-card:       #ffffff;
+  --text-primary:  #1c0f00;
+  --text-secondary:#7c4a00;
+  --text-muted:    #b07a30;
+  --border-color:  #fde68a;
+  --accent:        #b45309;
+  --accent-light:  #fef3c7;
+  --hover-bg:      #fef9e7;
+  --toolbar-bg:    #b45309;
+  --shadow:        0 2px 8px rgba(180,83,9,0.13);
+}
+
+// ===== CARBON SLATE THEME =====
+body.theme-slate {
+  --bg-primary:    #f1f5f9;
+  --bg-secondary:  #ffffff;
+  --bg-card:       #ffffff;
+  --text-primary:  #0f172a;
+  --text-secondary:#334155;
+  --text-muted:    #64748b;
+  --border-color:  #cbd5e1;
+  --accent:        #334155;
+  --accent-light:  #e2e8f0;
+  --hover-bg:      #e8edf4;
+  --toolbar-bg:    #334155;
+  --shadow:        0 2px 8px rgba(51,65,85,0.13);
+}

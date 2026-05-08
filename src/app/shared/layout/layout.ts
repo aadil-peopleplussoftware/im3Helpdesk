@@ -13,8 +13,8 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 import { ChatService } from '../../services/chat.service';
+import { TranslationService } from '../../services/translation'; // ✅ ADD
 
-// ✅ NEW: Global call imports
 import { GlobalCallNotificationService }
   from '../../services/global-call-notification.service';
 import { GlobalCallPopupComponent }
@@ -28,7 +28,7 @@ import { GlobalCallPopupComponent }
     RouterModule,
     FormsModule,
     TodoPanelComponent,
-    GlobalCallPopupComponent   // ✅ NEW
+    GlobalCallPopupComponent
   ],
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
@@ -41,7 +41,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private cdr            = inject(ChangeDetectorRef);
   private destroy$       = new Subject<void>();
   private chatService    = inject(ChatService);
-  private globalCallSvc  = inject(GlobalCallNotificationService); // ✅ NEW
+  private globalCallSvc  = inject(GlobalCallNotificationService);
+  public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
 
   isSidebarCollapsed = localStorage.getItem('im3_sidebar_collapsed') === 'true';
   chatUnreadCount    = 0;
@@ -89,8 +90,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   toggleSidebarCollapse() {
     this.isSidebarCollapsed = !this.isSidebarCollapsed;
-    localStorage.setItem('im3_sidebar_collapsed',
-      String(this.isSidebarCollapsed));
+    localStorage.setItem('im3_sidebar_collapsed', String(this.isSidebarCollapsed));
   }
 
   toggleTodoPanel() {
@@ -99,9 +99,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  onTodoPanelChange() {
-    this.loadTodoCount();
-  }
+  onTodoPanelChange() { this.loadTodoCount(); }
 
   // ──────────────────────────────────────────────
   // Knowledge Base
@@ -140,23 +138,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
       { headers: this.getHeaders() }
     ).subscribe({
       next: (data) => {
-        this.missedCallCount =
-          data.count       ??
-          data.missedCount ??
-          0;
+        this.missedCallCount = data.count ?? data.missedCount ?? 0;
         this.cdr.detectChanges();
       },
       error: () => {}
     });
   }
 
-  // ──────────────────────────────────────────────
-  // Auth header helper
-  // ──────────────────────────────────────────────
   private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
+    return new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` });
   }
 
   // ──────────────────────────────────────────────
@@ -166,89 +156,55 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const token = this.authService.getToken();
     if (!token) return;
 
-    // Parse JWT
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-
       this.userName =
         payload['fullName'] ||
         payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-        payload.email?.split('@')[0] ||
-        'User';
-
+        payload.email?.split('@')[0] || 'User';
       this.userEmail = payload.email || '';
-
-      this.userRole =
+      this.userRole  =
         payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
         payload.role || '';
-
       this.isSuperAdmin = this.userRole === 'SuperAdmin';
       this.isCustomer   = this.userRole === 'Customer';
     } catch {}
 
-    // Saved photo
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
       const saved = localStorage.getItem('im3_photo');
       if (saved) {
-        this.userPhotoUrl = saved.startsWith('http')
-          ? saved
-          : 'https://localhost:7071' + saved;
+        this.userPhotoUrl = saved.startsWith('http') ? saved : 'https://localhost:7071' + saved;
       }
     } else {
       localStorage.removeItem('im3_photo');
       this.userPhotoUrl = '';
     }
 
-    // ✅ SignalR globally connect — taaki kisi bhi page pe call aaye
     this.chatService.connect();
 
-    // ✅ NEW: Global call notification init
-    // Ye globally IncomingCall$ listen karega
-    // Chahe user kisi bhi page pe ho
-    this.globalCallSvc.init(() => {
-      this.router.navigate(['/chat']);
+    this.globalCallSvc.init(() => { this.router.navigate(['/chat']); });
+
+    this.chatService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
+      this.chatUnreadCount = count; this.cdr.detectChanges();
     });
 
-    // ✅ Chat unread badge
-    this.chatService.unreadCount$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(count => {
-        this.chatUnreadCount = count;
-        this.cdr.detectChanges();
-      });
+    this.chatService.missedCallCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
+      this.missedCallCount = count; this.cdr.detectChanges();
+    });
 
-    // ✅ FIX: missedCallCount$ — instant badge clear when calls tab opened
-    this.chatService.missedCallCount$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(count => {
-        this.missedCallCount = count;
-        this.cdr.detectChanges();
-      });
+    this.chatService.callRejected$.pipe(takeUntil(this.destroy$)).subscribe(d => {
+      if (!d) return; setTimeout(() => this.loadMissedCallCount(), 800);
+    });
 
-    // ✅ Missed call badge — callRejected/callEnded pe update
-    this.chatService.callRejected$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(d => {
-        if (!d) return;
-        setTimeout(() => this.loadMissedCallCount(), 800);
-      });
+    this.chatService.callEnded$.pipe(takeUntil(this.destroy$)).subscribe(d => {
+      if (!d) return; setTimeout(() => this.loadMissedCallCount(), 800);
+    });
 
-    this.chatService.callEnded$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(d => {
-        if (!d) return;
-        setTimeout(() => this.loadMissedCallCount(), 800);
-      });
+    this.chatService.incomingCall$.pipe(takeUntil(this.destroy$)).subscribe(d => {
+      if (!d) return; setTimeout(() => this.loadMissedCallCount(), 2000);
+    });
 
-    this.chatService.incomingCall$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(d => {
-        if (!d) return;
-        setTimeout(() => this.loadMissedCallCount(), 2000);
-      });
-
-    // ── Initial data load ──
     this.loadProfile();
     this.loadNotifications();
     this.startNotifPolling();
@@ -256,18 +212,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.loadKbUnread();
     this.loadMissedCallCount();
 
-    // ── Periodic refresh (60s) ──
-    interval(60000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadTodoCount());
-
-    interval(60000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadKbUnread());
-
-    interval(60000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadMissedCallCount());
+    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadTodoCount());
+    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadKbUnread());
+    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadMissedCallCount());
   }
 
   ngOnDestroy() {
@@ -280,16 +227,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Profile
   // ──────────────────────────────────────────────
   loadProfile() {
-    this.http.get<any>(
-      'https://localhost:7071/api/Profile',
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>('https://localhost:7071/api/Profile', { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         if (data.photoUrl) {
           this.userPhotoUrl = 'https://localhost:7071' + data.photoUrl;
           localStorage.setItem('im3_photo', data.photoUrl);
         }
-        if (data.fullName)  this.userName  = data.fullName;
+        if (data.fullName) this.userName = data.fullName;
         if (data.email) {
           this.userEmail = data.email;
           localStorage.setItem('im3_email', data.email);
@@ -303,36 +247,24 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Notifications
   // ──────────────────────────────────────────────
   loadNotifications() {
-    this.http.get<any[]>(
-      'https://localhost:7071/api/Notifications',
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>('https://localhost:7071/api/Notifications', { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         this.notifications = data;
         this.unreadCount   = data.filter(n => !n.isRead).length;
         this.cdr.detectChanges();
-      },
-      error: () => {}
+      }, error: () => {}
     });
   }
 
   loadUnreadCount() {
-    this.http.get<any>(
-      'https://localhost:7071/api/Notifications/unread-count',
-      { headers: this.getHeaders() }
-    ).subscribe({
-      next: (data) => {
-        this.unreadCount = data.count || 0;
-        this.cdr.detectChanges();
-      },
+    this.http.get<any>('https://localhost:7071/api/Notifications/unread-count', { headers: this.getHeaders() }).subscribe({
+      next: (data) => { this.unreadCount = data.count || 0; this.cdr.detectChanges(); },
       error: () => {}
     });
   }
 
   startNotifPolling() {
-    interval(30000)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadUnreadCount());
+    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadUnreadCount());
   }
 
   toggleNotifDropdown() {
@@ -342,11 +274,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   markAllRead() {
-    this.http.put(
-      'https://localhost:7071/api/Notifications/mark-all-read',
-      {},
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.put('https://localhost:7071/api/Notifications/mark-all-read', {}, { headers: this.getHeaders() }).subscribe({
       next: () => {
         this.notifications.forEach(n => n.isRead = true);
         this.unreadCount = 0;
@@ -357,12 +285,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   goToNotification(n: any) {
     this.showNotifDropdown = false;
-
-    this.http.put(
-      `https://localhost:7071/api/Notifications/${n.id}/read`,
-      {},
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.put(`https://localhost:7071/api/Notifications/${n.id}/read`, {}, { headers: this.getHeaders() }).subscribe({
       next: () => {
         const notif = this.notifications.find(x => x.id === n.id);
         if (notif) notif.isRead = true;
@@ -370,19 +293,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       }
     });
-
     Promise.resolve().then(() => {
-      if (n.ticketId) {
-        this.router.navigate(['/tickets', n.ticketId]);
-        return;
-      }
+      if (n.ticketId) { this.router.navigate(['/tickets', n.ticketId]); return; }
       const title = (n.title || '').toLowerCase();
-      if (title.includes('ticket'))
-        this.router.navigate(['/tickets']);
-      else if (title.includes('agent'))
-        this.router.navigate(['/agents']);
-      else
-        this.router.navigate(['/notifications']);
+      if (title.includes('ticket'))      this.router.navigate(['/tickets']);
+      else if (title.includes('agent'))  this.router.navigate(['/agents']);
+      else                               this.router.navigate(['/notifications']);
     });
   }
 
@@ -390,28 +306,13 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Search
   // ──────────────────────────────────────────────
   onSearch() {
-    if (!this.searchQuery.trim()) {
-      this.searchResults = [];
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.http.get<any>(
-      `https://localhost:7071/api/Search?q=${this.searchQuery}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    if (!this.searchQuery.trim()) { this.searchResults = []; this.cdr.detectChanges(); return; }
+    this.http.get<any>(`https://localhost:7071/api/Search?q=${this.searchQuery}`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         this.searchResults = [
-          ...(data.tickets || []).map((t: any) => ({
-            ...t, type: 'ticket',
-            title: `#TN${t.ticketNumber} ${t.title}`
-          })),
-          ...(data.agents || []).map((a: any) => ({
-            ...a, type: 'agent'
-          })),
-          ...(data.articles || []).map((k: any) => ({
-            ...k, type: 'kb'
-          }))
+          ...(data.tickets  || []).map((t: any) => ({ ...t, type: 'ticket', title: `#TN${t.ticketNumber} ${t.title}` })),
+          ...(data.agents   || []).map((a: any) => ({ ...a, type: 'agent' })),
+          ...(data.articles || []).map((k: any) => ({ ...k, type: 'kb' }))
         ].slice(0, 8);
         this.cdr.detectChanges();
       },
@@ -420,16 +321,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   goToResult(r: any) {
-    this.searchQuery   = '';
-    this.searchResults = [];
-
-    if (r.type === 'ticket')
-      this.router.navigate(['/tickets', r.id]);
-    else if (r.type === 'agent')
-      this.router.navigate(['/agents']);
-    else if (r.type === 'kb')
-      this.router.navigate(['/kb', r.id]);
-
+    this.searchQuery = ''; this.searchResults = [];
+    if (r.type === 'ticket')     this.router.navigate(['/tickets', r.id]);
+    else if (r.type === 'agent') this.router.navigate(['/agents']);
+    else if (r.type === 'kb')    this.router.navigate(['/kb', r.id]);
     this.cdr.detectChanges();
   }
 
@@ -437,24 +332,14 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // Helpers
   // ──────────────────────────────────────────────
   getAvatarColor(name: string): string {
-    const colors = [
-      '#ef4444', '#f97316', '#eab308',
-      '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'
-    ];
-    const idx = (name?.charCodeAt(0) || 0) % colors.length;
-    return colors[idx];
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
   }
 
   getInitials(name: string): string {
     if (!name) return '?';
-    return name.split(' ')
-      .map(n => n[0] || '')
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
   }
 
-  logout() {
-    this.authService.logout();
-  }
+  logout() { this.authService.logout(); }
 }

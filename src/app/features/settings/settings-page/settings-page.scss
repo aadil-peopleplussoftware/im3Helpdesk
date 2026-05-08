@@ -262,3 +262,18 @@
   gap: 14px;
   margin-top: 8px;
 }
+// ✅ CHANGE: 4 columns → 5 columns taaki 10 themes fit hon
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-top: 8px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
