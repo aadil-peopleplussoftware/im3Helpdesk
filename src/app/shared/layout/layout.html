@@ -88,6 +88,11 @@
           <span class="nav-icon">📈</span>
           <span>{{ tr.t('reports') }}</span>
         </a>
+        <a class="nav-item" routerLink="/calendar" routerLinkActive="active">
+          <span class="nav-icon">📆</span>
+          <span>Calendar</span>
+        </a>
+
       </div>
 
       <div class="nav-section">
@@ -210,6 +215,12 @@
           <div class="todo-dropdown" *ngIf="showTodoPanel" (click)="$event.stopPropagation()">
             <app-todo-panel (close)="showTodoPanel = false; onTodoPanelChange()"></app-todo-panel>
           </div>
+        </div>
+
+
+        <!-- Calendar Icon -->
+        <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="router.navigate(['/calendar'])">
+          <span class="bell-icon" title="Calendar">📆</span>
         </div>
 
         <!-- KB Bell -->

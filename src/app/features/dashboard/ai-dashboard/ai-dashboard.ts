@@ -177,7 +177,7 @@ export class AIDashboardComponent
         scales: {
           y: {
             beginAtZero: true,
-            grid: { color: '#f0f0f0' },
+            grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#e8ecf0' },
             ticks: {
               font: { size: 11 },
               stepSize: 1

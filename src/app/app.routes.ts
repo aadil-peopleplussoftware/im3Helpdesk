@@ -238,6 +238,13 @@ export const routes: Routes = [
         .then(m => m.AIDashboardComponent),
     canActivate: [authGuard]
   },
+{
+  path: 'calendar',
+  loadComponent: () =>
+    import('./features/calendar/calendar-event/calendar-event')
+      .then(m => m.CalendarEventComponent),
+  canActivate: [authGuard]
+},
   {
     path: 'reset-password',
     loadComponent: () =>

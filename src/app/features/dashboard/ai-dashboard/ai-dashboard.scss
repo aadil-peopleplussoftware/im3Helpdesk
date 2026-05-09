@@ -3,23 +3,26 @@
 ════════════════════════════════════════ */
 
 :host {
-  --ai-bg: #f5f7fa;
-  --ai-card: #ffffff;
-  --ai-border: #e8ecf0;
-  --ai-text: #1a1f36;
-  --ai-sub: #6b7280;
-  --ai-muted: #9ca3af;
-  --ai-accent: #2563eb;
-  --ai-accent-l: #eff6ff;
-  --ai-green: #22c55e;
-  --ai-green-l: #f0fdf4;
-  --ai-yellow: #f59e0b;
+  /* ── Mapped to global theme vars from styles.scss ── */
+  --ai-bg:       var(--bg-primary);
+  --ai-card:     var(--bg-secondary);
+  --ai-border:   var(--border-color);
+  --ai-text:     var(--text-primary);
+  --ai-sub:      var(--text-secondary);
+  --ai-muted:    var(--text-muted);
+  --ai-accent:   var(--accent);
+  --ai-accent-l: var(--accent-light);
+  /* Status colors stay fixed (semantic meaning) */
+  --ai-green:    #22c55e;
+  --ai-green-l:  #f0fdf4;
+  --ai-yellow:   #f59e0b;
   --ai-yellow-l: #fffbeb;
-  --ai-red: #ef4444;
-  --ai-red-l: #fef2f2;
-  --ai-purple: #8b5cf6;
+  --ai-red:      #ef4444;
+  --ai-red-l:    #fef2f2;
+  --ai-purple:   #8b5cf6;
   --ai-purple-l: #f5f3ff;
-  --ai-radius: 12px;
+  --ai-radius:   12px;
+  --shadow:      var(--shadow, var(--shadow));
 }
 
 .ai-page {
@@ -779,7 +782,7 @@
 .merge-note {
   font-size: 12px;
   color: var(--ai-muted);
-  background: #f9fafb;
+  background: var(--ai-bg);
   padding: 10px 12px;
   border-radius: 6px;
 }
@@ -1072,7 +1075,7 @@
   color: #15803d;
 }
 .sent-neutral {
-  background: #f9fafb;
+  background: var(--ai-bg);
   color: var(--ai-sub);
 }
 
@@ -1081,7 +1084,7 @@
 .st-prog { background: #fef3c7; color: #b45309; }
 .st-pend { background: #dbeafe; color: #1d4ed8; }
 .st-res { background: var(--ai-purple-l); color: #6d28d9; }
-.st-closed { background: #f3f4f6; color: #6b7280; }
+.st-closed { background: #f3f4f6; color: var(--ai-sub); }
 
 /* Priority chips */
 .pr-crit { background: #fef2f2; color: #dc2626; }

@@ -1,0 +1,637 @@
+<app-layout>
+<div class="cal-page">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════ -->
+  <aside class="cal-sidebar">
+
+    <!-- Mini: Today Summary -->
+    <div class="today-card">
+      <div class="today-label">Today</div>
+      <div class="today-date">
+        {{ today | date:'EEE, d MMM' }}
+      </div>
+      <div class="today-count">
+        <span class="tc-num">{{ totalEventsToday }}</span>
+        <span class="tc-sub">events</span>
+      </div>
+      <div class="missed-badge" *ngIf="missedReminders.length > 0">
+        ⚠ {{ missedReminders.length }} missed
+      </div>
+    </div>
+
+    <!-- New Event Button -->
+    <button class="new-event-btn" (click)="openNewEventModal()">
+      + New Event
+    </button>
+
+    <!-- ── Upcoming Reminders ── -->
+    <div class="sidebar-section" *ngIf="upcomingReminders.length > 0">
+      <div class="ss-label">⏰ Upcoming</div>
+      <div class="reminder-item"
+        *ngFor="let r of upcomingReminders"
+        (click)="editEvent(r)">
+        <div class="ri-dot"
+          [style.background]="getEventColor(r)"></div>
+        <div class="ri-info">
+          <div class="ri-title">{{ r.title }}</div>
+          <div class="ri-time">{{ getTimeUntil(r.startDate) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Overdue / Missed ── -->
+    <div class="sidebar-section" *ngIf="overdueItems.length > 0">
+      <div class="ss-label overdue-label">🔴 Overdue ({{ overdueItems.length }})</div>
+      <div class="reminder-item overdue"
+        *ngFor="let r of overdueItems.slice(0, 5)"
+        (click)="editEvent(r)">
+        <div class="ri-dot" style="background:#ef4444"></div>
+        <div class="ri-info">
+          <div class="ri-title">{{ r.title }}</div>
+          <div class="ri-time">{{ formatDate(r.startDate) }}</div>
+        </div>
+        <button class="ri-check" (click)="$event.stopPropagation(); toggleComplete(r)">✓</button>
+      </div>
+    </div>
+
+    <!-- ── Filters ── -->
+    <div class="sidebar-section">
+      <div class="ss-label">Filter</div>
+      <div class="filter-chips">
+        <button class="fc"
+          [class.active]="filterType === 'all'"
+          (click)="filterType='all'; buildCalendar()">All</button>
+        <button class="fc"
+          [class.active]="filterType === 'reminder'"
+          (click)="filterType='reminder'; buildCalendar()">
+          🔔 Reminders
+        </button>
+        <button class="fc"
+          [class.active]="filterType === 'event'"
+          (click)="filterType='event'; buildCalendar()">
+          📅 Events
+        </button>
+        <button class="fc"
+          [class.active]="filterType === 'meeting'"
+          (click)="filterType='meeting'; buildCalendar()">
+          👥 Meetings
+        </button>
+        <button class="fc"
+          [class.active]="filterType === 'deadline'"
+          (click)="filterType='deadline'; buildCalendar()">
+          ⏰ Deadlines
+        </button>
+        <button class="fc"
+          [class.active]="filterType === 'ticket'"
+          (click)="filterType='ticket'; buildCalendar()">
+          🎫 Tickets
+        </button>
+      </div>
+      <label class="show-completed">
+        <input type="checkbox"
+          [(ngModel)]="showCompleted"
+          (ngModelChange)="buildCalendar()"/>
+        Show completed
+      </label>
+    </div>
+
+    <!-- ── Legend ── -->
+    <div class="sidebar-section">
+      <div class="ss-label">Legend</div>
+      <div class="legend-item"
+        *ngFor="let t of eventTypes">
+        <span class="leg-dot"
+          [style.background]="typeColors[t.value]"></span>
+        {{ t.icon }} {{ t.label }}
+      </div>
+      <div class="legend-item">
+        <span class="leg-dot ticket-dot"></span>
+        🎫 Ticket (created date)
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══ MAIN AREA ═════════════════════════════════════ -->
+  <div class="cal-main">
+
+    <!-- ── Toolbar ── -->
+    <div class="cal-toolbar">
+      <div class="toolbar-left">
+        <button class="nav-btn" (click)="prevPeriod()">‹</button>
+        <button class="nav-btn" (click)="nextPeriod()">›</button>
+        <button class="today-btn" (click)="goToToday()">Today</button>
+        <h2 class="cal-title">{{ getHeaderTitle() }}</h2>
+      </div>
+      <div class="toolbar-right">
+        <div class="view-tabs">
+          <button class="vt"
+            [class.active]="currentView === 'month'"
+            (click)="setView('month')">Month</button>
+          <button class="vt"
+            [class.active]="currentView === 'week'"
+            (click)="setView('week')">Week</button>
+          <button class="vt"
+            [class.active]="currentView === 'day'"
+            (click)="setView('day')">Day</button>
+          <button class="vt"
+            [class.active]="currentView === 'agenda'"
+            (click)="setView('agenda')">Agenda</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MONTH VIEW ═══════════════════════════════════ -->
+    <div class="month-view" *ngIf="currentView === 'month'">
+      <!-- Day headers -->
+      <div class="month-header">
+        <div class="mh-cell" *ngFor="let d of dayNames">{{ d }}</div>
+      </div>
+      <!-- Grid -->
+      <div class="month-grid">
+        <div class="day-cell"
+          *ngFor="let day of calendarDays"
+          [class.other-month]="!day.isCurrentMonth"
+          [class.today]="day.isToday"
+          [class.selected]="selectedDate && isSameDay(day.date, selectedDate)"
+          [class.has-events]="day.events.length > 0 || day.tickets.length > 0"
+          (click)="onDayClick(day)">
+
+          <div class="day-num">{{ day.date.getDate() }}</div>
+
+          <!-- Events (max 3 visible) -->
+          <div class="day-events">
+            <div class="day-event"
+              *ngFor="let e of day.events.slice(0, 3)"
+              [style.background]="getEventColor(e) + '22'"
+              [style.border-left]="'3px solid ' + getEventColor(e)"
+              [style.color]="getEventColor(e)"
+              [class.completed]="e.isCompleted"
+              [title]="e.title">
+              <span class="de-icon">{{ getTypeIcon(e.type) }}</span>
+              <span class="de-title">{{ e.title }}</span>
+              <span class="de-time" *ngIf="!e.allDay">
+                {{ formatTime(e.startDate) }}
+              </span>
+            </div>
+
+            <!-- Tickets for the day -->
+            <div class="day-event ticket-ev"
+              *ngFor="let t of day.tickets.slice(0, 2)"
+              [title]="t.title">
+              <span class="de-icon">🎫</span>
+              <span class="de-title">#TN{{ t.ticketNumber }}</span>
+              <span class="de-status"
+                [style.color]="getStatusColor(t.status)">
+                {{ t.status }}
+              </span>
+            </div>
+
+            <!-- More indicator -->
+            <div class="more-indicator"
+              *ngIf="day.events.length + day.tickets.length > 3">
+              +{{ day.events.length + day.tickets.length - 3 }} more
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WEEK VIEW ════════════════════════════════════ -->
+    <div class="week-view" *ngIf="currentView === 'week'">
+      <div class="week-header">
+        <div class="wh-time"></div>
+        <div class="wh-day"
+          *ngFor="let d of weekDays"
+          [class.today]="d.isToday"
+          (click)="currentDate = d.date; setView('day')">
+          <div class="wh-name">{{ dayNames[d.date.getDay()] }}</div>
+          <div class="wh-num" [class.today-circle]="d.isToday">
+            {{ d.date.getDate() }}
+          </div>
+          <div class="wh-count" *ngIf="d.events.length + d.tickets.length > 0">
+            {{ d.events.length + d.tickets.length }} items
+          </div>
+        </div>
+      </div>
+
+      <div class="week-body">
+        <div class="time-col">
+          <div class="time-slot" *ngFor="let h of hours">
+            {{ formatHour(h) }}
+          </div>
+        </div>
+        <div class="week-cols">
+          <div class="week-col" *ngFor="let d of weekDays">
+            <!-- All day events -->
+            <div class="allday-events" *ngIf="d.tickets.length > 0">
+              <div class="day-event ticket-ev"
+                *ngFor="let t of d.tickets"
+                (click)="navigateToTicket(t.id)">
+                🎫 #TN{{ t.ticketNumber }}
+              </div>
+            </div>
+            <!-- Hourly slots -->
+            <div class="hour-row" *ngFor="let h of hours"
+              (click)="currentDate = d.date; openNewEventModal(d.date)">
+              <div class="hour-event"
+                *ngFor="let e of d.events.slice(0,1)"
+                [style.background]="getEventColor(e) + '22'"
+                [style.border-left]="'3px solid ' + getEventColor(e)"
+                (click)="$event.stopPropagation(); editEvent(e)"
+                [title]="e.title">
+                {{ e.title }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DAY VIEW ═════════════════════════════════════ -->
+    <div class="day-view" *ngIf="currentView === 'day'">
+      <div class="day-view-header">
+        <div class="dv-date">
+          {{ currentDate | date:'EEEE, MMMM d, y' }}
+        </div>
+        <div class="dv-summary">
+          <span *ngIf="getEventsForCurrentDay().length > 0">
+            {{ getEventsForCurrentDay().length }} event(s)
+          </span>
+          <span *ngIf="getTicketsForCurrentDay().length > 0">
+            · {{ getTicketsForCurrentDay().length }} ticket(s) created
+          </span>
+        </div>
+      </div>
+
+      <!-- Tickets created today -->
+      <div class="dv-tickets" *ngIf="getTicketsForCurrentDay().length > 0">
+        <div class="dv-section-label">🎫 Tickets Created on This Day</div>
+        <div class="ticket-row"
+          *ngFor="let t of getTicketsForCurrentDay()"
+          (click)="navigateToTicket(t.id)">
+          <span class="tr-num">#TN{{ t.ticketNumber }}</span>
+          <span class="tr-title">{{ t.title }}</span>
+          <span class="tr-status"
+            [style.background]="getStatusColor(t.status) + '22'"
+            [style.color]="getStatusColor(t.status)">
+            {{ t.status }}
+          </span>
+          <span class="tr-priority"
+            [style.color]="priorityColors[t.priority?.toLowerCase()]">
+            {{ t.priority }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="dv-timeline">
+        <div class="hour-block" *ngFor="let h of hours">
+          <div class="hour-label">{{ formatHour(h) }}</div>
+          <div class="hour-content"
+            (click)="openNewEventModal(currentDate)">
+            <div class="hour-ev"
+              *ngFor="let e of getHourEvents(h)"
+              [style.background]="getEventColor(e) + '18'"
+              [style.border-left]="'3px solid ' + getEventColor(e)"
+              [class.completed]="e.isCompleted"
+              (click)="$event.stopPropagation(); editEvent(e)">
+              <div class="hev-header">
+                <span class="hev-icon">{{ getTypeIcon(e.type) }}</span>
+                <span class="hev-title">{{ e.title }}</span>
+                <div class="hev-actions">
+                  <button class="ha-btn"
+                    (click)="$event.stopPropagation(); toggleComplete(e)"
+                    [title]="e.isCompleted ? 'Mark incomplete' : 'Mark complete'">
+                    {{ e.isCompleted ? '↩' : '✓' }}
+                  </button>
+                  <button class="ha-btn delete"
+                    (click)="$event.stopPropagation(); deleteEvent(e)">
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div class="hev-desc" *ngIf="e.description">
+                {{ e.description }}
+              </div>
+              <div class="hev-meta">
+                <span class="hev-time">{{ formatTime(e.startDate) }}</span>
+                <span class="hev-remind" *ngIf="e.reminderMinutes">
+                  🔔 {{ getReminderLabel(e.reminderMinutes) }}
+                </span>
+                <span class="hev-priority"
+                  [style.color]="priorityColors[e.priority]">
+                  {{ getPriorityLabel(e.priority) }}
+                </span>
+              </div>
+            </div>
+            <!-- All-day events at top -->
+            <div class="hour-ev allday-ev"
+              *ngIf="h === 0"
+              [style.display]="getEventsForCurrentDay().filter(e => e.allDay).length > 0 ? 'block' : 'none'">
+              <div *ngFor="let e of getEventsForCurrentDay().filter(e => e.allDay)"
+                [style.color]="getEventColor(e)">
+                {{ getTypeIcon(e.type) }} {{ e.title }} (All day)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ AGENDA VIEW ══════════════════════════════════ -->
+    <div class="agenda-view" *ngIf="currentView === 'agenda'">
+      <div class="ag-empty" *ngIf="agendaItems.length === 0">
+        <div class="ag-empty-icon">📅</div>
+        <div>No upcoming events in next 30 days</div>
+        <button class="new-event-btn sm" (click)="openNewEventModal()">
+          + Add Event
+        </button>
+      </div>
+
+      <div class="ag-group" *ngFor="let group of agendaItems">
+        <div class="ag-date-header"
+          [class.ag-today]="isSameDay(group.date, today)">
+          <span class="ag-weekday">{{ group.date | date:'EEE' }}</span>
+          <span class="ag-day">{{ group.date | date:'d' }}</span>
+          <span class="ag-month">{{ group.date | date:'MMM' }}</span>
+          <span class="ag-today-badge" *ngIf="isSameDay(group.date, today)">Today</span>
+        </div>
+        <div class="ag-items">
+          <!-- Events -->
+          <div class="ag-item"
+            *ngFor="let e of group.events"
+            [class.completed]="e.isCompleted"
+            (click)="editEvent(e)">
+            <div class="ai-color-bar"
+              [style.background]="getEventColor(e)"></div>
+            <div class="ai-icon">{{ getTypeIcon(e.type) }}</div>
+            <div class="ai-body">
+              <div class="ai-title"
+                [class.line-through]="e.isCompleted">
+                {{ e.title }}
+              </div>
+              <div class="ai-meta">
+                <span *ngIf="!e.allDay">{{ formatTime(e.startDate) }}</span>
+                <span *ngIf="e.allDay">All day</span>
+                <span class="ai-dot">·</span>
+                <span [style.color]="getEventColor(e)">
+                  {{ getTypeIcon(e.type) }} {{ e.type }}
+                </span>
+                <span class="ai-dot" *ngIf="e.reminderMinutes">·</span>
+                <span *ngIf="e.reminderMinutes">🔔 reminder set</span>
+              </div>
+              <div class="ai-desc" *ngIf="e.description">
+                {{ e.description }}
+              </div>
+            </div>
+            <div class="ai-actions">
+              <button class="aia-btn"
+                (click)="$event.stopPropagation(); toggleComplete(e)"
+                [class.done]="e.isCompleted">
+                {{ e.isCompleted ? '↩' : '✓' }}
+              </button>
+              <button class="aia-btn delete"
+                (click)="$event.stopPropagation(); deleteEvent(e)">
+                ×
+              </button>
+            </div>
+          </div>
+
+          <!-- Tickets -->
+          <div class="ag-item ticket-ag"
+            *ngFor="let t of group.tickets"
+            (click)="navigateToTicket(t.id)">
+            <div class="ai-color-bar ticket-bar"></div>
+            <div class="ai-icon">🎫</div>
+            <div class="ai-body">
+              <div class="ai-title">#TN{{ t.ticketNumber }} — {{ t.title }}</div>
+              <div class="ai-meta">
+                <span>Created {{ formatTime(t.createdAt) }}</span>
+                <span class="ai-dot">·</span>
+                <span [style.color]="getStatusColor(t.status)">
+                  {{ t.status }}
+                </span>
+                <span class="ai-dot">·</span>
+                <span [style.color]="priorityColors[t.priority?.toLowerCase()]">
+                  {{ t.priority }}
+                </span>
+              </div>
+            </div>
+            <div class="ai-actions">
+              <button class="aia-btn info">→</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /cal-main -->
+
+</div><!-- /cal-page -->
+
+<!-- ══ EVENT MODAL ══════════════════════════════════════ -->
+<div class="modal-overlay"
+  *ngIf="showEventModal"
+  (click)="closeModals()">
+  <div class="event-modal" (click)="$event.stopPropagation()">
+
+    <div class="em-header">
+      <h3>{{ isEditMode ? 'Edit Event' : 'New Event' }}</h3>
+      <button class="em-close" (click)="closeModals()">×</button>
+    </div>
+
+    <div class="em-body">
+
+      <!-- Title -->
+      <div class="em-field">
+        <label>Title <span class="req">*</span></label>
+        <input type="text"
+          [(ngModel)]="newEvent.title"
+          placeholder="Event title..."
+          class="em-input"/>
+      </div>
+
+      <!-- Type + Priority row -->
+      <div class="em-row">
+        <div class="em-field half">
+          <label>Type</label>
+          <select [(ngModel)]="newEvent.type" class="em-select">
+            <option *ngFor="let t of eventTypes"
+              [value]="t.value">
+              {{ t.icon }} {{ t.label }}
+            </option>
+          </select>
+        </div>
+        <div class="em-field half">
+          <label>Priority</label>
+          <select [(ngModel)]="newEvent.priority" class="em-select">
+            <option value="low">🟢 Low</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="high">🔴 High</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Date/Time row -->
+      <div class="em-row">
+        <div class="em-field half">
+          <label>Start Date & Time</label>
+          <input type="datetime-local"
+            [(ngModel)]="newEvent.startDate"
+            class="em-input"/>
+        </div>
+        <div class="em-field half">
+          <label>End Date & Time</label>
+          <input type="datetime-local"
+            [(ngModel)]="newEvent.endDate"
+            class="em-input"/>
+        </div>
+      </div>
+
+      <!-- All day -->
+      <div class="em-field">
+        <label class="check-label">
+          <input type="checkbox"
+            [(ngModel)]="newEvent.allDay"/>
+          All day event
+        </label>
+      </div>
+
+      <!-- Reminder -->
+      <div class="em-field">
+        <label>🔔 Reminder</label>
+        <select [(ngModel)]="newEvent.reminderMinutes"
+          class="em-select">
+          <option *ngFor="let r of reminderOptions"
+            [value]="r.value">
+            {{ r.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Link to ticket -->
+      <div class="em-field" *ngIf="newEvent.type === 'ticket' || newEvent.type === 'deadline'">
+        <label>🎫 Link to Ticket</label>
+        <select [(ngModel)]="newEvent.ticketId" class="em-select">
+          <option value="">No ticket linked</option>
+          <option *ngFor="let t of allTickets"
+            [value]="t.id">
+            #TN{{ t.ticketNumber }} — {{ t.title?.length > 40 ? t.title.substring(0,40) + '...' : t.title }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Description -->
+      <div class="em-field">
+        <label>Description</label>
+        <textarea [(ngModel)]="newEvent.description"
+          class="em-input em-textarea"
+          rows="3"
+          placeholder="Optional notes..."></textarea>
+      </div>
+
+      <!-- Color -->
+      <div class="em-field">
+        <label>Color</label>
+        <div class="color-row">
+          <button class="color-swatch"
+            *ngFor="let c of ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#f97316']"
+            [style.background]="c"
+            [class.selected]="newEvent.color === c"
+            (click)="newEvent.color = c">
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="em-footer">
+      <button class="em-delete"
+        *ngIf="isEditMode"
+        (click)="deleteEventFromModal()">
+        Delete
+      </button>
+      <button class="em-cancel" (click)="closeModals()">Cancel</button>
+      <button class="em-save" (click)="saveEvent()">
+        {{ isEditMode ? 'Save Changes' : 'Create Event' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY DETAIL MODAL ═════════════════════════════════ -->
+<div class="modal-overlay"
+  *ngIf="showDetailModal && selectedDayEvents"
+  (click)="closeModals()">
+  <div class="detail-modal" (click)="$event.stopPropagation()">
+    <div class="em-header">
+      <h3>{{ selectedDate | date:'EEE, d MMMM y' }}</h3>
+      <button class="em-close" (click)="closeModals()">×</button>
+    </div>
+    <div class="em-body">
+
+      <!-- Events -->
+      <div *ngIf="selectedDayEvents.events.length > 0">
+        <div class="dm-section">Events</div>
+        <div class="dm-item"
+          *ngFor="let e of selectedDayEvents.events"
+          (click)="editEvent(e)">
+          <div class="dmi-left">
+            <span class="dmi-dot"
+              [style.background]="getEventColor(e)"></span>
+            <div>
+              <div class="dmi-title"
+                [class.line-through]="e.isCompleted">
+                {{ e.title }}
+              </div>
+              <div class="dmi-meta">
+                {{ getTypeIcon(e.type) }} {{ e.type }}
+                <span *ngIf="!e.allDay"> · {{ formatTime(e.startDate) }}</span>
+                <span *ngIf="e.reminderMinutes"> · 🔔</span>
+              </div>
+            </div>
+          </div>
+          <div class="dmi-right">
+            <button class="ha-btn"
+              (click)="$event.stopPropagation(); toggleComplete(e)">
+              {{ e.isCompleted ? '↩' : '✓' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tickets -->
+      <div *ngIf="selectedDayEvents.tickets.length > 0">
+        <div class="dm-section">🎫 Tickets Created</div>
+        <div class="dm-item ticket-dm"
+          *ngFor="let t of selectedDayEvents.tickets"
+          (click)="navigateToTicket(t.id)">
+          <div class="dmi-left">
+            <span class="dmi-dot ticket-dot"></span>
+            <div>
+              <div class="dmi-title">#TN{{ t.ticketNumber }} — {{ t.title }}</div>
+              <div class="dmi-meta">
+                <span [style.color]="getStatusColor(t.status)">{{ t.status }}</span>
+                · {{ t.priority }}
+                <span *ngIf="t.assignedTo"> · {{ t.assignedTo }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="dmi-right">→</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="em-footer">
+      <button class="em-cancel" (click)="closeModals()">Close</button>
+      <button class="em-save"
+        (click)="openNewEventModal(selectedDate!)">
+        + Add Event
+      </button>
+    </div>
+  </div>
+</div>
+
+</app-layout>
