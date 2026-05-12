@@ -32,8 +32,10 @@ public class AgentsController : ControllerBase
   {
     var agents = await _context.Users
         .IgnoreQueryFilters()
-        .Where(u => u.OrganizationId == _tenantService.OrganizationId
-            && (u.Role == UserRole.Agent || u.Role == UserRole.CompanyAdmin))
+        .Where(u =>
+            u.OrganizationId == _tenantService.OrganizationId &&
+            (u.Role == UserRole.Agent ||
+             u.Role == UserRole.CompanyAdmin))
         .Select(u => new
         {
           u.Id,
@@ -43,7 +45,10 @@ public class AgentsController : ControllerBase
           Role = u.Role.ToString(),
           u.IsEmailVerified,
           u.CreatedAt,
-          u.LastLoginAt
+          u.LastLoginAt,
+          // ✅ IsActive: LockedUntil nahi hai ya past mein hai to active
+          IsActive = !u.LockedUntil.HasValue ||
+              u.LockedUntil < DateTime.UtcNow
         })
         .ToListAsync();
 
@@ -55,11 +60,11 @@ public class AgentsController : ControllerBase
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
+            u.OrganizationId == _tenantService.OrganizationId);
 
-    if (agent == null)
-      return NotFound(new { message = "Agent not found" });
+    if (agent == null) return NotFound();
 
     return Ok(new
     {
@@ -68,44 +73,68 @@ public class AgentsController : ControllerBase
       agent.Email,
       agent.PhoneNumber,
       Role = agent.Role.ToString(),
+      agent.Signature,
+      agent.PhotoUrl,
       agent.IsEmailVerified,
-      agent.CreatedAt,
-      agent.LastLoginAt
+      agent.LastLoginAt,
+      agent.CreatedAt
     });
   }
 
   [HttpPost("invite")]
-  public async Task<IActionResult> InviteAgent([FromBody] InviteAgentDto dto)
+  public async Task<IActionResult> InviteAgent(
+      [FromBody] InviteAgentDto dto)
   {
-    var existing = await _context.Users
+    var existingUser = await _context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
-    if (existing != null)
-      return BadRequest(new { message = "Email already registered" });
+    if (existingUser != null)
+      return BadRequest(
+          new { message = "Email already registered" });
 
-    var tempPassword = "Agent@" + Guid.NewGuid().ToString()[..6];
+    var tempPassword = GenerateTempPassword();
+
     var agent = new iM3Helpdesk.Domain.Entities.User
     {
       FullName = dto.FullName,
       Email = dto.Email,
       PhoneNumber = dto.PhoneNumber ?? "",
       PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
-      Role = UserRole.Agent,
-      OrganizationId = _tenantService.OrganizationId,
-      IsEmailVerified = true
+      Role = ParseRole(dto.Role),
+      OrganizationId = _tenantService.OrganizationId!.Value,
+      IsEmailVerified = true,
+      Signature = dto.Signature ?? "",
+      PhotoUrl = dto.PhotoUrl ?? ""
     };
 
     _context.Users.Add(agent);
+
+    if (dto.GroupIds?.Any() == true)
+    {
+      foreach (var groupId in dto.GroupIds)
+      {
+        _context.AgentGroupMembers.Add(
+            new iM3Helpdesk.Domain.Entities.AgentGroupMember
+            {
+              AgentGroupId = groupId,
+              UserId = agent.Id
+            });
+      }
+    }
+
     await _context.SaveChangesAsync();
 
     var org = await _context.Organizations
-        .FirstOrDefaultAsync(o => o.Id == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(o =>
+            o.Id == _tenantService.OrganizationId);
 
     try
     {
-      await _emailService.SendAgentInviteEmailAsync(
-          agent.Email, agent.FullName,
+      // ✅ FIX: Use proper invite email with all correct params
+      await _emailService.SendAgentInviteAsync(
+          agent.Email,
+          agent.FullName,
           org?.Name ?? "Your Company",
           tempPassword);
     }
@@ -114,26 +143,69 @@ public class AgentsController : ControllerBase
     return Ok(new
     {
       message = "Agent invited successfully",
-      tempPassword,
+      tempPassword = tempPassword,
       agentId = agent.Id
     });
   }
 
-  [HttpPut("{id}/role")]
-  public async Task<IActionResult> UpdateRole(Guid id, [FromBody] UpdateRoleDto dto)
+  [HttpPut("{id}")]
+  public async Task<IActionResult> UpdateAgent(
+      Guid id, [FromBody] UpdateAgentDto dto)
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
+            u.OrganizationId == _tenantService.OrganizationId);
 
     if (agent == null)
       return NotFound(new { message = "Agent not found" });
 
-    agent.Role = Enum.Parse<UserRole>(dto.Role);
+    if (!string.IsNullOrEmpty(dto.FullName))
+      agent.FullName = dto.FullName;
+
+    if (!string.IsNullOrEmpty(dto.Role))
+      agent.Role = ParseRole(dto.Role);
+
+    if (dto.Signature != null)
+      agent.Signature = dto.Signature;
+
+    if (dto.PhotoUrl != null)
+      agent.PhotoUrl = dto.PhotoUrl;
+
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "Agent updated" });
+  }
+
+  [HttpPut("{id}/toggle-active")]
+  public async Task<IActionResult> ToggleActive(Guid id)
+  {
+    var agent = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Id == id);
+
+    if (agent == null)
+      return NotFound(new { message = "Agent not found" });
+
+    if (agent.LockedUntil.HasValue &&
+        agent.LockedUntil > DateTime.UtcNow)
+    {
+      agent.LockedUntil = null;
+      agent.FailedLoginAttempts = 0;
+    }
+    else
+    {
+      agent.LockedUntil = DateTime.UtcNow.AddYears(100);
+    }
+
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Role updated successfully" });
+    return Ok(new
+    {
+      message = "Agent status updated",
+      isActive = !agent.LockedUntil.HasValue ||
+          agent.LockedUntil < DateTime.UtcNow
+    });
   }
 
   [HttpDelete("{id}")]
@@ -141,8 +213,9 @@ public class AgentsController : ControllerBase
   {
     var agent = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == id
-            && u.OrganizationId == _tenantService.OrganizationId);
+        .FirstOrDefaultAsync(u =>
+            u.Id == id &&
+            u.Role != UserRole.SuperAdmin);
 
     if (agent == null)
       return NotFound(new { message = "Agent not found" });
@@ -150,7 +223,22 @@ public class AgentsController : ControllerBase
     _context.Users.Remove(agent);
     await _context.SaveChangesAsync();
 
-    return Ok(new { message = "Agent removed successfully" });
+    return Ok(new { message = "Agent deleted" });
+  }
+
+  private string GenerateTempPassword()
+  {
+    return "Agent@" + Guid.NewGuid().ToString()[..6];
+  }
+
+  private static UserRole ParseRole(string? role)
+  {
+    return role switch
+    {
+      "Administrator" => UserRole.CompanyAdmin,
+      "Agent" => UserRole.Agent,
+      _ => UserRole.Agent
+    };
   }
 }
 
@@ -159,9 +247,16 @@ public class InviteAgentDto
   public string FullName { get; set; } = string.Empty;
   public string Email { get; set; } = string.Empty;
   public string? PhoneNumber { get; set; }
+  public string Role { get; set; } = "Agent";
+  public string? Signature { get; set; }
+  public string? PhotoUrl { get; set; }
+  public List<Guid>? GroupIds { get; set; }
 }
 
-public class UpdateRoleDto
+public class UpdateAgentDto
 {
-  public string Role { get; set; } = string.Empty;
+  public string? FullName { get; set; }
+  public string? Role { get; set; }
+  public string? Signature { get; set; }
+  public string? PhotoUrl { get; set; }
 }

@@ -1,4 +1,5 @@
-﻿using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Domain.Entities;
+using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,101 +13,163 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class NotificationsController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ICurrentTenantService _tenantService;
+  private readonly ApplicationDbContext _context;
+  private readonly ICurrentTenantService _tenantService;
 
-    public NotificationsController(
-        ApplicationDbContext context,
-        ICurrentTenantService tenantService)
+  public NotificationsController(
+      ApplicationDbContext context,
+      ICurrentTenantService tenantService)
+  {
+    _context = context;
+    _tenantService = tenantService;
+  }
+
+  private Guid? GetUserId()
+  {
+    var claim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+    return Guid.TryParse(claim, out var id)
+        ? id : null;
+  }
+
+  [HttpGet]
+  public async Task<IActionResult> GetAll(
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 20)
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
+
+    var notifications = await _context.Notifications
+        .Where(n => n.UserId == userId)
+        .OrderByDescending(n => n.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(n => new
+        {
+          n.Id,
+          n.Title,
+          n.Message,
+          n.Type,
+          n.IsRead,
+          n.CreatedAt,
+          n.TicketId
+        })
+        .ToListAsync();
+
+    return Ok(notifications);
+  }
+
+  [HttpGet("unread-count")]
+  public async Task<IActionResult> GetUnreadCount()
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
+
+    var count = await _context.Notifications
+        .CountAsync(n =>
+            n.UserId == userId && !n.IsRead);
+
+    return Ok(new { count });
+  }
+
+  [HttpGet("activity")]
+  public async Task<IActionResult> GetActivity(
+      [FromQuery] int page = 1,
+      [FromQuery] int pageSize = 20)
+  {
+    var userId = GetUserId();
+
+    var logs = await _context.ActivityLogs
+        .AsNoTracking()
+        .Where(a => a.UserId == userId)
+        .OrderByDescending(a => a.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(a => new
+        {
+          a.Id,
+          a.Action,
+          a.Description,
+          a.EntityType,
+          a.CreatedAt
+        })
+        .ToListAsync();
+
+    return Ok(logs);
+  }
+
+  [HttpPut("{id}/read")]
+  public async Task<IActionResult> MarkRead(Guid id)
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
+
+    try
     {
-        _context = context;
-        _tenantService = tenantService;
-    }
+      var notification = await _context.Notifications
+          .FirstOrDefaultAsync(n =>
+              n.Id == id &&
+              n.UserId == userId);
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+      if (notification == null)
+        return NotFound(new
+        {
+          message = "Notification not found"
+        });
+
+      notification.IsRead = true;
+      await _context.SaveChangesAsync();
+
+      return Ok(new { message = "Marked as read" });
+    }
+    catch (Exception ex)
     {
-        var userId = GetUserId();
-        var notifications = await _context.Notifications
-            .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.CreatedAt)
-            .Take(20)
-            .Select(n => new
-            {
-                n.Id,
-                n.Title,
-                n.Message,
-                n.Type,
-                n.IsRead,
-                n.TicketId,
-                n.CreatedAt
-            })
-            .ToListAsync();
-
-        return Ok(notifications);
+      return StatusCode(500, new
+      {
+        message = "Failed",
+        error = ex.Message
+      });
     }
+  }
 
-    [HttpGet("unread-count")]
-    public async Task<IActionResult> GetUnreadCount()
+  [HttpPut("mark-all-read")]
+  public async Task<IActionResult> MarkAllRead()
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
+
+    var unread = await _context.Notifications
+        .Where(n =>
+            n.UserId == userId && !n.IsRead)
+        .ToListAsync();
+
+    unread.ForEach(n => n.IsRead = true);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
     {
-        var userId = GetUserId();
-        var count = await _context.Notifications
-            .CountAsync(n => n.UserId == userId && !n.IsRead);
-        return Ok(new { count });
-    }
+      message = "All marked as read",
+      count = unread.Count
+    });
+  }
 
-    [HttpPut("{id}/read")]
-    public async Task<IActionResult> MarkRead(Guid id)
-    {
-        var notification = await _context.Notifications
-            .FirstOrDefaultAsync(n => n.Id == id);
+  [HttpDelete("{id}")]
+  public async Task<IActionResult> Delete(Guid id)
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
 
-        if (notification == null) return NotFound();
+    var n = await _context.Notifications
+        .FirstOrDefaultAsync(x =>
+            x.Id == id && x.UserId == userId);
 
-        notification.IsRead = true;
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "Marked as read" });
-    }
+    if (n == null) return NotFound();
 
-    [HttpPut("mark-all-read")]
-    public async Task<IActionResult> MarkAllRead()
-    {
-        var userId = GetUserId();
-        var notifications = await _context.Notifications
-            .Where(n => n.UserId == userId && !n.IsRead)
-            .ToListAsync();
+    _context.Notifications.Remove(n);
+    await _context.SaveChangesAsync();
 
-        notifications.ForEach(n => n.IsRead = true);
-        await _context.SaveChangesAsync();
-        return Ok(new { message = "All marked as read" });
-    }
-
-    [HttpGet("activity")]
-    public async Task<IActionResult> GetActivity()
-    {
-        var logs = await _context.ActivityLogs
-            .Include(a => a.User)
-            .OrderByDescending(a => a.CreatedAt)
-            .Take(50)
-            .Select(a => new
-            {
-                a.Id,
-                a.Action,
-                a.Description,
-                a.EntityType,
-                a.EntityId,
-                a.CreatedAt,
-                user = a.User == null ? null : new { a.User.FullName }
-            })
-            .ToListAsync();
-
-        return Ok(logs);
-    }
-
-    private Guid GetUserId()
-    {
-        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value;
-        return Guid.TryParse(claim, out var id) ? id : Guid.Empty;
-    }
+    return Ok(new { message = "Deleted" });
+  }
 }

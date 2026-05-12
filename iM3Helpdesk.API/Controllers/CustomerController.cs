@@ -136,7 +136,7 @@ public class CustomerController : ControllerBase
     {
       try
       {
-        await _emailService.SendTicketCreatedEmailAsync(
+        await _emailService.SendAsync(
             user.Email, user.FullName,
             ticket.Title, ticket.Id.ToString());
       }

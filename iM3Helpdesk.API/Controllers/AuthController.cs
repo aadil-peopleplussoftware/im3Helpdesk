@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using iM3Helpdesk.Infrastructure.Services;
 using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
@@ -20,75 +21,24 @@ public class AuthController : ControllerBase
   private readonly ApplicationDbContext _context;
   private readonly IConfiguration _configuration;
   private readonly IEmailService _emailService;
+  private readonly IOtpService _otpService;
 
   public AuthController(
       ApplicationDbContext context,
       IConfiguration configuration,
-      IEmailService emailService)
+      IEmailService emailService,
+      IOtpService otpService)
   {
     _context = context;
     _configuration = configuration;
     _emailService = emailService;
-  }
-
-  [HttpPost("register")]
-  public async Task<IActionResult> Register([FromBody] RegisterDto dto)
-  {
-    if (dto.Password != dto.ConfirmPassword)
-      return BadRequest(new { message = "Passwords do not match" });
-
-    var existingUser = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Email == dto.Email);
-
-    if (existingUser != null)
-      return BadRequest(new { message = "Email already registered" });
-
-    var organization = new Organization
-    {
-      Name = dto.CompanyName,
-      Slug = dto.CompanyName.ToLower()
-            .Replace(" ", "-")
-            .Replace(".", "")
-            + "-" + Guid.NewGuid().ToString()[..6],
-      TrialEndsAt = DateTime.UtcNow.AddDays(30),
-      IsActive = true
-    };
-    _context.Organizations.Add(organization);
-
-    var verificationToken = Guid.NewGuid().ToString();
-    var user = new User
-    {
-      FullName = dto.FullName,
-      Email = dto.Email,
-      PhoneNumber = dto.PhoneNumber,
-      PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-      Role = UserRole.CompanyAdmin,
-      OrganizationId = organization.Id,
-      IsEmailVerified = false,
-      EmailVerificationToken = verificationToken
-    };
-    _context.Users.Add(user);
-    await _context.SaveChangesAsync();
-
-    try
-    {
-      await _emailService.SendVerificationEmailAsync(
-          user.Email, user.FullName, verificationToken);
-      await _emailService.SendWelcomeEmailAsync(
-          user.Email, user.FullName, dto.CompanyName);
-    }
-    catch (Exception ex)
-    {
-      Console.WriteLine($"Email sending failed: {ex.Message}");
-    }
-
-    return Ok(new { message = "Account created! Please check your email to verify." });
+    _otpService = otpService;
   }
 
   [HttpPost("login")]
-  [EnableRateLimiting("login")] // Added back your original rate limiting policy
-  public async Task<IActionResult> Login([FromBody] LoginDto dto)
+  [EnableRateLimiting("login")]
+  public async Task<IActionResult> Login(
+      [FromBody] LoginDto dto)
   {
     var user = await _context.Users
         .IgnoreQueryFilters()
@@ -96,22 +46,38 @@ public class AuthController : ControllerBase
         .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
     if (user == null)
-      return Unauthorized(new { message = "Invalid email or password" });
+      return Unauthorized(
+          new { message = "Invalid email or password" });
 
-    // Check account locked
-    if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+
+    // ✅ Deactivated by admin (LockedUntil = now + 100 years)
+    if (user.LockedUntil.HasValue &&
+        user.LockedUntil > DateTime.UtcNow.AddYears(50))
     {
-      var minutesLeft = (int)(user.LockedUntil.Value - DateTime.UtcNow).TotalMinutes + 1;
       return Unauthorized(new
       {
-        message = $"Account locked. Try again in {minutesLeft} minutes."
+        message = "Your account has been deactivated. Please contact your administrator."
       });
     }
 
-    if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+    // ✅ Temporarily locked (brute force)
+    if (user.LockedUntil.HasValue &&
+        user.LockedUntil > DateTime.UtcNow)
+    {
+      var mins =
+          (int)(user.LockedUntil.Value - DateTime.UtcNow)
+          .TotalMinutes + 1;
+      return Unauthorized(new
+      {
+        message = $"Account locked. Try again in {mins} minutes."
+      });
+    }
+
+    // Wrong password
+    if (!BCrypt.Net.BCrypt.Verify(
+        dto.Password, user.PasswordHash))
     {
       user.FailedLoginAttempts++;
-
       if (user.FailedLoginAttempts >= 5)
       {
         user.LockedUntil = DateTime.UtcNow.AddMinutes(30);
@@ -119,31 +85,142 @@ public class AuthController : ControllerBase
         await _context.SaveChangesAsync();
         return Unauthorized(new
         {
-          message = "Account locked for 30 minutes due to multiple failed attempts."
+          message =
+              "Account locked for 30 minutes due to " +
+              "multiple failed attempts."
         });
       }
-
       await _context.SaveChangesAsync();
       return Unauthorized(new
       {
-        message = $"Invalid email or password. " +
-              $"{5 - user.FailedLoginAttempts} attempts remaining."
+        message =
+            $"Invalid email or password. " +
+            $"{5 - user.FailedLoginAttempts} attempts remaining."
       });
     }
 
     if (!user.IsEmailVerified)
-      return Unauthorized(new { message = "Please verify your email first" });
+      return Unauthorized(
+          new { message = "Please verify your email first" });
 
-    // Reset failed attempts on success
+    if (user.OrganizationId.HasValue)
+    {
+      var org = await _context.Organizations
+          .FindAsync(user.OrganizationId.Value);
+      if (org != null && !org.IsActive)
+        return Unauthorized(new
+        {
+          message =
+              "Your organization has been deactivated. " +
+              "Please contact support."
+        });
+    }
+
+    // Reset failed attempts
     user.FailedLoginAttempts = 0;
     user.LockedUntil = null;
 
+    // ✅ FIX: loginWithOtp flag check karo
+    if (dto.LoginWithOtp)
+    {
+      // OTP mode — sirf OTP bhejo, JWT mat do abhi
+      await _context.SaveChangesAsync();
+      await _otpService.SendOtpAsync(dto.Email);
+
+      return Ok(new
+      {
+        requiresOtp = true,
+        message = "OTP sent to your email. Please verify."
+      });
+    }
+    else
+    {
+      // Normal password mode — seedha JWT return karo
+      var token = GenerateJwtToken(user);
+      var refreshToken = Guid.NewGuid().ToString();
+      var isFirstLogin = user.LastLoginAt == null;
+
+      user.RefreshToken = refreshToken;
+      user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+      user.LastLoginAt = DateTime.UtcNow;
+      await _context.SaveChangesAsync();
+
+      return Ok(new
+      {
+        requiresOtp = false,
+        token,
+        refreshToken,
+        isFirstLogin,
+        user = new
+        {
+          user.FullName,
+          user.Email,
+          role = user.Role.ToString(),
+          organizationId = user.OrganizationId,
+          organizationName = user.Organization?.Name
+        }
+      });
+    }
+  }
+
+
+  [HttpPost("verify-otp")]
+  [EnableRateLimiting("login")]
+  public async Task<IActionResult> VerifyOtp(
+      [FromBody] VerifyOtpDto dto)
+  {
+    if (string.IsNullOrWhiteSpace(dto.Email) ||
+        string.IsNullOrWhiteSpace(dto.Otp))
+      return BadRequest(
+          new { message = "Email and OTP are required" });
+
+    var isValid = await _otpService
+        .VerifyOtpAsync(dto.Email, dto.Otp);
+
+    if (!isValid)
+      return Unauthorized(new
+      {
+        message = "Invalid or expired OTP. Please try again."
+      });
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .Include(u => u.Organization)
+        .FirstOrDefaultAsync(u =>
+            u.Email.ToLower() == dto.Email.ToLower());
+
+    if (user == null)
+      return Unauthorized(
+          new { message = "User not found" });
+
+    // ✅ Deactivated by admin check
+    if (user.LockedUntil.HasValue &&
+        user.LockedUntil > DateTime.UtcNow.AddYears(50))
+    {
+      return Unauthorized(new
+      {
+        message = "Your account has been deactivated. Please contact your administrator."
+      });
+    }
+
+    // ✅ Temporarily locked check
+    if (user.LockedUntil.HasValue &&
+        user.LockedUntil > DateTime.UtcNow)
+    {
+      return Unauthorized(new
+      {
+        message = "Account is temporarily locked. Please try again later."
+      });
+    }
+
+    // Issue JWT + refresh token
     var token = GenerateJwtToken(user);
     var refreshToken = Guid.NewGuid().ToString();
     var isFirstLogin = user.LastLoginAt == null;
 
     user.RefreshToken = refreshToken;
-    user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+    user.RefreshTokenExpiresAt =
+        DateTime.UtcNow.AddDays(7);
     user.LastLoginAt = DateTime.UtcNow;
     await _context.SaveChangesAsync();
 
@@ -163,8 +240,152 @@ public class AuthController : ControllerBase
     });
   }
 
+
+  [HttpPost("resend-otp")]
+  [EnableRateLimiting("login")]
+  public async Task<IActionResult> ResendOtp(
+      [FromBody] ResendOtpDto dto)
+  {
+    if (string.IsNullOrWhiteSpace(dto.Email))
+      return BadRequest(new { message = "Email required" });
+
+    await _otpService.SendOtpAsync(dto.Email);
+
+    return Ok(new
+    {
+      message = "New OTP sent to your email."
+    });
+  }
+
+
+  [HttpPost("register")]
+  public async Task<IActionResult> Register(
+      [FromBody] RegisterDto dto)
+  {
+    if (dto.Password != dto.ConfirmPassword)
+      return BadRequest(
+          new { message = "Passwords do not match" });
+
+    var existingUser = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+    if (existingUser != null)
+      return BadRequest(
+          new { message = "Email already registered" });
+
+    var organization = new Organization
+    {
+      Name = dto.CompanyName,
+      Slug = dto.CompanyName.ToLower()
+            .Replace(" ", "-").Replace(".", "")
+            + "-" + Guid.NewGuid().ToString()[..6],
+      TrialEndsAt = DateTime.UtcNow.AddDays(30),
+      IsActive = true
+    };
+    _context.Organizations.Add(organization);
+
+    var verificationToken = Guid.NewGuid().ToString();
+    var user = new User
+    {
+      FullName = dto.FullName,
+      Email = dto.Email,
+      PhoneNumber = dto.PhoneNumber,
+      PasswordHash =
+          BCrypt.Net.BCrypt.HashPassword(dto.Password),
+      Role = UserRole.CompanyAdmin,
+      OrganizationId = organization.Id,
+      IsEmailVerified = false,
+      EmailVerificationToken = verificationToken
+    };
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+
+    try
+    {
+      await _emailService.SendEmailVerificationAsync(
+          user.Email, user.FullName,
+          verificationToken, dto.CompanyName);
+      await _emailService.SendWelcomeEmailAsync(
+          user.Email, user.FullName, dto.CompanyName);
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Email failed: {ex.Message}");
+    }
+
+    return Ok(new
+    {
+      message =
+          "Account created! Please check your email to verify."
+    });
+  }
+
+
+  [HttpPost("register-customer")]
+  public async Task<IActionResult> RegisterCustomer(
+      [FromBody] RegisterCustomerDto dto)
+  {
+    if (dto.Password != dto.ConfirmPassword)
+      return BadRequest(
+          new { message = "Passwords do not match" });
+
+    var existingUser = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+    if (existingUser != null)
+      return BadRequest(
+          new { message = "Email already registered" });
+
+    var org = await _context.Organizations
+        .FirstOrDefaultAsync(o =>
+            o.Slug == dto.OrganizationSlug && o.IsActive);
+
+    if (org == null)
+      return BadRequest(new
+      {
+        message =
+            "Invalid organization. Please check your invite link."
+      });
+
+    var verificationToken = Guid.NewGuid().ToString();
+    var user = new User
+    {
+      FullName = dto.FullName,
+      Email = dto.Email,
+      PhoneNumber = dto.PhoneNumber ?? "",
+      PasswordHash =
+          BCrypt.Net.BCrypt.HashPassword(dto.Password),
+      Role = UserRole.Customer,
+      OrganizationId = org.Id,
+      IsEmailVerified = false,
+      EmailVerificationToken = verificationToken
+    };
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+
+    try
+    {
+      await _emailService.SendEmailVerificationAsync(
+          user.Email, user.FullName,
+          verificationToken, org.Name);
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Email failed: {ex.Message}");
+    }
+
+    return Ok(new
+    {
+      message = "Account created! Please verify your email."
+    });
+  }
+
+
   [HttpPost("refresh")]
-  public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
+  public async Task<IActionResult> Refresh(
+      [FromBody] RefreshTokenDto dto)
   {
     var user = await _context.Users
         .IgnoreQueryFilters()
@@ -174,13 +395,14 @@ public class AuthController : ControllerBase
             u.RefreshTokenExpiresAt > DateTime.UtcNow);
 
     if (user == null)
-      return Unauthorized(new { message = "Invalid or expired refresh token" });
+      return Unauthorized(
+          new { message = "Invalid or expired refresh token" });
 
     var newToken = GenerateJwtToken(user);
     var newRefreshToken = Guid.NewGuid().ToString();
-
     user.RefreshToken = newRefreshToken;
-    user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
+    user.RefreshTokenExpiresAt =
+        DateTime.UtcNow.AddDays(7);
     await _context.SaveChangesAsync();
 
     return Ok(new
@@ -190,25 +412,30 @@ public class AuthController : ControllerBase
     });
   }
 
-  [HttpPost("verify-email")]
-  public async Task<IActionResult> VerifyEmail([FromQuery] string token)
+
+  [HttpGet("verify-email")]
+  public async Task<IActionResult> VerifyEmail(
+      [FromQuery] string token)
   {
     var user = await _context.Users
         .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.EmailVerificationToken == token);
+        .FirstOrDefaultAsync(u =>
+            u.EmailVerificationToken == token);
 
     if (user == null)
-      return BadRequest(new { message = "Invalid or expired verification token" });
+      return BadRequest(
+          new { message = "Invalid or expired token" });
 
     user.IsEmailVerified = true;
     user.EmailVerificationToken = null;
     await _context.SaveChangesAsync();
-
-    return Ok(new { message = "Email verified! You can now login." });
+    return Ok(new { message = "Email verified successfully" });
   }
 
+
   [HttpPost("forgot-password")]
-  public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+  public async Task<IActionResult> ForgotPassword(
+      [FromBody] ForgotPasswordDto dto)
   {
     var user = await _context.Users
         .IgnoreQueryFilters()
@@ -216,38 +443,82 @@ public class AuthController : ControllerBase
 
     if (user != null)
     {
-      user.EmailVerificationToken = Guid.NewGuid().ToString();
+      user.EmailVerificationToken =
+          Guid.NewGuid().ToString();
       await _context.SaveChangesAsync();
-
       try
       {
-        await _emailService.SendForgotPasswordEmailAsync(
-            user.Email, user.FullName, user.EmailVerificationToken);
+        await _emailService.SendForgotPasswordAsync(
+            user.Email, user.FullName,
+            user.EmailVerificationToken);
       }
       catch (Exception ex)
       {
-        Console.WriteLine($"Email sending failed: {ex.Message}");
+        Console.WriteLine($"Email failed: {ex.Message}");
       }
     }
 
-    return Ok(new { message = "If email exists, reset link has been sent." });
+    return Ok(new
+    {
+      message = "If email exists, reset link has been sent."
+    });
+  }
+
+  [HttpPost("reset-password")]
+  public async Task<IActionResult> ResetPassword(
+    [FromBody] ResetPasswordDto dto)
+  {
+    if (string.IsNullOrWhiteSpace(dto.Token) ||
+        string.IsNullOrWhiteSpace(dto.NewPassword))
+      return BadRequest(
+          new { message = "Token and new password are required." });
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u =>
+            u.EmailVerificationToken == dto.Token);
+
+    if (user == null)
+      return BadRequest(new
+      {
+        message = "Invalid or expired reset link. Please request a new one."
+      });
+
+    // ✅ Password update karo aur token clear karo
+    user.PasswordHash =
+        BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+    user.EmailVerificationToken = null;
+
+    // Security: active sessions invalidate karo
+    user.RefreshToken = null;
+    user.RefreshTokenExpiresAt = null;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Password reset successfully." });
   }
 
   private string GenerateJwtToken(User user)
   {
-    var jwtSettings = _configuration.GetSection("JwtSettings");
+    var jwtSettings =
+        _configuration.GetSection("JwtSettings");
     var key = new SymmetricSecurityKey(
         Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!));
 
     var claims = new[]
     {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString()),
-            new Claim("organizationId", user.OrganizationId?.ToString() ?? ""),
-            new Claim("fullName", user.FullName),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+      new Claim(JwtRegisteredClaimNames.Sub,
+          user.Id.ToString()),
+      new Claim(JwtRegisteredClaimNames.Email,
+          user.Email),
+      new Claim(ClaimTypes.Role,
+          user.Role.ToString()),
+      new Claim("organizationId",
+          user.OrganizationId?.ToString() ?? ""),
+      new Claim("fullName", user.FullName),
+      new Claim(JwtRegisteredClaimNames.Jti,
+          Guid.NewGuid().ToString())
+    };
 
     var token = new JwtSecurityToken(
         issuer: jwtSettings["Issuer"],
@@ -261,7 +532,19 @@ public class AuthController : ControllerBase
   }
 }
 
+
 public class RefreshTokenDto
 {
   public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class VerifyOtpDto
+{
+  public string Email { get; set; } = string.Empty;
+  public string Otp { get; set; } = string.Empty;
+}
+
+public class ResendOtpDto
+{
+  public string Email { get; set; } = string.Empty;
 }

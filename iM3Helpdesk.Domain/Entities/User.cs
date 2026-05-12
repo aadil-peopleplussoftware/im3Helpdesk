@@ -20,4 +20,6 @@ public class User
     public Organization? Organization { get; set; }
     public int FailedLoginAttempts { get; set; } = 0;
     public DateTime? LockedUntil { get; set; }
+    public string? Signature { get; set; }
+    public string? PhotoUrl { get; set; }
 }

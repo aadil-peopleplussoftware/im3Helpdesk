@@ -8,8 +8,11 @@ public class TicketTemplate : IMustHaveTenant
   public string Name { get; set; } = string.Empty;
   public string Title { get; set; } = string.Empty;
   public string Description { get; set; } = string.Empty;
-  public string Category { get; set; } = string.Empty;
+  public string Category { get; set; } = "General";
   public string Priority { get; set; } = "Medium";
+  public string TicketType { get; set; } = "Support";
+  public string Status { get; set; } = "Open";
+  public string? Tags { get; set; }
   public Guid OrganizationId { get; set; }
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

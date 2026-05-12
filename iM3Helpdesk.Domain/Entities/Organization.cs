@@ -1,4 +1,4 @@
-﻿
+
 namespace iM3Helpdesk.Domain.Entities;
 
 public class Organization
@@ -12,6 +12,10 @@ public class Organization
     public DateTime TrialEndsAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public ICollection<User> Users { get; set; } = new List<User>();
+    public string? WhatsAppNumber { get; set; }
+    public string? TwilioAccountSid { get; set; }
+    public string? TwilioAuthToken { get; set; }
+    public string? SlackWebhookUrl { get; set; }
+    public string? TeamsWebhookUrl { get; set; }
+  public ICollection<User> Users { get; set; } = new List<User>();
 }
