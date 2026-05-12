@@ -84,6 +84,8 @@ public class ApplicationDbContext : DbContext
   public DbSet<CallLog> CallLogs
       => Set<CallLog>();
 
+  public DbSet<CalendarEvent> CalendarEvents { get; set; }
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -596,8 +598,34 @@ public class ApplicationDbContext : DbContext
               DeleteBehavior.Restrict);
     });
 
+    // ── CalendarEvent ─────────────
+    modelBuilder.Entity<CalendarEvent>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Title)
+          .HasMaxLength(500)
+          .IsRequired();
+      e.Property(x => x.Type)
+          .HasMaxLength(50)
+          .HasDefaultValue("event");
+      e.Property(x => x.Priority)
+          .HasMaxLength(20)
+          .HasDefaultValue("medium");
+      e.Property(x => x.Color)
+          .HasMaxLength(20);
+      e.HasQueryFilter(c =>
+          _isSuperAdmin ||
+          c.OrganizationId == _currentTenantId);
+      e.HasIndex(x => new
+      {
+        x.OrganizationId,
+        x.CreatedByUserId,
+        x.StartDate
+      });
+    });
+
     // ── ChatGroupMember ───────────
-    // ✅ FIX WARNING: IsRequired(false)
+    // ✅ FIX WARNING: IsRequired(false)SS
     // on Group fixes "ChatGroup required
     // end" warning
     modelBuilder.Entity<

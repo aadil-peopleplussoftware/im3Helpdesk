@@ -72,10 +72,6 @@ public class TicketsController : ControllerBase
         .Include(t => t.AssignedTo)
         .AsSplitQuery()
         .AsQueryable();
-
-    // ✅ Agent filter — show ALL tickets
-    // (assigned to me, my group, OR unassigned)
-    // Do NOT hide tickets assigned to others
     if (roleClaim == "Agent")
     {
       var groupIds = await _context
@@ -84,6 +80,12 @@ public class TicketsController : ControllerBase
           .Where(m => m.UserId == userId)
           .Select(m => m.AgentGroupId)
           .ToListAsync();
+
+      query = query.Where(t =>
+          t.AssignedToUserId == userId ||
+          t.AssignedToUserId == null ||
+          (t.AgentGroupId != null &&
+           groupIds.Contains(t.AgentGroupId.Value)));
     }
     var tickets = await query
         .OrderByDescending(t => t.CreatedAt)

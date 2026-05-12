@@ -87,6 +87,38 @@ public interface IEmailService
       string to,
       string fullName,
       string otp);
+
+  // ── Calendar emails ──────────────────────────────────────────────
+
+  Task SendCalendarReminderAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      string eventType,
+      string eventDescription,
+      DateTime startDate,
+      int minutesBefore,
+      string? ticketNumber,
+      string orgName);
+
+  Task SendCalendarInviteAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      string eventType,
+      string eventDescription,
+      DateTime startDate,
+      DateTime? endDate,
+      string organizerName,
+      string orgName);
+
+  Task SendCalendarEventUpdatedAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      DateTime startDate,
+      string changeType,  // "updated" | "cancelled"
+      string orgName);
 }
 
 public class EmailService : IEmailService
@@ -787,6 +819,257 @@ public class EmailService : IEmailService
         to,
         "🔐 Your iM3 Helpdesk Login OTP",
         content);
+  }
+
+  // ════════════════════════════════════
+  // Calendar — Reminder Email
+  // ════════════════════════════════════
+  public async Task SendCalendarReminderAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      string eventType,
+      string eventDescription,
+      DateTime startDate,
+      int minutesBefore,
+      string? ticketNumber,
+      string orgName)
+  {
+    var typeIcon = eventType switch
+    {
+      "reminder" => "🔔",
+      "meeting" => "👥",
+      "deadline" => "⏰",
+      "ticket" => "🎫",
+      _ => "📅"
+    };
+
+    var timeLabel = minutesBefore switch
+    {
+      < 60 => $"{minutesBefore} minutes",
+      1440 => "1 day",
+      2880 => "2 days",
+      var m => $"{m / 60} hours"
+    };
+
+    var dateStr = startDate.ToString("dddd, MMMM d, yyyy");
+    var timeStr = startDate.ToString("hh:mm tt") + " UTC";
+
+    var html = $@"
+      <h2 style='margin:0 0 8px;font-size:20px;
+        color:#1f2937;font-weight:700'>
+        {typeIcon} Reminder: {eventTitle}
+      </h2>
+      <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+        This event starts in <strong>{timeLabel}</strong>
+      </p>
+
+      <table width='100%' cellpadding='0' cellspacing='0'
+        style='background:#f8fafc;border-radius:10px;
+          padding:20px;margin-bottom:24px'>
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Event
+            </span>
+            <div style='font-size:15px;font-weight:600;
+              color:#1f2937;margin-top:2px'>
+              {typeIcon} {eventTitle}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Date &amp; Time
+            </span>
+            <div style='font-size:15px;color:#1f2937;margin-top:2px'>
+              📅 {dateStr} at {timeStr}
+            </div>
+          </td>
+        </tr>
+        {(string.IsNullOrEmpty(eventDescription) ? "" : $@"
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Notes
+            </span>
+            <div style='font-size:14px;color:#374151;margin-top:2px'>
+              {eventDescription}
+            </div>
+          </td>
+        </tr>")}
+        {(string.IsNullOrEmpty(ticketNumber) ? "" : $@"
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Linked Ticket
+            </span>
+            <div style='font-size:15px;font-weight:600;
+              color:#f59e0b;margin-top:2px'>
+              🎫 #{ticketNumber}
+            </div>
+          </td>
+        </tr>")}
+      </table>
+
+      <p style='color:#9ca3af;font-size:12px;
+        text-align:center;margin:0'>
+        Hi {attendeeName}, this is your scheduled reminder from
+        <strong>{orgName}</strong>.
+      </p>";
+
+    await SendAsync(
+        to,
+        $"⏰ Reminder: {eventTitle} — starts in {timeLabel}",
+        html);
+  }
+
+  // ════════════════════════════════════
+  // Calendar — Invite Email (when attendees added)
+  // ════════════════════════════════════
+  public async Task SendCalendarInviteAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      string eventType,
+      string eventDescription,
+      DateTime startDate,
+      DateTime? endDate,
+      string organizerName,
+      string orgName)
+  {
+    var typeIcon = eventType switch
+    {
+      "reminder" => "🔔",
+      "meeting" => "👥",
+      "deadline" => "⏰",
+      "ticket" => "🎫",
+      _ => "📅"
+    };
+
+    var dateStr = startDate.ToString("dddd, MMMM d, yyyy");
+    var timeStr = startDate.ToString("hh:mm tt") + " UTC";
+    var endStr = endDate.HasValue
+        ? " – " + endDate.Value.ToString("hh:mm tt") + " UTC"
+        : "";
+
+    var html = $@"
+      <h2 style='margin:0 0 6px;font-size:20px;
+        color:#1f2937;font-weight:700'>
+        {typeIcon} You've been invited
+      </h2>
+      <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+        <strong>{organizerName}</strong> has added you to an event
+        in <strong>{orgName}</strong>
+      </p>
+
+      <table width='100%' cellpadding='0' cellspacing='0'
+        style='background:#f8fafc;border-radius:10px;
+          border-left:4px solid #2563eb;
+          padding:20px;margin-bottom:24px'>
+        <tr>
+          <td style='padding:8px 0'>
+            <div style='font-size:18px;font-weight:700;
+              color:#1f2937;margin-bottom:4px'>
+              {typeIcon} {eventTitle}
+            </div>
+            <div style='font-size:13px;color:#6b7280'>
+              {eventType.ToUpper()}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style='padding:8px 0;
+            border-top:1px solid #e5e7eb'>
+            <div style='font-size:14px;color:#374151'>
+              📅 <strong>{dateStr}</strong>
+            </div>
+            <div style='font-size:14px;color:#374151;margin-top:2px'>
+              🕐 {timeStr}{endStr}
+            </div>
+          </td>
+        </tr>
+        {(string.IsNullOrEmpty(eventDescription) ? "" : $@"
+        <tr>
+          <td style='padding:8px 0;
+            border-top:1px solid #e5e7eb'>
+            <div style='font-size:13px;color:#374151'>
+              {eventDescription}
+            </div>
+          </td>
+        </tr>")}
+      </table>
+
+      <p style='color:#6b7280;font-size:13px;text-align:center;margin:0'>
+        Hi {attendeeName}, this invite was sent by
+        <strong>{organizerName}</strong> via {orgName}.
+      </p>";
+
+    await SendAsync(
+        to,
+        $"{typeIcon} Invited: {eventTitle} on {dateStr}",
+        html);
+  }
+
+  // ════════════════════════════════════
+  // Calendar — Event Updated / Cancelled
+  // ════════════════════════════════════
+  public async Task SendCalendarEventUpdatedAsync(
+      string to,
+      string attendeeName,
+      string eventTitle,
+      DateTime startDate,
+      string changeType,
+      string orgName)
+  {
+    var isCancel = changeType == "cancelled";
+    var icon = isCancel ? "❌" : "✏️";
+    var label = isCancel ? "Cancelled" : "Updated";
+    var color = isCancel ? "#ef4444" : "#f59e0b";
+    var dateStr = startDate.ToString("dddd, MMMM d, yyyy");
+
+    var html = $@"
+      <h2 style='margin:0 0 8px;font-size:20px;
+        color:{color};font-weight:700'>
+        {icon} Event {label}
+      </h2>
+      <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+        An event you were invited to has been <strong>{label.ToLower()}</strong>.
+      </p>
+
+      <table width='100%' cellpadding='0' cellspacing='0'
+        style='background:#f8fafc;border-radius:10px;
+          border-left:4px solid {color};
+          padding:20px;margin-bottom:24px'>
+        <tr>
+          <td>
+            <div style='font-size:16px;font-weight:600;
+              color:#1f2937;
+              {(isCancel ? "text-decoration:line-through;opacity:.6" : "")}'>
+              {eventTitle}
+            </div>
+            <div style='font-size:13px;color:#6b7280;margin-top:4px'>
+              📅 {dateStr}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <p style='color:#9ca3af;font-size:12px;
+        text-align:center;margin:0'>
+        Hi {attendeeName}, this notification was sent by
+        <strong>{orgName}</strong>.
+      </p>";
+
+    await SendAsync(
+        to,
+        $"{icon} Event {label}: {eventTitle}",
+        html);
   }
 
   // ════════════════════════════════════
