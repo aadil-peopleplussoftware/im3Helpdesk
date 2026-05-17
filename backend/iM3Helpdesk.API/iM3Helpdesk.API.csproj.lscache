@@ -21,7 +21,7 @@ ProjectAssetsFile=<PATH>obj/project.assets.json
 RootNamespace=iM3Helpdesk.API
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
-SolutionPath=<PATH>../iM3Helpdesk.sln
+SolutionPath=*Undefined*
 TargetFrameworkIdentifier=.NETCoreApp
 TargetPath=<PATH>bin/Debug/net8.0/iM3Helpdesk.API.dll
 TargetRefPath=<PATH>obj/Debug/net8.0/ref/iM3Helpdesk.API.dll
@@ -499,6 +499,6 @@ WeatherForecast.cs
  system.text.json/10.0.0/analyzers/dotnet/roslyn4.4/cs/System.Text.Json.SourceGeneration.dll
 
 [analyzerConfigFiles]
-../.editorconfig
+../../.editorconfig
 <DOTNET>/sdk/10.0.300/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
 obj/Debug/net8.0/iM3Helpdesk.API.GeneratedMSBuildEditorConfig.editorconfig

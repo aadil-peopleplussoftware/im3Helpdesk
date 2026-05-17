@@ -21,7 +21,7 @@ ProjectAssetsFile=<PATH>obj/project.assets.json
 RootNamespace=iM3Helpdesk.Domain
 RunAnalyzers=
 RunAnalyzersDuringLiveAnalysis=
-SolutionPath=<PATH>../iM3Helpdesk.sln
+SolutionPath=*Undefined*
 TargetFrameworkIdentifier=.NETCoreApp
 TargetPath=<PATH>bin/Debug/net8.0/iM3Helpdesk.Domain.dll
 TargetRefPath=<PATH>obj/Debug/net8.0/ref/iM3Helpdesk.Domain.dll
@@ -304,6 +304,6 @@ obj/Debug/net8.0/
  microsoft.extensions.options/8.0.2/analyzers/dotnet/roslyn4.4/cs/Microsoft.Extensions.Options.SourceGeneration.dll
 
 [analyzerConfigFiles]
-../.editorconfig
+../../.editorconfig
 <DOTNET>/sdk/10.0.300/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
 obj/Debug/net8.0/iM3Helpdesk.Domain.GeneratedMSBuildEditorConfig.editorconfig

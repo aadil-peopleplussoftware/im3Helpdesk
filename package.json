@@ -1,0 +1,12 @@
+{
+  "name": "im3helpdesk-root",
+  "scripts": {
+    "dev": "concurrently \"npm run fe\" \"npm run be\"",
+    "fe": "cd frontend && ng serve",
+    "be": "cd backend && dotnet run --project iM3Helpdesk.API",
+    "install:all": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
