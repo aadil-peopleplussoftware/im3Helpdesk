@@ -7,9 +7,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { KnowledgeBaseService } from '../../../services/knowledge-base';
-import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
+import { AuthService } from '../../auth/auth.service';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 import { ToastrService } from 'ngx-toastr';
 

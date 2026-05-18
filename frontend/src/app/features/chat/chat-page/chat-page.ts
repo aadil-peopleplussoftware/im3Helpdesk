@@ -8,12 +8,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ChatService } from '../../../services/chat.service';
-import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { ChatService } from '../../../core/services/chat.service';
+import { AuthService } from '../../auth/auth.service';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { CallLogComponent } from '../../call-logs/call-log.component';
 import { GlobalCallNotificationService }
-  from '../../../services/global-call-notification.service';
+  from '../../../core/services/global-call-notification.service';
 import { environment } from '../../../../environments/environment';
 
 type FilterType = 'all' | 'unread' | 'online' | 'groups';

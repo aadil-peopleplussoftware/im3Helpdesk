@@ -8,9 +8,9 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService }
-  from '../../../services/auth.service';
+  from '../../auth/auth.service';
 import { LayoutComponent }
-  from '../../../shared/layout/layout';
+  from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
 export type Priority = 'high' | 'medium' | 'low';

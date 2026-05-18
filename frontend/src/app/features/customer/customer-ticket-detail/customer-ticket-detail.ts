@@ -6,8 +6,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
-import { CustomerService } from '../../../services/customer';
-import { AuthService } from '../../../services/auth.service';
+import { CustomerService } from '../../../core/services/customer';
+import { AuthService } from '../../auth/auth.service';
 import { Subject, interval, takeUntil } from 'rxjs';
 
 @Component({

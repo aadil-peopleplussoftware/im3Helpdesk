@@ -1,13 +1,26 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideToastr } from 'ngx-toastr';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { Toast } from './toast';
+import { AppToastService } from './toast';
 
-describe('Toast', () => {
-  let service: Toast;
+describe('AppToastService', () => {
+  let service: AppToastService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Toast);
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        provideAnimations(),
+        provideToastr()
+      ]
+    });
+    service = TestBed.inject(AppToastService);
   });
 
   it('should be created', () => {

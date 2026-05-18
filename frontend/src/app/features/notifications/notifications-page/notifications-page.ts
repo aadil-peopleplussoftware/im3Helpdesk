@@ -6,10 +6,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { NotificationService } from '../../../services/notification';
-import { AuthService } from '../../../services/auth.service';
+import { NotificationService } from '../../../core/services/notification';
+import { AuthService } from '../../auth/auth.service';
 import { Subject, interval, takeUntil } from 'rxjs';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 
 
 

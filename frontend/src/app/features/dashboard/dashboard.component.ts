@@ -6,13 +6,13 @@ import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../auth/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DashboardChartsComponent } from './dashboard-charts/dashboard-charts';
 import { DashboardTrendComponent } from './dashboard-trend/dashboard-trend';
-import { LayoutComponent } from '../../shared/layout/layout';
+import { LayoutComponent } from '../../layouts/main-layout/layout';
 import { environment } from '../../../environments/environment';
 
 const API_BASE = environment.apiUrl;

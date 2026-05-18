@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './guards/auth-guard';
-import { superAdminGuard } from './guards/super-admin-guard';
+import { authGuard } from './core/guards/auth-guard';
+import { superAdminGuard } from './core/guards/super-admin-guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -42,7 +42,7 @@ export const routes: Routes = [
   {
     path: 'reset-password',
     loadComponent: () =>
-      import('./auth/reset-password/reset-password').then(m => m.ResetPasswordComponent)
+      import('./features/auth/reset-password/reset-password').then(m => m.ResetPasswordComponent)
   },
   {
     path: 'contacts',
@@ -131,19 +131,19 @@ export const routes: Routes = [
   {
     path: 'admin',
     loadComponent: () =>
-      import('../features/super-admin/super-admin-dashboard/super-admin-dashboard').then(m => m.SuperAdminDashboardComponent),
+      import('./features/super-admin/super-admin-dashboard/super-admin-dashboard').then(m => m.SuperAdminDashboardComponent),
     canActivate: [superAdminGuard]
   },
   {
     path: 'admin/organizations',
     loadComponent: () =>
-      import('../features/super-admin/organizations-list/organizations-list').then(m => m.OrganizationsListComponent),
+      import('./features/super-admin/organizations-list/organizations-list').then(m => m.OrganizationsListComponent),
     canActivate: [superAdminGuard]
   },
   {
     path: 'admin/users',
     loadComponent: () =>
-      import('../features/super-admin/all-users/all-users').then(m => m.AllUsersComponent),
+      import('./features/super-admin/all-users/all-users').then(m => m.AllUsersComponent),
     canActivate: [superAdminGuard]
   },
   {

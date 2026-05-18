@@ -3,7 +3,7 @@ import { Component, Input, OnInit, OnDestroy,
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as signalR from '@microsoft/signalr';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({

@@ -14,7 +14,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { ToastrService } from 'ngx-toastr';
-import { KnowledgeBaseService } from '../../../services/knowledge-base';
+import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
 import { environment } from '../../../../environments/environment';
 
 @Component({

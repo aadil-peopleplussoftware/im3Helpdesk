@@ -9,7 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatIconModule } from '@angular/material/icon';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({

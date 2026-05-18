@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { CustomFieldService } from '../../../services/custom-field';
+import { CustomFieldService } from '../../../core/services/custom-field';
 
 @Component({
   selector: 'app-custom-fields',

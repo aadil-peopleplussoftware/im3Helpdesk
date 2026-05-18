@@ -14,8 +14,8 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LayoutComponent }
-  from '../../../shared/layout/layout';
-import { AuthService } from '../../../services/auth.service';
+  from '../../../layouts/main-layout/layout';
+import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 

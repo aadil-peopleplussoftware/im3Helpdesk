@@ -5,11 +5,11 @@ import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { TicketService } from '../../../services/ticket';
-import { AgentService } from '../../../services/agent';
-import { AgentGroupService } from '../../../services/agent-group';
-import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { TicketService } from '../../../core/services/ticket';
+import { AgentService } from '../../../core/services/agent';
+import { AgentGroupService } from '../../../core/services/agent-group';
+import { AuthService } from '../../auth/auth.service';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
 @Component({

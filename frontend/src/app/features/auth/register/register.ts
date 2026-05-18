@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService } from '../auth.service';
 import { ChangeDetectorRef } from '@angular/core';
 
 @Component({

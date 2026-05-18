@@ -7,10 +7,10 @@ import { Router, RouterModule } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { KnowledgeBaseService } from '../../../services/knowledge-base';
-import { AuthService } from '../../../services/auth.service';
+import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
+import { AuthService } from '../../auth/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
 @Component({

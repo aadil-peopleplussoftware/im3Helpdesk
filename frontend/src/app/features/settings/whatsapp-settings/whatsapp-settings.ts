@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({

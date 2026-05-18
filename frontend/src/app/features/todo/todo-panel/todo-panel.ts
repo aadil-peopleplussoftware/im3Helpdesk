@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService }
-  from '../../../services/auth.service';
+  from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({

@@ -17,13 +17,13 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { TicketService } from '../../../services/ticket';
-import { AgentService } from '../../../services/agent';
+import { TicketService } from '../../../core/services/ticket';
+import { AgentService } from '../../../core/services/agent';
 import { AgentGroupService }
-  from '../../../services/agent-group';
-import { AuthService } from '../../../services/auth.service';
+  from '../../../core/services/agent-group';
+import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent }
-  from '../../../shared/layout/layout';
+  from '../../../layouts/main-layout/layout';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 

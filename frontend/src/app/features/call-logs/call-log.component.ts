@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { ChatService }
-  from '../../services/chat.service';
+  from '../../core/services/chat.service';
 
 type LogFilter =
   'all' | 'missed' | 'incoming' | 'outgoing';

@@ -2,7 +2,7 @@ import { Component, OnInit, Input, ChangeDetectorRef, inject } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
-import { TicketTemplateService } from '../../../services/ticket-template';
+import { TicketTemplateService } from '../../../core/services/ticket-template';
 
 @Component({
   selector: 'app-ticket-templates',

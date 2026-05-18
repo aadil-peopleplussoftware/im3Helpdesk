@@ -4,8 +4,8 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } 
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { AuthService } from '../../auth/auth.service';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
 @Component({

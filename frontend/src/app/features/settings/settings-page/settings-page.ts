@@ -5,9 +5,9 @@ import { Router, RouterModule } from '@angular/router';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../../services/auth.service';
-import { TranslationService } from '../../../services/translation'; // ✅ FIX: 'translation' not 'translation.service'
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { AuthService } from '../../auth/auth.service';
+import { TranslationService } from '../../../core/services/translation'; // ✅ FIX: 'translation' not 'translation.service'
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { TicketTemplatesComponent } from '../ticket-templates/ticket-templates';
 import { EmailNotificationsComponent } from '../email-notifications/email-notifications';
 import { AuditLogComponent } from '../audit-log/audit-log';

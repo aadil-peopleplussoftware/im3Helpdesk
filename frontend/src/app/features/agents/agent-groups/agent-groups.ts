@@ -11,9 +11,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ToastrService } from 'ngx-toastr';
-import { AgentGroupService } from '../../../services/agent-group';
-import { AgentService } from '../../../services/agent';
-import { AuthService } from '../../../services/auth.service';
+import { AgentGroupService } from '../../../core/services/agent-group';
+import { AgentService } from '../../../core/services/agent';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-agent-groups',

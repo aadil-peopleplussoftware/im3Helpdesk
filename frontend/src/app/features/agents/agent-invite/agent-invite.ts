@@ -4,9 +4,9 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { AgentService } from '../../../services/agent';
-import { AgentGroupService } from '../../../services/agent-group';
-import { LayoutComponent } from '../../../shared/layout/layout';
+import { AgentService } from '../../../core/services/agent';
+import { AgentGroupService } from '../../../core/services/agent-group';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 
 @Component({
   selector: 'app-agent-invite',
