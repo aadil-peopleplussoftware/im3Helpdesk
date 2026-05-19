@@ -1,4 +1,5 @@
 using iM3Helpdesk.Infrastructure.Persistence;
+using iM3Helpdesk.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,8 @@ namespace iM3Helpdesk.API.Controllers;
 
 [ApiController]
 [Route("api/superadmin")]
-[Authorize]
+// Only SuperAdmin can access any endpoint in this controller
+[Authorize(Roles = nameof(UserRole.SuperAdmin))]
 public class SuperAdminController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
