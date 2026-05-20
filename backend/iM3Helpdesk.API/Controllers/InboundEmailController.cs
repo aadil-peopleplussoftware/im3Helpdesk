@@ -3,6 +3,11 @@ using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -12,13 +17,64 @@ public class InboundEmailController : ControllerBase
 {
   private readonly ApplicationDbContext _context;
   private readonly ILogger<InboundEmailController> _logger;
+  private readonly IMemoryCache _cache;
+  private readonly string _hmacSecret;
+  private const int RateLimitCount = 10;
+  private static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(1);
 
   public InboundEmailController(
       ApplicationDbContext context,
-      ILogger<InboundEmailController> logger)
+      ILogger<InboundEmailController> logger,
+      IMemoryCache cache,
+      IConfiguration configuration)
   {
     _context = context;
     _logger = logger;
+    _cache = cache;
+    _hmacSecret = configuration["WebhookSecurity:InboundEmail:Secret"] ?? string.Empty;
+  }
+
+  private bool IsValidHmac(HttpRequest request)
+  {
+    if (string.IsNullOrWhiteSpace(_hmacSecret))
+      return false;
+
+    if (!request.Headers.TryGetValue("X-Hub-Signature", out var sigHeader))
+      return false;
+
+    var signature = sigHeader.ToString();
+    if (string.IsNullOrWhiteSpace(signature))
+      return false;
+
+    request.EnableBuffering();
+    request.Body.Seek(0, SeekOrigin.Begin);
+    using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
+    var body = reader.ReadToEnd();
+    request.Body.Seek(0, SeekOrigin.Begin);
+
+    using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_hmacSecret));
+    var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(body));
+    var expected = "sha256=" + Convert.ToHexString(hash).ToLowerInvariant();
+    return CryptographicEquals(signature, expected);
+  }
+
+  private static bool CryptographicEquals(string a, string b)
+  {
+    if (a.Length != b.Length) return false;
+    var result = 0;
+    for (int i = 0; i < a.Length; i++)
+      result |= a[i] ^ b[i];
+    return result == 0;
+  }
+
+  private bool IsRateLimited(string key)
+  {
+    var cacheKey = $"inboundemail:ratelimit:{key}";
+    if (!_cache.TryGetValue(cacheKey, out int count))
+      count = 0;
+    count++;
+    _cache.Set(cacheKey, count, RateLimitWindow);
+    return count > RateLimitCount;
   }
 
   // Main endpoint — called by email service (SendGrid, Mailgun, etc.)
@@ -26,6 +82,13 @@ public class InboundEmailController : ControllerBase
   public async Task<IActionResult> ReceiveEmail(
       [FromForm] InboundEmailFormDto dto)
   {
+    if (!IsValidHmac(Request))
+      return Unauthorized(new { message = "Invalid signature" });
+
+    var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (IsRateLimited(ip))
+      return StatusCode(429, new { message = "Rate limit exceeded" });
+
     return await ProcessEmail(
         dto.From, dto.To, dto.Subject,
         dto.Text, dto.Html, dto.Attachments);
@@ -36,6 +99,11 @@ public class InboundEmailController : ControllerBase
   public async Task<IActionResult> ReceiveEmailJson(
       [FromBody] InboundEmailJsonDto dto)
   {
+    if (!IsValidHmac(Request))
+      return Unauthorized(new { message = "Invalid signature" });
+    var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (IsRateLimited(ip))
+      return StatusCode(429, new { message = "Rate limit exceeded" });
     return await ProcessEmail(
         dto.From, dto.To, dto.Subject,
         dto.Body, dto.Body, null);
@@ -46,6 +114,11 @@ public class InboundEmailController : ControllerBase
   public async Task<IActionResult> SimulateEmail(
       [FromBody] SimulateEmailDto dto)
   {
+    if (!IsValidHmac(Request))
+      return Unauthorized(new { message = "Invalid signature" });
+    var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    if (IsRateLimited(ip))
+      return StatusCode(429, new { message = "Rate limit exceeded" });
     _logger.LogInformation(
         "Simulating email from {From} to {To}",
         dto.FromEmail, dto.ToEmail);
