@@ -41,14 +41,23 @@ public class TodoController : ControllerBase
     if (userId == Guid.Empty)
       return Unauthorized();
 
-    var orgId =
-        _tenant.OrganizationId!.Value;
+    var orgId = _tenant.OrganizationId;
+    if (!orgId.HasValue)
+    {
+      if (_tenant.IsSuperAdmin)
+        return Ok(Array.Empty<object>());
+
+      return Unauthorized(new
+      {
+        message = "Organization context is missing"
+      });
+    }
 
     var todos = await _context.TodoItems
         .AsNoTracking()
         .Where(t =>
             t.UserId == userId &&
-            t.OrganizationId == orgId)
+            t.OrganizationId == orgId.Value)
         .OrderBy(t => t.IsCompleted)
         .ThenByDescending(t => t.CreatedAt)
         .Select(t => new
@@ -80,8 +89,14 @@ public class TodoController : ControllerBase
         message = "Title required"
       });
 
-    var orgId =
-        _tenant.OrganizationId!.Value;
+    var orgId = _tenant.OrganizationId;
+    if (!orgId.HasValue)
+    {
+      return Unauthorized(new
+      {
+        message = "Organization context is missing"
+      });
+    }
 
     var todo = new TodoItem
     {
@@ -89,7 +104,7 @@ public class TodoController : ControllerBase
       TicketNumber = dto.TicketNumber,
       TicketId = dto.TicketId,
       UserId = userId,
-      OrganizationId = orgId
+      OrganizationId = orgId.Value
     };
 
     _context.TodoItems.Add(todo);

@@ -4,7 +4,7 @@
   <div class="sidebar" [class.collapsed]="isSidebarCollapsed">
 
     <!-- Logo -->
-    <div class="sidebar-logo" routerLink="/dashboard" style="cursor:pointer">
+    <div class="sidebar-logo">
       <div class="logo-icon">⚡</div>
       <span class="logo-text">
         <ng-container *ngIf="!isSuperAdmin && !isCustomer">iM3 Helpdesk</ng-container>
@@ -61,6 +61,10 @@
           <span class="nav-icon">📚</span>
           <span>{{ tr.t('insights') }}</span>
         </a>
+        <a class="nav-item" routerLink="/calendar" routerLinkActive="active">
+          <span class="nav-icon">📆</span>
+          <span>Calendar</span>
+        </a>
 
         <a class="nav-item" routerLink="/notifications" routerLinkActive="active">
           <span class="nav-icon">🔔</span>
@@ -90,14 +94,7 @@
         </a>
       </div>
 
-      <div class="nav-section">
-        <div class="nav-label">{{ tr.t('system') || 'System' }}</div>
-
-        <a class="nav-item" routerLink="/settings" routerLinkActive="active">
-          <span class="nav-icon">⚙</span>
-          <span>{{ tr.t('settings') }}</span>
-        </a>
-      </div>
+      <!-- Settings removed from sidebar as per new design -->
     </nav>
 
     <!-- SuperAdmin Nav -->
@@ -129,19 +126,7 @@
       </div>
     </nav>
 
-    <!-- Sidebar Bottom User -->
-    <div class="sidebar-user" (click)="router.navigate(['/profile'])">
-      <div class="user-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
-        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
-          (error)="userPhotoUrl = ''"
-          style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
-        <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
-      </div>
-      <div class="user-info">
-        <div class="user-name">{{ userName }}</div>
-        <div class="user-role">{{ userRole }}</div>
-      </div>
-    </div>
+
 
     <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
       <span class="nav-icon" style="font-size: 18px;">
@@ -275,24 +260,35 @@
           </div>
         </div>
 
-        <!-- Topbar User Avatar -->
-        <div class="topbar-user" (click)="router.navigate(['/profile'])">
-          <div class="u-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
-            <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
-              (error)="userPhotoUrl = ''"
-              style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
-            <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
+        <!-- Topbar User Avatar with Dropdown -->
+        <div class="profile-dropdown-anchor">
+          <div class="topbar-user" (click)="toggleProfileDropdown($event)">
+            <div class="u-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
+              <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
+                (error)="userPhotoUrl = ''"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+              <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
+            </div>
           </div>
-          <div class="u-info">
-            <span class="u-name">{{ userName }}</span>
-            <span class="u-role">{{ userRole }}</span>
+          <div class="profile-dropdown" *ngIf="showProfileDropdown" (click)="$event.stopPropagation()">
+            <div class="profile-header">
+              <div class="profile-name">{{ userName }}</div>
+              <div class="profile-email">{{ userEmail }}</div>
+            </div>
+            <div class="profile-link-item" (click)="goToMainSettings()">
+              <span class="profile-link-icon">🛠️</span>
+              <span>Settings</span>
+            </div>
+            <div class="profile-link-item" (click)="goToProfileSettings()">
+              <span class="profile-link-icon">⚙️</span>
+              <span>Profile settings</span>
+            </div>
+            <div class="profile-link-item logout" (click)="logout()">
+              <span class="profile-link-icon">↩️</span>
+              <span>Sign out</span>
+            </div>
           </div>
         </div>
-
-        <a class="nav-item logout-item" (click)="logout()">
-          <span class="nav-icon">→</span>
-          <span>{{ tr.t('logout') }}</span>
-        </a>
       </div>
     </div>
     <!-- End Topbar -->

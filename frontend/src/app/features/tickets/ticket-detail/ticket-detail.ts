@@ -2,7 +2,8 @@ import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject,
   ViewChild, ElementRef,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  SecurityContext
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -24,7 +25,7 @@ import { AgentGroupService }
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -137,10 +138,12 @@ export class TicketDetailComponent
     });
   }
 
-  sanitizeHtml(html: string): SafeHtml {
+  sanitizeHtml(html: string): string {
     if (!html) return '';
-    return this.sanitizer
-      .bypassSecurityTrustHtml(html);
+    return this.sanitizer.sanitize(
+      SecurityContext.HTML,
+      html
+    ) || '';
   }
 
   getAvatarColor(name: string): string {

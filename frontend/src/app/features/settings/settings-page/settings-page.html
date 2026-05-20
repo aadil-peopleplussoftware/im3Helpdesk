@@ -1,43 +1,36 @@
 <app-layout>
   <div class="settings-wrapper">
-
-    <div class="settings-header">
-      <h1>Settings</h1>
-      <p>Manage your helpdesk configuration</p>
-    </div>
-
-    <div class="settings-body">
-
-      <!-- Tab Bar -->
-      <div class="settings-tabs">
-        <button class="s-tab"
+    <div class="settings-sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">⚙️ Settings</span>
+      </div>
+      <div class="sidebar-menu">
+        <button class="sidebar-item"
           *ngFor="let tab of tabs"
           [class.active]="activeTab === tab.id"
           (click)="activeTab = tab.id">
-          {{ tab.icon }} {{ tab.label }}
+          <span class="sidebar-icon">{{ tab.icon }}</span>
+          <span class="sidebar-label">{{ tab.label }}</span>
         </button>
       </div>
-
-      <!-- Content -->
+    </div>
+    <div class="settings-main">
+      <div class="settings-header">
+        <h1>Settings</h1>
+        <p>Manage your helpdesk configuration</p>
+      </div>
       <div class="settings-content">
         <!-- Templates -->
         <div *ngIf="activeTab === 'templates'">
-          <app-ticket-templates [embedded]="true">
-          </app-ticket-templates>
+          <app-ticket-templates [embedded]="true"></app-ticket-templates>
         </div>
-
         <div *ngIf="activeTab === 'groups'">
-          <app-agent-groups-settings>
-          </app-agent-groups-settings>
+          <app-agent-groups-settings></app-agent-groups-settings>
         </div>
-
         <!-- General Settings -->
-        <div *ngIf="activeTab === 'settings'"
-          class="settings-pane">
+        <div *ngIf="activeTab === 'settings'" class="settings-pane">
           <h2>Appearance & Preferences</h2>
-          <p class="pane-desc">
-            Customize your helpdesk experience
-          </p>
+          <p class="pane-desc">Customize your helpdesk experience</p>
 
           <div class="pane-section">
             <h3>Themes</h3>

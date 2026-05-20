@@ -1,3 +1,4 @@
+// (cleaned up: file now starts with imports only)
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject
@@ -13,11 +14,8 @@ import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 import { ChatService } from '../../core/services/chat.service';
 import { TranslationService } from '../../core/services/translation'; // ✅ ADD
 import { environment } from '../../../environments/environment';
-
-import { GlobalCallNotificationService }
-  from '../../core/services/global-call-notification.service';
-import { GlobalCallPopupComponent }
-  from '../../shared/components/global-call-popup/global-call-popup.component';
+import { GlobalCallNotificationService } from '../../core/services/global-call-notification.service';
+import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
 
 @Component({
   selector: 'app-layout',
@@ -33,6 +31,49 @@ import { GlobalCallPopupComponent }
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  public showProfileDropdown = false;
+  public keyboardShortcutsEnabled = true;
+
+
+
+  // Profile Dropdown Logic
+  public toggleProfileDropdown(event: MouseEvent) {
+    event.stopPropagation();
+    this.showProfileDropdown = !this.showProfileDropdown;
+    if (this.showProfileDropdown) {
+      setTimeout(() => {
+        window.addEventListener('click', this.closeProfileDropdown, { once: true });
+        window.addEventListener('keydown', this.handleProfileDropdownEsc, { once: true });
+      });
+    }
+  }
+
+    public goToMainSettings() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/settings']);
+  }
+
+  public closeProfileDropdown = () => {
+    this.showProfileDropdown = false;
+    this.cdr.detectChanges();
+    window.removeEventListener('keydown', this.handleProfileDropdownEsc, { capture: true } as any);
+  };
+
+  public handleProfileDropdownEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      this.closeProfileDropdown();
+    }
+  };
+
+  public goToProfileSettings() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/profile']);
+  }
+
+  public goToCustomerPortal() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/customer']);
+  }
 
   private authService    = inject(AuthService);
   public  router         = inject(Router);

@@ -33,7 +33,7 @@ builder.Services.AddCors(options =>
             new Uri(origin).Host == "localhost")
         .AllowAnyHeader()
         .AllowAnyMethod()
-        .AllowCredentials(); // ✅ Required for SignalR
+        .AllowCredentials();
   });
 });
 
@@ -98,6 +98,18 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Register TokenValidationParameters
+builder.Services.AddSingleton(new TokenValidationParameters
+{
+  ValidateIssuer = true,
+  ValidateAudience = true,
+  ValidateLifetime = true,
+  ValidateIssuerSigningKey = true,
+  ValidIssuer = jwtSettings["Issuer"],
+  ValidAudience = jwtSettings["Audience"],
+  IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+});
 builder.Services.AddAuthorization();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -160,8 +172,7 @@ app.UseStaticFiles(new StaticFileOptions
   }
 });
 
-app.UseHttpsRedirection();
-app.UseCors("AllowAngular"); // ✅ Single CORS policy
+app.UseCors("AllowAngular");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

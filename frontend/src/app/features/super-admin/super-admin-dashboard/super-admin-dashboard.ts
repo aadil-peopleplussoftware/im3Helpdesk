@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../core/services/super-admin';
-import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 
 
@@ -20,7 +19,6 @@ import { LayoutComponent } from '../../../layouts/main-layout/layout';
 })
 export class SuperAdminDashboardComponent implements OnInit {
   private superAdminService = inject(SuperAdminService);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -46,9 +44,5 @@ export class SuperAdminDashboardComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
-  }
-
-  logout() {
-    this.authService.logout();
   }
 }
