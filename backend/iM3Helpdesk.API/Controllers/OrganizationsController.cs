@@ -3,6 +3,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -42,6 +43,15 @@ public class OrganizationsController : ControllerBase
       org.LogoUrl,
       org.BrandColor,
       org.SupportEmail,
+      org.SmtpHost,
+      org.SmtpPort,
+      org.SmtpFromEmail,
+      org.SmtpFromName,
+      org.SmtpUsername,
+      smtpPasswordSet = !string.IsNullOrWhiteSpace(org.SmtpPassword),
+      org.ImapHost,
+      org.ImapPort,
+      org.EmailPollingEnabled,
       org.TrialEndsAt,
       org.IsActive
     });
@@ -58,7 +68,8 @@ public class OrganizationsController : ControllerBase
     if (org == null) return NotFound();
 
     if (dto.Name != null) org.Name = dto.Name;
-    if (dto.SupportEmail != null) org.SupportEmail = dto.SupportEmail;
+   if (dto.SupportEmail != null)
+      org.SupportEmail = NormalizeEmail(dto.SupportEmail);
     if (dto.BrandColor != null) org.BrandColor = dto.BrandColor;
     if (dto.LogoUrl != null) org.LogoUrl = dto.LogoUrl;
     if (dto.SlackWebhookUrl != null)
@@ -71,7 +82,7 @@ public class OrganizationsController : ControllerBase
       org.TwilioAccountSid = dto.TwilioAccountSid;
     if (dto.TwilioAuthToken != null)
       org.TwilioAuthToken = dto.TwilioAuthToken;
-
+    ApplyEmailSettings(org, dto);
     await _context.SaveChangesAsync();
     return Ok(new { message = "Organization updated" });
   }
@@ -108,6 +119,53 @@ public class OrganizationsController : ControllerBase
       logoUrl = $"/logos/{fileName}"
     });
   }
+
+  
+  private static void ApplyEmailSettings(
+      iM3Helpdesk.Domain.Entities.Organization org,
+      UpdateOrgDto dto)
+  {
+    if (dto.SmtpHost != null) org.SmtpHost = Clean(dto.SmtpHost);
+    if (dto.SmtpPort.HasValue) org.SmtpPort = dto.SmtpPort;
+    if (dto.SmtpFromEmail != null)
+      org.SmtpFromEmail = NormalizeEmail(dto.SmtpFromEmail);
+    if (dto.SmtpFromName != null)
+      org.SmtpFromName = Clean(dto.SmtpFromName);
+    if (dto.SmtpUsername != null)
+      org.SmtpUsername = NormalizeEmail(dto.SmtpUsername);
+    if (!string.IsNullOrWhiteSpace(dto.SmtpPassword))
+      org.SmtpPassword = dto.SmtpPassword.Trim();
+    if (dto.ImapHost != null) org.ImapHost = Clean(dto.ImapHost);
+    if (dto.ImapPort.HasValue) org.ImapPort = dto.ImapPort;
+    if (dto.EmailPollingEnabled.HasValue)
+      org.EmailPollingEnabled = dto.EmailPollingEnabled.Value;
+
+    if (string.IsNullOrWhiteSpace(org.SmtpFromEmail))
+      org.SmtpFromEmail = org.SupportEmail;
+    if (string.IsNullOrWhiteSpace(org.SmtpUsername))
+      org.SmtpUsername = org.SmtpFromEmail;
+  }
+
+  private static string? Clean(string? value)
+  {
+    var clean = value?.Trim();
+    return string.IsNullOrWhiteSpace(clean) ? null : clean;
+  }
+
+  private static string? NormalizeEmail(string? value)
+  {
+    var clean = Clean(value)?.ToLowerInvariant();
+    if (clean == null) return null;
+
+    try
+    {
+      return new MailAddress(clean).Address;
+    }
+    catch
+    {
+      return clean;
+    }
+  }
 }
 
 public class UpdateOrgDto
@@ -116,6 +174,15 @@ public class UpdateOrgDto
   public string? SupportEmail { get; set; }
   public string? BrandColor { get; set; }
   public string? LogoUrl { get; set; }
+  public string? SmtpHost { get; set; }
+  public int? SmtpPort { get; set; }
+  public string? SmtpFromEmail { get; set; }
+  public string? SmtpFromName { get; set; }
+  public string? SmtpUsername { get; set; }
+  public string? SmtpPassword { get; set; }
+  public string? ImapHost { get; set; }
+  public int? ImapPort { get; set; }
+  public bool? EmailPollingEnabled { get; set; }
   public string? SlackWebhookUrl { get; set; }
   public string? TeamsWebhookUrl { get; set; }
   public string? WhatsAppNumber { get; set; }

@@ -9,6 +9,15 @@ public class Organization
     public string? LogoUrl { get; set; }
     public string? BrandColor { get; set; }
     public string? SupportEmail { get; set; }
+     public string? SmtpHost { get; set; }
+    public int? SmtpPort { get; set; }
+    public string? SmtpFromEmail { get; set; }
+    public string? SmtpFromName { get; set; }
+    public string? SmtpUsername { get; set; }
+    public string? SmtpPassword { get; set; }
+    public string? ImapHost { get; set; }
+    public int? ImapPort { get; set; }
+    public bool EmailPollingEnabled { get; set; }
     public DateTime TrialEndsAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -1,13 +1,13 @@
 import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatStepperModule } from '@angular/material/stepper';
-import { MatIconModule } from '@angular/material/icon';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
@@ -15,11 +15,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-onboarding-wizard',
   standalone: true,
-  imports: [
-    CommonModule, ReactiveFormsModule, FormsModule,
-    MatButtonModule, MatFormFieldModule,
-    MatInputModule, MatStepperModule, MatIconModule
-  ],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './onboarding-wizard.html',
   styleUrls: ['./onboarding-wizard.scss']
 })
@@ -31,6 +27,7 @@ export class OnboardingWizardComponent {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
 
+  currentStep = 1;
   loading = false;
   logoPreview = '';
 
@@ -42,76 +39,98 @@ export class OnboardingWizardComponent {
   });
 
   step2Form: FormGroup = this.fb.group({
-    agentEmail1: ['', Validators.email],
-    agentEmail2: ['', Validators.email],
-    agentEmail3: ['', Validators.email]
+    smtpHost: ['smtp.gmail.com', Validators.required],
+    smtpPort: [587, [Validators.required, Validators.min(1)]],
+    smtpFromEmail: ['', [Validators.required, Validators.email]],
+    smtpFromName: [''],
+    smtpUsername: ['', [Validators.required, Validators.email]],
+    smtpPassword: ['', Validators.required],
+    imapHost: ['imap.gmail.com', Validators.required],
+    imapPort: [993, [Validators.required, Validators.min(1)]],
+    emailPollingEnabled: [true]
   });
 
-  agentEmails: string[] = [];
-  newAgentEmail = '';
-
-  addAgentEmail() {
-    const email = this.newAgentEmail.trim();
-    if (email && !this.agentEmails.includes(email)) {
-      this.agentEmails.push(email);
-      this.newAgentEmail = '';
-      this.cdr.detectChanges();
-    }
-  }
-
-  removeAgent(email: string) {
-    this.agentEmails = this.agentEmails.filter(e => e !== email);
-    this.cdr.detectChanges();
-  }
-
-  onLogoSelect(event: any) {
-    const file = event.target.files[0];
+  onLogoSelect(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = (e: any) => {
-      this.logoPreview = e.target.result;
-      this.step1Form.patchValue({ logoUrl: e.target.result });
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      const result = String(e.target?.result || '');
+      this.logoPreview = result;
+      this.step1Form.patchValue({ logoUrl: result });
       this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
   }
 
-  submitOnboarding() {
+  goToMailStep() {
+    if (this.step1Form.invalid) {
+      this.step1Form.markAllAsTouched();
+      return;
+    }
+
+    const supportEmail = this.step1Form.value.supportEmail || '';
+    this.step2Form.patchValue({
+      smtpFromEmail: supportEmail,
+      smtpUsername: supportEmail,
+      smtpFromName: this.step1Form.value.companyName || 'Support'
+    });
+    this.currentStep = 2;
+  }
+
+  finish() {
+    if (this.step2Form.invalid) {
+      this.step2Form.markAllAsTouched();
+      return;
+    }
+
     this.loading = true;
     this.cdr.detectChanges();
 
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-
     const payload = {
       name: this.step1Form.value.companyName,
-      supportEmail: this.step1Form.value.supportEmail || '',
+      supportEmail: this.step1Form.value.supportEmail,
       brandColor: this.step1Form.value.brandColor || '#2563eb',
-      logoUrl: this.step1Form.value.logoUrl || ''
+      logoUrl: this.step1Form.value.logoUrl || '',
+      smtpHost: this.step2Form.value.smtpHost,
+      smtpPort: Number(this.step2Form.value.smtpPort),
+      smtpFromEmail: this.step2Form.value.smtpFromEmail,
+      smtpFromName: this.step2Form.value.smtpFromName || 'Support',
+      smtpUsername: this.step2Form.value.smtpUsername,
+      smtpPassword: this.step2Form.value.smtpPassword,
+      imapHost: this.step2Form.value.imapHost,
+      imapPort: Number(this.step2Form.value.imapPort),
+      emailPollingEnabled: this.step2Form.value.emailPollingEnabled === true
     };
 
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
-      payload, { headers }
+      payload,
+      { headers: this.getHeaders() }
     ).subscribe({
       next: () => {
         this.loading = false;
         this.cdr.detectChanges();
         Promise.resolve().then(() =>
-          this.toastr.success('Setup complete! Welcome!')
+          this.toastr.success('Workspace email setup saved')
         );
         this.router.navigate(['/dashboard']);
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
         this.cdr.detectChanges();
-        this.router.navigate(['/dashboard']);
+        Promise.resolve().then(() =>
+          this.toastr.error(err.error?.message || 'Setup failed')
+        );
       }
     });
   }
 
-  finish() {
-    this.submitOnboarding();
+  private getHeaders() {
+    return new HttpHeaders({
+      Authorization: `Bearer ${this.authService.getToken()}`
+    });
   }
 }

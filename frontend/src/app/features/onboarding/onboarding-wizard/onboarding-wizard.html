@@ -1,173 +1,126 @@
-<div class="onboarding-bg">
-  <div class="onboarding-card">
+<div class="onboarding-shell">
+  <section class="setup-panel">
+    <header class="setup-header">
+      <div class="brand-mark">iM3</div>
+      <div>
+        <h1>Set up your helpdesk</h1>
+        <p>Connect the support mailbox that will create tickets for this organization.</p>
+      </div>
+    </header>
 
-    <div class="ob-header">
-      <div class="ob-logo">⚡</div>
-      <h1>Welcome to iM3 Helpdesk!</h1>
-      <p>Set up your workspace in just 2 steps</p>
+    <div class="steps">
+      <button type="button" class="step-pill" [class.active]="currentStep === 1">
+        <span>1</span>
+        Organization
+      </button>
+      <button type="button" class="step-pill" [class.active]="currentStep === 2">
+        <span>2</span>
+        Mailbox
+      </button>
     </div>
 
-    <mat-stepper linear #stepper class="ob-stepper">
-
-      <!-- Step 1: Organization Setup -->
-      <mat-step [stepControl]="step1Form" label="Organization">
-        <form [formGroup]="step1Form">
-          <div class="step-body">
-            <h3>Company Details</h3>
-
-            <!-- Logo Upload -->
-            <div class="logo-row">
-              <div class="logo-circle">
-                <img *ngIf="logoPreview" [src]="logoPreview" alt="Logo"/>
-                <span *ngIf="!logoPreview">🏢</span>
-              </div>
-              <div class="logo-upload">
-                <label class="upload-btn">
-                  Upload Logo
-                  <input type="file" hidden accept="image/*"
-                    (change)="onLogoSelect($event)"/>
-                </label>
-                <span class="upload-hint">PNG/JPG, max 2MB</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Company Name <span class="req">*</span></label>
-              <input type="text" formControlName="companyName"
-                placeholder="Your company name"
-                [class.invalid]="step1Form.get('companyName')?.invalid
-                  && step1Form.get('companyName')?.touched"/>
-            </div>
-
-            <div class="form-group">
-              <label>Support Email <span class="req">*</span></label>
-              <input type="email" formControlName="supportEmail"
-                placeholder="support@yourcompany.com"
-                [class.invalid]="step1Form.get('supportEmail')?.invalid
-                  && step1Form.get('supportEmail')?.touched"/>
-              <span class="hint">
-                Emails sent here will auto-create tickets
-              </span>
-            </div>
-
-            <div class="form-group">
-              <label>Brand Color</label>
-              <div class="color-row">
-                <input type="color" formControlName="brandColor"
-                  class="color-picker"/>
-                <span class="color-val">
-                  {{ step1Form.value.brandColor }}
-                </span>
-                <div class="color-preview"
-                  [style.background]="step1Form.value.brandColor">
-                </div>
-              </div>
-            </div>
+    <form
+      *ngIf="currentStep === 1"
+      [formGroup]="step1Form"
+      (ngSubmit)="goToMailStep()"
+      class="step-form">
+      <div class="form-grid">
+        <div class="logo-block">
+          <div class="logo-preview">
+            <img *ngIf="logoPreview" [src]="logoPreview" alt="Organization logo"/>
+            <span *ngIf="!logoPreview">HQ</span>
           </div>
-
-          <div class="step-actions">
-            <button type="button" class="next-btn"
-              matStepperNext
-              [disabled]="step1Form.invalid">
-              Next →
-            </button>
-          </div>
-        </form>
-      </mat-step>
-
-      <!-- Step 2: Invite Agents -->
-      <mat-step label="Invite Agents">
-        <div class="step-body">
-          <h3>Invite Your Team</h3>
-          <p class="step-desc">
-            Add agent email addresses to invite them.
-            They will receive an email with login credentials.
-          </p>
-
-          <div class="invite-list" *ngIf="agentEmails.length > 0">
-            <div class="invite-item"
-              *ngFor="let email of agentEmails">
-              <span class="invite-av">
-                {{ email.charAt(0).toUpperCase() }}
-              </span>
-              <span class="invite-email">{{ email }}</span>
-              <button class="remove-invite"
-                (click)="removeAgent(email)">×</button>
-            </div>
-          </div>
-
-          <div class="add-email-row">
-            <input type="email"
-              [(ngModel)]="newAgentEmail"
-              placeholder="agent@yourcompany.com"
-              (keyup.enter)="addAgentEmail()"
-              class="email-input"/>
-            <button class="add-btn"
-              (click)="addAgentEmail()"
-              [disabled]="!newAgentEmail.trim()">
-              + Add
-            </button>
-          </div>
-
-          <div class="skip-hint" *ngIf="agentEmails.length === 0">
-            You can skip this and invite agents later from Settings
-          </div>
+          <label class="upload-action">
+            Upload logo
+            <input type="file" hidden accept="image/*" (change)="onLogoSelect($event)"/>
+          </label>
         </div>
 
-        <div class="step-actions">
-          <button type="button" class="back-btn" matStepperPrevious>
-            ← Back
-          </button>
-          <button type="button" class="next-btn"
-            matStepperNext>
-            Next →
-          </button>
-        </div>
-      </mat-step>
+        <label class="field">
+          <span>Company name</span>
+          <input type="text" formControlName="companyName" placeholder="Acme Support"/>
+        </label>
 
-      <!-- Step 3: Finish -->
-      <mat-step label="Done">
-        <div class="step-body finish-body">
-          <div class="finish-icon">✓</div>
-          <h3>You're all set!</h3>
-          <p>Your helpdesk is configured and ready to use.</p>
+        <label class="field">
+          <span>Support email</span>
+          <input type="email" formControlName="supportEmail" placeholder="support@company.com"/>
+          <small>Incoming emails to this address will become support tickets.</small>
+        </label>
 
-          <div class="summary-box">
-            <div class="summary-row">
-              <span class="sum-label">Company</span>
-              <span class="sum-val">
-                {{ step1Form.value.companyName }}
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="sum-label">Support Email</span>
-              <span class="sum-val">
-                {{ step1Form.value.supportEmail }}
-              </span>
-            </div>
-            <div class="summary-row">
-              <span class="sum-label">Agents Invited</span>
-              <span class="sum-val">
-                {{ agentEmails.length > 0
-                  ? agentEmails.length + ' agent(s)'
-                  : 'None (invite later)' }}
-              </span>
-            </div>
-          </div>
-        </div>
+        <label class="field color-field">
+          <span>Brand color</span>
+          <input type="color" formControlName="brandColor"/>
+          <strong [style.background]="step1Form.value.brandColor"></strong>
+        </label>
+      </div>
 
-        <div class="step-actions">
-          <button type="button" class="back-btn" matStepperPrevious>
-            ← Back
-          </button>
-          <button type="button" class="finish-btn"
-            (click)="finish()" [disabled]="loading">
-            <span *ngIf="loading">Setting up...</span>
-            <span *ngIf="!loading">Go to Dashboard →</span>
-          </button>
-        </div>
-      </mat-step>
+      <footer class="actions">
+        <button type="submit" class="primary-action" [disabled]="step1Form.invalid">
+          Next
+        </button>
+      </footer>
+    </form>
 
-    </mat-stepper>
-  </div>
+    <form
+      *ngIf="currentStep === 2"
+      [formGroup]="step2Form"
+      (ngSubmit)="finish()"
+      class="step-form">
+      <div class="mail-grid">
+        <label class="field">
+          <span>SMTP host</span>
+          <input type="text" formControlName="smtpHost" placeholder="smtp.gmail.com"/>
+        </label>
+
+        <label class="field compact">
+          <span>SMTP port</span>
+          <input type="number" formControlName="smtpPort" min="1"/>
+        </label>
+
+        <label class="field">
+          <span>From email</span>
+          <input type="email" formControlName="smtpFromEmail"/>
+        </label>
+
+        <label class="field">
+          <span>From name</span>
+          <input type="text" formControlName="smtpFromName" placeholder="Acme Support"/>
+        </label>
+
+        <label class="field">
+          <span>Mailbox username</span>
+          <input type="email" formControlName="smtpUsername"/>
+        </label>
+
+        <label class="field">
+          <span>App password</span>
+          <input type="password" formControlName="smtpPassword" autocomplete="new-password"/>
+        </label>
+
+        <label class="field">
+          <span>IMAP host</span>
+          <input type="text" formControlName="imapHost" placeholder="imap.gmail.com"/>
+        </label>
+
+        <label class="field compact">
+          <span>IMAP port</span>
+          <input type="number" formControlName="imapPort" min="1"/>
+        </label>
+      </div>
+
+      <label class="toggle-row">
+        <input type="checkbox" formControlName="emailPollingEnabled"/>
+        <span>Enable email-to-ticket polling for this organization</span>
+      </label>
+
+      <footer class="actions split">
+        <button type="button" class="secondary-action" (click)="currentStep = 1">
+          Back
+        </button>
+        <button type="submit" class="primary-action" [disabled]="step2Form.invalid || loading">
+          {{ loading ? 'Saving...' : 'Done' }}
+        </button>
+      </footer>
+    </form>
+  </section>
 </div>

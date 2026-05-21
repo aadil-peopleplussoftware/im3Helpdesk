@@ -1,4 +1,4 @@
-using iM3Helpdesk.Domain.Entities;
+﻿using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using MailKit;
@@ -40,7 +40,7 @@ public class EmailPollingService : BackgroundService
   protected override async Task ExecuteAsync(CancellationToken stoppingToken)
   {
     _logger.LogInformation(
-        "✉ Email Polling started at {T}", _serviceStartTime);
+        "âœ‰ Email Polling started at {T}", _serviceStartTime);
 
     // Wait 15s on startup before first poll
     await Task.Delay(15_000, stoppingToken);
@@ -64,7 +64,7 @@ public class EmailPollingService : BackgroundService
       catch (OperationCanceledException) { break; }
     }
 
-    _logger.LogInformation("✉ Email Polling stopped");
+    _logger.LogInformation("âœ‰ Email Polling stopped");
   }
 
   private async Task PollAllOrgsAsync(CancellationToken ct)
@@ -75,44 +75,48 @@ public class EmailPollingService : BackgroundService
 
     var orgs = await context.Organizations
         .IgnoreQueryFilters()
-        .Where(o => o.IsActive && !string.IsNullOrEmpty(o.SupportEmail))
+        .Where(o =>
+            o.IsActive &&
+            o.EmailPollingEnabled &&
+            !string.IsNullOrEmpty(o.SupportEmail) &&
+            !string.IsNullOrEmpty(o.SmtpUsername) &&
+            !string.IsNullOrEmpty(o.SmtpPassword) &&
+            !string.IsNullOrEmpty(o.ImapHost))
         .ToListAsync(ct);
 
     if (!orgs.Any())
     {
-      _logger.LogInformation("No active orgs with support email configured");
+      _logger.LogInformation("No org mailboxes configured for polling");
       return;
     }
 
-    _logger.LogInformation("Polling {N} org(s)", orgs.Count);
+    _logger.LogInformation(
+        "Polling {N} configured org mailbox(es)", orgs.Count);
 
-    // ✅ Read SMTP config ONCE — reuse for all orgs
-    var smtp = _config.GetSection("SmtpSettings");
-    var imapHost = smtp["ImapHost"];
-    var imapPort = smtp.GetValue<int>("ImapPort", 993);
-    var inboxEmail = smtp["FromEmail"];
-    var password = smtp["Password"];
-
-    if (string.IsNullOrEmpty(imapHost) ||
-        string.IsNullOrEmpty(inboxEmail) ||
-        string.IsNullOrEmpty(password))
+    foreach (var org in orgs)
     {
-      _logger.LogWarning("IMAP config missing in appsettings — skipping poll");
-      return;
+      if (ct.IsCancellationRequested) break;
+      await PollOrgMailboxAsync(org, context, ct);
     }
+  }
 
-    // ✅ Connect ONCE to IMAP, process emails for all orgs
+  private async Task PollOrgMailboxAsync(
+      Organization org,
+      ApplicationDbContext context,
+      CancellationToken ct)
+  {
     using var client = new ImapClient();
+    var username = org.SmtpUsername ?? org.SmtpFromEmail ?? org.SupportEmail ?? "";
+    var password = org.SmtpPassword ?? "";
+    var imapPort = org.ImapPort ?? 993;
 
     try
     {
-      await client.ConnectAsync(imapHost, imapPort, true, ct);
-      await client.AuthenticateAsync(inboxEmail, password, ct);
+      await client.ConnectAsync(org.ImapHost, imapPort, true, ct);
+      await client.AuthenticateAsync(username, password, ct);
 
       var inbox = client.Inbox;
       await inbox.OpenAsync(FolderAccess.ReadWrite, ct);
-
-      _logger.LogInformation("IMAP connected — {N} total messages", inbox.Count);
 
       var since = _serviceStartTime.AddMinutes(-1);
       var query = SearchQuery.And(
@@ -121,7 +125,7 @@ public class EmailPollingService : BackgroundService
 
       var uids = await inbox.SearchAsync(query, ct);
       _logger.LogInformation(
-          "Unread emails since {Since}: {N}", since, uids.Count);
+          "Org {Org}: {Count} unread email(s)", org.Name, uids.Count);
 
       foreach (var uid in uids)
       {
@@ -131,7 +135,6 @@ public class EmailPollingService : BackgroundService
         {
           var msg = await inbox.GetMessageAsync(uid, ct);
 
-          // ✅ Extra guard: skip emails before service start
           if (msg.Date.UtcDateTime < _serviceStartTime.AddMinutes(-5))
           {
             _logger.LogDebug(
@@ -139,27 +142,23 @@ public class EmailPollingService : BackgroundService
             continue;
           }
 
-          // ✅ Match email to an org by TO address
-          var matchedOrg = FindMatchingOrg(msg, orgs, inboxEmail);
-
-          if (matchedOrg == null)
+          if (!IsAddressedToOrg(msg, org))
           {
-            _logger.LogWarning(
-                "No org matched for TO: {T}", msg.To);
+            _logger.LogDebug(
+                "Skipping email not addressed to support mailbox: {To}", msg.To);
             continue;
           }
 
-          await ProcessEmailAsync(msg, matchedOrg, context, ct);
-
-          // Mark as read only after successful processing
+          await ProcessEmailAsync(msg, org, context, ct);
           await inbox.AddFlagsAsync(uid, MessageFlags.Seen, true, ct);
 
           _logger.LogInformation(
-              "✅ Processed email for org: {O}", matchedOrg.Name);
+              "Processed support email for org: {Org}", org.Name);
         }
         catch (Exception ex)
         {
-          _logger.LogError(ex, "Error processing uid {U}", uid);
+          _logger.LogError(ex, "Error processing uid {Uid} for {Org}",
+              uid, org.Name);
         }
       }
 
@@ -167,56 +166,38 @@ public class EmailPollingService : BackgroundService
     }
     catch (Exception ex)
     {
-      _logger.LogError(ex, "IMAP connection failed: {M}", ex.Message);
+      _logger.LogError(ex, "IMAP failed for org {Org}: {Message}",
+          org.Name, ex.Message);
       try
       {
         if (client.IsConnected)
           await client.DisconnectAsync(false, ct);
       }
-      catch { /* ignore disconnect errors */ }
+      catch { }
     }
   }
-  private static Organization? FindMatchingOrg(
-      MimeMessage message,
-      List<Organization> orgs,
-      string inboxEmail)
+
+  private static bool IsAddressedToOrg(MimeMessage message, Organization org)
   {
-    var toAddresses = message.To.Mailboxes
-        .Select(m => m.Address?.ToLower() ?? "")
-        .Where(a => !string.IsNullOrEmpty(a))
-        .ToList();
-    var ccAddresses = message.Cc.Mailboxes
-        .Select(m => m.Address?.ToLower() ?? "")
-        .ToList();
-
-    var allAddresses = toAddresses
-        .Concat(ccAddresses)
-        .ToList();
-    foreach (var org in orgs)
+    var expected = new[]
     {
-      var supportEmail =
-          org.SupportEmail?.ToLower() ?? "";
-      if (string.IsNullOrEmpty(supportEmail))
-        continue;
-      if (allAddresses.Contains(supportEmail))
-        return org;
-      if (allAddresses.Any(a =>
-          a.Contains(supportEmail) ||
-          supportEmail.Contains(a)))
-        return org;
+      org.SupportEmail,
+      org.SmtpFromEmail,
+      org.SmtpUsername
     }
+      .Where(e => !string.IsNullOrWhiteSpace(e))
+      .Select(e => e!.Trim().ToLowerInvariant())
+      .ToHashSet();
 
-    foreach (var org in orgs)
-    {
-      var supportEmail =
-          org.SupportEmail?.ToLower() ?? "";
-      if (inboxEmail.ToLower() == supportEmail)
-        return org;
-    }
-    if (orgs.Count == 1)
-      return orgs[0];
+    if (expected.Count == 0) return false;
 
-    return null;
+    var addressed = message.To.Mailboxes
+        .Concat(message.Cc.Mailboxes)
+        .Concat(message.Bcc.Mailboxes)
+        .Select(m => m.Address?.Trim().ToLowerInvariant() ?? "")
+        .Where(a => !string.IsNullOrWhiteSpace(a));
+
+    return addressed.Any(a => expected.Contains(a));
   }
 
   private async Task ProcessEmailAsync(
@@ -228,7 +209,7 @@ public class EmailPollingService : BackgroundService
     var fromBox = message.From.Mailboxes.FirstOrDefault();
     if (fromBox == null)
     {
-      _logger.LogWarning("No sender found — skipping");
+      _logger.LogWarning("No sender found â€” skipping");
       return;
     }
 
@@ -239,8 +220,16 @@ public class EmailPollingService : BackgroundService
         ? fromEmail.Split('@')[0]
         : fromBox.Name.Trim();
 
-    var ownEmail = _config["SmtpSettings:FromEmail"] ?? "";
-    if (fromEmail.Equals(ownEmail, StringComparison.OrdinalIgnoreCase))
+    var ownEmails = new[]
+    {
+      org.SupportEmail,
+      org.SmtpFromEmail,
+      org.SmtpUsername,
+      _config["SmtpSettings:FromEmail"]
+    }.Where(e => !string.IsNullOrWhiteSpace(e));
+
+    if (ownEmails.Any(e => fromEmail.Equals(e,
+        StringComparison.OrdinalIgnoreCase)))
     {
       _logger.LogDebug("Skipping own system email");
       return;
@@ -257,7 +246,7 @@ public class EmailPollingService : BackgroundService
     }
 
     _logger.LogInformation(
-        "Processing email from {E} — Subject: {S}", fromEmail, message.Subject);
+        "Processing email from {E} â€” Subject: {S}", fromEmail, message.Subject);
 
     var subject = CleanSubject(message.Subject, fromName);
 
@@ -274,7 +263,7 @@ public class EmailPollingService : BackgroundService
 
     var contact = await UpsertContactAsync(
         fromEmail, fromName, org.Id, null, context, ct);
-    // ❌ DISABLED: User auto-creation from email is turned off.
+    // âŒ DISABLED: User auto-creation from email is turned off.
     // Only Contact should be created, not a User account.
     // var customer = await context.Users
     //     .IgnoreQueryFilters()
@@ -325,7 +314,7 @@ public class EmailPollingService : BackgroundService
         ?? 1000;
     var nameTag = MakeTag(fromName);
 
-    // ✅ FIX: customer removed, use CompanyAdmin as system actor
+    // âœ… FIX: customer removed, use CompanyAdmin as system actor
     var systemUser = await context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
@@ -335,7 +324,7 @@ public class EmailPollingService : BackgroundService
     if (systemUser == null)
     {
       _logger.LogWarning(
-          "No CompanyAdmin found for org {O} — cannot create ticket",
+          "No CompanyAdmin found for org {O} â€” cannot create ticket",
           org.Name);
       return;
     }
@@ -349,7 +338,7 @@ public class EmailPollingService : BackgroundService
       Status = TicketStatus.Open,
       TicketType = "Support",
       OrganizationId = org.Id,
-      CreatedByUserId = systemUser.Id, // ✅ CompanyAdmin as system actor
+      CreatedByUserId = systemUser.Id, // âœ… CompanyAdmin as system actor
       Tags = $"email,support-email,{nameTag}",
       SlaDeadline = DateTime.UtcNow.AddHours(24),
       SlaStatus = "OnTrack",
@@ -360,7 +349,7 @@ public class EmailPollingService : BackgroundService
     await context.SaveChangesAsync(ct);
 
     _logger.LogInformation(
-        "✅ Ticket #TN{N} created for org [{O}]: {S}",
+        "âœ… Ticket #TN{N} created for org [{O}]: {S}",
         ticket.TicketNumber, org.Name, subject);
     await SaveAttachmentsAsync(message, ticket, null, context, ct);
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
@@ -433,7 +422,7 @@ public class EmailPollingService : BackgroundService
     if (user == null)
     {
       _logger.LogWarning(
-          "Reply from unknown user {E} — skipping", fromEmail);
+          "Reply from unknown user {E} â€” skipping", fromEmail);
       return;
     }
 
@@ -444,8 +433,8 @@ public class EmailPollingService : BackgroundService
       Comment = BuildDescription(message),
       IsInternal = false,
       OrganizationId = org.Id,
-      EmailMessageId = message.MessageId,   // ✅ track for dedup
-      Source = "email"              // ✅ mark source
+      EmailMessageId = message.MessageId,   // âœ… track for dedup
+      Source = "email"              // âœ… mark source
     };
 
     context.TicketComments.Add(comment);
@@ -459,7 +448,7 @@ public class EmailPollingService : BackgroundService
       await SaveAttachmentsAsync(message, ticket, comment.Id, context, ct);
 
     _logger.LogInformation(
-        "💬 Reply added to ticket {T} from {E}", ticketId, fromEmail);
+        "ðŸ’¬ Reply added to ticket {T} from {E}", ticketId, fromEmail);
   }
 
   private static string BuildDescription(MimeMessage message)
@@ -664,6 +653,12 @@ public class EmailPollingService : BackgroundService
 
       try
       {
+        if (part.Content == null)
+        {
+          _logger.LogWarning("Attachment {F} has no content", fileName);
+          continue;
+        }
+
         await using var stream = File.Create(filePath);
         await part.Content.DecodeToAsync(stream, ct);
 
@@ -672,7 +667,7 @@ public class EmailPollingService : BackgroundService
         if (size > MaxAttachmentBytes)
         {
           _logger.LogWarning(
-              "Attachment {F} too large ({S} bytes) — skipped",
+              "Attachment {F} too large ({S} bytes) â€” skipped",
               fileName, size);
           File.Delete(filePath);
           continue;

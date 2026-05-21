@@ -106,6 +106,20 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.Slug)
           .HasMaxLength(100)
           .IsRequired();
+      e.Property(x => x.SupportEmail)
+          .HasMaxLength(256);
+      e.Property(x => x.SmtpHost)
+          .HasMaxLength(200);
+      e.Property(x => x.SmtpFromEmail)
+          .HasMaxLength(256);
+      e.Property(x => x.SmtpFromName)
+          .HasMaxLength(200);
+      e.Property(x => x.SmtpUsername)
+          .HasMaxLength(256);
+      e.Property(x => x.SmtpPassword)
+          .HasMaxLength(500);
+      e.Property(x => x.ImapHost)
+          .HasMaxLength(200);
     });
 
     // ── User ──────────────────────
