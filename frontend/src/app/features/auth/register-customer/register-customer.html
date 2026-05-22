@@ -1,133 +1,139 @@
 <div class="auth-layout">
   <div class="auth-left">
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
-      <span class="brand-name">iM3HelpDesk</span>
-    </div>
-    <div class="hero-content">
-      <h1>GET SUPPORT<br>
-        <span class="highlight">FASTER</span> THAN EVER.
-      </h1>
-      <p>Submit tickets, track progress, and get help from our support team.</p>
-      <div class="feature-list">
-        <div class="feature-item">✓ Submit support tickets</div>
-        <div class="feature-item">✓ Real-time updates</div>
-        <div class="feature-item">✓ Chat with support team</div>
+    <div class="left-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <span class="brand-name">iM3HelpDesk</span>
       </div>
     </div>
-    <div class="badges">
-      <span class="badge-item">⊕ Enterprise Grade</span>
-      <span class="badge-item">⊕ Global Infrastructure</span>
+    
+    <div class="hero-center">
+      <div class="status-pill customer">
+        <span class="pulse-dot"></span> Secure Portal Entry
+      </div>
+      <h1>Get support <span class="highlight">faster</span> than ever.</h1>
+      <p>Direct pipeline connection to enterprise-level product operations, issue resolution tracking, and SLA ticket transparency.</p>
+      
+      <div class="feature-list">
+        <div class="feature-item"><span class="check-icon">✓</span> Direct encrypted transmission line</div>
+        <div class="feature-item"><span class="check-icon">✓</span> Timeline ticket synchronization</div>
+        <div class="feature-item"><span class="check-icon">✓</span> Secure cross-team communication</div>
+      </div>
+    </div>
+
+    <div class="left-footer">
+      <div class="meta-row">
+        <span>Customer Gateway v2.4</span>
+        <span class="separator">/</span>
+        <span>Operational Sync</span>
+      </div>
     </div>
   </div>
 
   <div class="auth-right">
-    <div class="auth-form-wrap">
-      <a routerLink="/login" class="back-link">← Back to login</a>
-      <h2>Customer Registration</h2>
-      <p class="auth-subtitle">
-        Create your account to submit and track support tickets.
-      </p>
+    <div class="auth-card-workspace">
+      <button routerLink="/login" class="back-btn" type="button">
+        <span class="back-arrow">←</span> Back to login
+      </button>
 
-      <div class="success-state" *ngIf="success">
-        <div class="success-circle">✓</div>
-        <h3>Account Created!</h3>
-        <p>Please check your email to verify your account.</p>
-        <p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px">
-          Redirecting to login in 3 seconds...
-        </p>
+      <div class="workspace-header">
+        <h2>Customer Portal Sign Up</h2>
+        <p class="auth-subtitle">Register your identity profile to issue tickets to your organization vendor.</p>
       </div>
 
-      <div class="error-message" *ngIf="errorMessage">
-        {{ errorMessage }}
+      <div class="success-state" *ngIf="success">
+        <div class="success-circle">
+          <span class="check-mark">✓</span>
+        </div>
+        <h3>Portal Account Deployed</h3>
+        <p>Handshake activation sent. Redirecting execution flow to system gateway securely...</p>
+        <p class="redirect-hint">Connecting in 3 seconds...</p>
+      </div>
+
+      <div class="error-alert" *ngIf="errorMessage">
+        <span class="alert-icon">✦</span> {{ errorMessage }}
       </div>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
 
         <div class="form-group">
-          <label>Full Name</label>
+          <label>Full Profile Name</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
-            <input type="text" formControlName="fullName"
-              placeholder="Your full name"/>
+            <input type="text" formControlName="fullName" placeholder="Your account profile name" autocomplete="name"/>
           </div>
-          <span class="field-error"
-            *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">
-            Required (min 3 characters)
+          <span class="field-error" *ngIf="form.get('fullName')?.invalid && form.get('fullName')?.touched">
+            Identity name entry must contain at least 3 characters.
           </span>
         </div>
 
         <div class="form-group">
-          <label>Email Address</label>
+          <label>Personal Address / Work Email</label>
           <div class="input-wrap">
             <span class="input-icon">✉</span>
-            <input type="email" formControlName="email"
-              placeholder="your@email.com"/>
+            <input type="email" formControlName="email" placeholder="name@company.com" autocomplete="email"/>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Phone (optional)</label>
+          <label>Phone Number <span class="lbl-opt">(Optional)</span></label>
           <div class="input-wrap">
             <span class="input-icon">📱</span>
-            <input type="tel" formControlName="phoneNumber"
-              placeholder="+91 9999999999"/>
+            <input type="tel" formControlName="phoneNumber" placeholder="+91 9999999999" autocomplete="tel"/>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Organization Slug</label>
+          <label>Organization Domain Slug</label>
           <div class="input-wrap">
             <span class="input-icon">🏢</span>
-            <input type="text" formControlName="organizationSlug"
-              placeholder="your-company-slug"/>
+            <input type="text" formControlName="organizationSlug" placeholder="your-vendor-company-slug"/>
           </div>
           <span class="field-hint">
-            Ask your company for the organization slug
+            Provide the infrastructure identifier supplied by your enterprise vendor coordinator.
           </span>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Password</label>
+            <label>Portal Password</label>
             <div class="input-wrap">
               <span class="input-icon">🔒</span>
-              <input type="password" formControlName="password"
-                placeholder="••••••••"/>
+              <input type="password" formControlName="password" placeholder="••••••••" autocomplete="new-password"/>
             </div>
           </div>
           <div class="form-group">
             <label>Confirm Password</label>
             <div class="input-wrap">
               <span class="input-icon">🔒</span>
-              <input type="password" formControlName="confirmPassword"
-                placeholder="••••••••"/>
+              <input type="password" formControlName="confirmPassword" placeholder="••••••••" autocomplete="new-password"/>
             </div>
-            <span class="field-error"
-              *ngIf="form.get('confirmPassword')?.hasError('mismatch')
-                && form.get('confirmPassword')?.touched">
-              Passwords do not match
+            <span class="field-error" *ngIf="form.get('confirmPassword')?.hasError('mismatch') && form.get('confirmPassword')?.touched">
+              Security signatures do not match.
             </span>
           </div>
         </div>
 
         <button type="submit" class="submit-btn" [disabled]="loading">
-          <span *ngIf="!loading">Create Account →</span>
-          <span *ngIf="loading">Creating...</span>
+          <span *ngIf="!loading" class="btn-text">Initialize Profile <span class="arrow">→</span></span>
+          <span *ngIf="loading" class="btn-loading">
+            <span class="spinner"></span> Processing gateway registration...
+          </span>
         </button>
 
+        <div class="divider"><span>or access system portal</span></div>
+
         <div class="alt-links">
-          <span>Already have an account?</span>
-          <a routerLink="/login" class="create-link">Sign in</a>
-          <span>|</span>
-          <a routerLink="/register" class="create-link">Company Signup</a>
+          <a routerLink="/login" class="create-link">Sign In Instead</a>
+          <span class="bullet-sep">|</span>
+          <a routerLink="/register" class="create-link">Corporate Team Register</a>
         </div>
       </form>
 
       <div class="footer-links">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Contact</a>
+        <a href="#">Privacy Standard</a>
+        <span class="bullet">•</span>
+        <a href="#">Terms of Use</a>
       </div>
     </div>
   </div>

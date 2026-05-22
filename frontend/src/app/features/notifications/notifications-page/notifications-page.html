@@ -1,88 +1,82 @@
 <app-layout>
-<div class="page-container">
-  <mat-tab-group>
+  <div class="notif-page">
 
-    <!-- Tab 1: Notifications -->
-    <mat-tab>
-      <ng-template mat-tab-label>
-        <span class="tab-label-text">Notifications</span>
-        <span class="tab-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
-      </ng-template>
+    <div class="notif-tabs-bar">
+      <button class="ntab" [class.active]="activeTab === 'notifications'" (click)="activeTab = 'notifications'">
+        Notifications
+        <span class="ntab-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+      </button>
+      <button class="ntab" [class.active]="activeTab === 'activity'" (click)="activeTab = 'activity'">
+        Activity Log
+      </button>
+    </div>
 
-      <div class="tab-content">
-        <div class="tab-header">
-          <h3>Notifications</h3>
-          <button mat-button color="primary"
-            (click)="markAllRead()" *ngIf="unreadCount > 0">
-            Mark all as read
-          </button>
+    <!-- ── Notifications Tab ── -->
+    <div class="notif-body" *ngIf="activeTab === 'notifications'">
+
+      <div class="notif-body-header">
+        <span class="notif-body-title">Notifications</span>
+        <button class="mark-all-btn" *ngIf="unreadCount > 0" (click)="markAllRead()">
+          Mark all as read
+        </button>
+      </div>
+
+      <div *ngIf="loading" class="loading-center">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+
+      <div *ngIf="!loading">
+        <div *ngIf="notifications.length === 0" class="empty-state">
+          <p>No notifications yet!</p>
         </div>
 
-        <div *ngIf="loading" class="loading-center">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
+        <div class="notif-item"
+          *ngFor="let n of notifications"
+          [class.unread]="!n.isRead"
+          (click)="navigateToTicket(n)">
 
-        <div *ngIf="!loading">
-          <div *ngIf="notifications.length === 0" class="empty-state">
-            <p>No notifications yet!</p>
+          <div class="notif-dot" [style.background]="getTypeColor(n.type)"></div>
+
+          <div class="notif-content">
+            <div class="notif-title">{{ n.title }}</div>
+            <div class="notif-message">{{ n.message }}</div>
+            <div class="notif-time">{{ n.createdAt | date:'dd MMM yyyy, hh:mm a' }}</div>
           </div>
 
-          <div class="notif-item"
-            *ngFor="let n of notifications"
-            [class.unread]="!n.isRead"
-            (click)="navigateToTicket(n)">
-
-            <div class="notif-dot"
-              [style.background]="getTypeColor(n.type)">
-            </div>
-
-            <div class="notif-content">
-              <div class="notif-title">{{ n.title }}</div>
-              <div class="notif-message">{{ n.message }}</div>
-              <div class="notif-time">
-                {{ n.createdAt | date:'dd MMM yyyy, hh:mm a' }}
-              </div>
-            </div>
-
-            <span class="unread-badge" *ngIf="!n.isRead">New</span>
-          </div>
+          <span class="unread-badge" *ngIf="!n.isRead">New</span>
         </div>
       </div>
-    </mat-tab>
+    </div>
 
-    <!-- Tab 2: Activity Log -->
-    <mat-tab label="Activity Log">
-      <div class="tab-content">
-        <h3>Recent Activity</h3>
+    <!-- ── Activity Tab ── -->
+    <div class="notif-body" *ngIf="activeTab === 'activity'">
 
-        <div *ngIf="loadingActivity" class="loading-center">
-          <mat-spinner diameter="40"></mat-spinner>
+      <div class="notif-body-header">
+        <span class="notif-body-title">Recent Activity</span>
+      </div>
+
+      <div *ngIf="loadingActivity" class="loading-center">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+
+      <div *ngIf="!loadingActivity">
+        <div *ngIf="activityLogs.length === 0" class="empty-state">
+          <p>No activity yet!</p>
         </div>
 
-        <div *ngIf="!loadingActivity">
-          <div *ngIf="activityLogs.length === 0" class="empty-state">
-            <p>No activity yet!</p>
-          </div>
-
-          <div class="activity-item" *ngFor="let log of activityLogs">
-            <div class="activity-icon">
-              {{ getActionIcon(log.action) }}
+        <div class="activity-item" *ngFor="let log of activityLogs">
+          <div class="activity-icon">{{ getActionIcon(log.action) }}</div>
+          <div class="activity-content">
+            <div class="activity-desc">{{ log.description }}</div>
+            <div class="activity-meta">
+              <span class="activity-user">{{ log.user?.fullName }}</span>
+              <span class="activity-time">{{ log.createdAt | date:'dd MMM yyyy, hh:mm a' }}</span>
             </div>
-            <div class="activity-content">
-              <div class="activity-desc">{{ log.description }}</div>
-              <div class="activity-meta">
-                <span class="activity-user">{{ log.user?.fullName }}</span>
-                <span class="activity-time">
-                  {{ log.createdAt | date:'dd MMM yyyy, hh:mm a' }}
-                </span>
-              </div>
-            </div>
-            <span class="entity-badge">{{ log.entityType }}</span>
           </div>
+          <span class="entity-badge">{{ log.entityType }}</span>
         </div>
       </div>
-    </mat-tab>
+    </div>
 
-  </mat-tab-group>
-</div>
+  </div>
 </app-layout>

@@ -120,7 +120,6 @@ public class TicketsController : ControllerBase
   {
     var ticket = await _context.Tickets
         .AsNoTracking()
-        .IgnoreQueryFilters()
         .Include(t => t.CreatedBy)
         .Include(t => t.AssignedTo)
         .Include(t => t.AgentGroup)

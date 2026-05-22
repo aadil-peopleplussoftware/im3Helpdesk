@@ -1,5 +1,10 @@
-// 1. Angular Material Core Theme (VITAL - iske bina buttons/inputs kharab dikhenge)
 @use '@angular/material' as mat;
+@use 'styles/variables';
+@use 'styles/reset';
+@use 'styles/typography';
+@use 'styles/mixins';
+@use 'styles/buttons';
+@use 'styles/forms';
 
 html {
   height: 100%;
@@ -15,322 +20,140 @@ html {
   );
 }
 
-/* ===== GLOBAL RESETS ===== */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  line-height: 1.5;
-  transition: background 0.3s, color 0.3s;
-  height: 100%;
-  color-scheme: light;
-}
-
-/* ===== DEFAULT THEME (Blue) ===== */
-body, body.theme-blue {
-  --bg-primary: #f5f5f5;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --border-color: #f0f0f0;
-  --accent: #1976d2;
-  --accent-light: #e3f2fd;
-  --hover-bg: #f5f9ff;
-  --toolbar-bg: #1976d2;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-/* ===== DARK THEME ===== */
-body.theme-dark {
-  --bg-primary: #121212;
-  --bg-secondary: #1e1e1e;
-  --bg-card: #1e1e1e;
-  --text-primary: #e0e0e0;
-  --text-secondary: #b0b0b0;
-  --text-muted: #757575;
-  --border-color: #333333;
-  --accent: #90caf9;
-  --accent-light: #1a2a3a;
-  --hover-bg: #2a2a2a;
-  --toolbar-bg: #1a1a2e;
-  --shadow: 0 2px 8px rgba(0,0,0,0.4);
-  color-scheme: dark;
-}
-
-/* ===== GREEN THEME ===== */
-body.theme-green {
-  --bg-primary: #f1f8f1;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1b2e1b;
-  --text-secondary: #4a6a4a;
-  --text-muted: #8aaa8a;
-  --border-color: #e0f0e0;
-  --accent: #2e7d32;
-  --accent-light: #e8f5e9;
-  --hover-bg: #f0f9f0;
-  --toolbar-bg: #2e7d32;
-  --shadow: 0 2px 8px rgba(46,125,50,0.12);
-}
-
-/* ===== PURPLE THEME ===== */
-body.theme-purple {
-  --bg-primary: #f5f0ff;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1a0a2e;
-  --text-secondary: #5a3a7a;
-  --text-muted: #9a7aaa;
-  --border-color: #ede0ff;
-  --accent: #6a1b9a;
-  --accent-light: #f3e5f5;
-  --hover-bg: #f5f0ff;
-  --toolbar-bg: #6a1b9a;
-  --shadow: 0 2px 8px rgba(106,27,154,0.12);
-}
-
-/* ===== GLOBAL STYLES ===== */
-a { text-decoration: none; color: inherit; }
-
 .mat-mdc-card {
-  background: var(--bg-card) !important;
-  color: var(--text-primary) !important;
-  box-shadow: var(--shadow) !important;
+  background: var(--ui-color-bg-surface) !important;
+  color: var(--ui-color-text-primary) !important;
+  box-shadow: var(--ui-shadow-sm) !important;
 }
-
-.ngx-toastr { border-radius: 8px !important; }
 
 .page-container {
   padding: 24px;
-  background: var(--bg-primary);
+  background: var(--ui-color-bg-page);
   min-height: calc(100vh - 64px);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb {
-  background: var(--text-muted);
-  border-radius: 3px;
+.mat-toolbar {
+  display: none !important;
 }
 
-/* ===== DARK MODE SPECIFIC OVERRIDES (Like old code) ===== */
-/* In form fields aur tables ko sirf dark mode me force kiya gaya hai taaki light themes kharab na hon */
-body.theme-dark {
+/* Angular Material dark mode refinements */
+body.theme-dark,
+[data-theme="dark"] {
   .mat-mdc-table {
-    background: #1e1e1e !important;
-    color: #e0e0e0 !important;
+    background: var(--ui-color-bg-surface) !important;
+    color: var(--ui-color-text-primary) !important;
   }
 
   .mat-mdc-header-cell {
-    background: #2d2d2d !important;
-    color: #bbb !important;
+    background: var(--ui-color-bg-subtle) !important;
+    color: var(--ui-color-text-secondary) !important;
   }
 
-  .mat-mdc-cell { color: #e0e0e0 !important; }
+  .mat-mdc-cell {
+    color: var(--ui-color-text-primary) !important;
+  }
 
   .mat-mdc-row:hover {
-    background: #2a2a2a !important;
+    background: var(--ui-color-bg-hover) !important;
   }
 
-  mat-form-field {
-    .mat-mdc-text-field-wrapper {
-      background: #2d2d2d !important;
-    }
-    .mat-mdc-floating-label { color: #bbb !important; }
-    input, textarea { color: #e0e0e0 !important; }
-  }
-
-  .mat-mdc-select-value {
-    color: #e0e0e0 !important;
-  }
-
-  .mat-mdc-menu-panel, .mat-mdc-option {
-    background: #1e1e1e !important;
-    color: #e0e0e0 !important;
+  .mat-mdc-menu-panel,
+  .mat-mdc-option {
+    background: var(--ui-color-bg-surface) !important;
+    color: var(--ui-color-text-primary) !important;
   }
 }
-.ticket-num-badge {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted, #9ca3af);
-  background: var(--bg-secondary, #f3f4f6);
-  padding: 2px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
-}
 
-.ticket-id-badge {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted, #6b7280);
-  background: var(--bg-secondary, #f3f4f6);
-  padding: 4px 12px;
-  border-radius: 8px;
-  display: inline-block;
-  margin-bottom: 6px;
-}
-/* Toastr custom styles */
+/* Toastr */
 .ngx-toastr {
   border-radius: 10px !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+  box-shadow: var(--ui-shadow-md) !important;
   font-size: 14px !important;
   padding: 12px 16px !important;
   min-width: 280px !important;
 
   &.toast-success {
-    background-color: #22c55e !important;
+    background-color: var(--ui-color-success) !important;
   }
 
   &.toast-error {
-    background-color: #ef4444 !important;
+    background-color: var(--ui-color-danger) !important;
   }
 
   &.toast-info {
-    background-color: #3b82f6 !important;
+    background-color: var(--ui-color-primary) !important;
   }
 
   &.toast-warning {
-    background-color: #f59e0b !important;
+    background-color: var(--ui-color-warning) !important;
   }
 }
 
 .toast-progress {
-  background: rgba(255,255,255,0.4) !important;
+  background: rgba(255, 255, 255, 0.4) !important;
   height: 3px !important;
 }
-/* ===== COSMIC ORANGE THEME ===== */
-body.theme-orange {
-  --bg-primary: #fff8f3;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1a0a00;
-  --text-secondary: #7a3a10;
-  --text-muted: #b87040;
-  --border-color: #ffe0cc;
-  --accent: #e85d04;
-  --accent-light: #fff0e6;
-  --hover-bg: #fff4ed;
-  --toolbar-bg: #e85d04;
-  --shadow: 0 2px 8px rgba(232,93,4,0.12);
-}
 
-/* ===== MIDNIGHT NAVY THEME ===== */
-body.theme-navy {
-  --bg-primary: #f0f2f8;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #0d1b4b;
-  --text-secondary: #3a4a7a;
-  --text-muted: #7a8aaa;
-  --border-color: #d8dff0;
-  --accent: #1e3a8a;
-  --accent-light: #e8eeff;
-  --hover-bg: #eef1ff;
-  --toolbar-bg: #1e3a8a;
-  --shadow: 0 2px 8px rgba(30,58,138,0.12);
-}
-
-/* ===== ROSE PINK THEME ===== */
-body.theme-rose {
-  --bg-primary: #fff5f7;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #1a0010;
-  --text-secondary: #6b1a3a;
-  --text-muted: #b06080;
-  --border-color: #ffd6e3;
-  --accent: #e11d48;
-  --accent-light: #ffe4ed;
-  --hover-bg: #fff0f5;
-  --toolbar-bg: #e11d48;
-  --shadow: 0 2px 8px rgba(225,29,72,0.12);
-}
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Remove Angular Material toolbar interference */
-.mat-toolbar { display: none !important; }
-.error-alert {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.success-alert {
-  background: #dcfce7;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 /* Mobile breakpoints */
 @media (max-width: 768px) {
-
-  /* Layout */
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
     z-index: 200;
 
-    &.open { transform: translateX(0); }
+    &.open {
+      transform: translateX(0);
+    }
   }
 
-  .main-area { margin-left: 0 !important; }
+  .main-area {
+    margin-left: 0 !important;
+  }
 
-  /* Ticket List */
-  .ticket-list-page { padding: 12px; }
-  .page-header { flex-direction: column; gap: 10px; }
-  .header-right { flex-wrap: wrap; }
-  .filter-row { flex-direction: column; }
-  .filter-group { min-width: unset; width: 100%; }
+  .ticket-list-page {
+    padding: 12px;
+  }
 
-  /* Ticket Detail */
+  .page-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .header-right {
+    flex-wrap: wrap;
+  }
+
+  .filter-row {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    min-width: unset;
+    width: 100%;
+  }
+
   .helpdesk-layout {
     grid-template-columns: 1fr !important;
   }
-  .properties-panel { position: static !important; }
 
-  /* Dashboard */
+  .properties-panel {
+    position: static !important;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr !important;
   }
 
-  /* Table → Cards on mobile */
   .t-table {
     display: none;
   }
 
-  /* Composer */
-  .comp-footer { flex-direction: column; }
-  .note-vis-row { flex-direction: column; }
+  .comp-footer,
+  .note-vis-row {
+    flex-direction: column;
+  }
 }
 
-/* Hamburger menu button */
 .hamburger {
   display: none;
   background: none;
@@ -338,71 +161,9 @@ a {
   cursor: pointer;
   font-size: 20px;
   padding: 4px 8px;
-  color: var(--text-primary, #333);
+  color: var(--ui-color-text-primary);
 
   @media (max-width: 768px) {
     display: block;
   }
-}
-html, body {
-  height: 100%;
-  width: 100%;
-  /* ✅ NO overflow: hidden here */
-  font-family: 'Inter', -apple-system,
-    BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-  background: #f4f6f8;
-  margin: 0;
-  padding: 0;
-}
-
-/* ✅ Remove this if present: */
-/* overflow: hidden;  <-- DELETE */
-
-// ===== ARCTIC TEAL THEME =====
-body.theme-teal {
-  --bg-primary:    #f0fdfa;
-  --bg-secondary:  #ffffff;
-  --bg-card:       #ffffff;
-  --text-primary:  #0d2b28;
-  --text-secondary:#1a5c55;
-  --text-muted:    #5eada5;
-  --border-color:  #ccf0eb;
-  --accent:        #0d9488;
-  --accent-light:  #e6faf8;
-  --hover-bg:      #e6faf8;
-  --toolbar-bg:    #0d9488;
-  --shadow:        0 2px 8px rgba(13,148,136,0.13);
-}
-
-// ===== GOLDEN AMBER THEME =====
-body.theme-amber {
-  --bg-primary:    #fffbeb;
-  --bg-secondary:  #ffffff;
-  --bg-card:       #ffffff;
-  --text-primary:  #1c0f00;
-  --text-secondary:#7c4a00;
-  --text-muted:    #b07a30;
-  --border-color:  #fde68a;
-  --accent:        #b45309;
-  --accent-light:  #fef3c7;
-  --hover-bg:      #fef9e7;
-  --toolbar-bg:    #b45309;
-  --shadow:        0 2px 8px rgba(180,83,9,0.13);
-}
-
-// ===== CARBON SLATE THEME =====
-body.theme-slate {
-  --bg-primary:    #f1f5f9;
-  --bg-secondary:  #ffffff;
-  --bg-card:       #ffffff;
-  --text-primary:  #0f172a;
-  --text-secondary:#334155;
-  --text-muted:    #64748b;
-  --border-color:  #cbd5e1;
-  --accent:        #334155;
-  --accent-light:  #e2e8f0;
-  --hover-bg:      #e8edf4;
-  --toolbar-bg:    #334155;
-  --shadow:        0 2px 8px rgba(51,65,85,0.13);
 }

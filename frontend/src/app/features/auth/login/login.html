@@ -1,148 +1,131 @@
 <div class="auth-layout">
 
-  <!-- ═══ LEFT ═══ -->
   <div class="auth-left">
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
-      <span class="brand-name">iM3HelpDesk</span>
+    <div class="left-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <span class="brand-name">iM3HelpDesk</span>
+      </div>
     </div>
-    <div class="hero-content">
-      <h1>THE FUTURE OF<br>
-        <span class="highlight">SUPPORT</span> IS HERE.
-      </h1>
-      <p>Streamline your workflow with our intelligent
-        helpdesk solution. Built for scale, designed for speed.</p>
+    
+    <div class="hero-center">
+      <div class="status-pill">
+        <span class="pulse-dot"></span> System Live & Operational
+      </div>
+      <h1>The future of modern support is <span class="highlight">here.</span></h1>
+      <p>Streamline workflows with a high-performance helpdesk engine designed for speed, scale, and cross-team precision.</p>
     </div>
-    <div class="badges">
-      <span class="badge-item">⊕ Enterprise Grade</span>
-      <span class="badge-item">⊕ Global Infrastructure</span>
+
+    <div class="left-footer">
+      <div class="meta-row">
+        <span>Enterprise Portal v2.4</span>
+        <span class="separator">/</span>
+        <span>Global Network</span>
+      </div>
     </div>
   </div>
 
-  <!-- ═══ RIGHT ═══ -->
   <div class="auth-right">
-    <div class="auth-form-wrap">
+    <div class="auth-card-workspace">
 
-      <!-- ── STEP 1: Credentials ── -->
       <ng-container *ngIf="step === 'credentials'">
-        <h2>Welcome back</h2>
-        <p class="auth-subtitle">
-          Enter your credentials to access your account
-        </p>
+        <div class="workspace-header">
+          <h2>Sign in to account</h2>
+          <p class="auth-subtitle">Welcome back. Enter your workspace credentials to proceed.</p>
+        </div>
 
         <form [formGroup]="credForm" (ngSubmit)="onSubmit()">
 
           <div class="error-alert" *ngIf="errorMessage">
-            <span>⚠</span> {{ errorMessage }}
+            <span class="alert-icon">✦</span> {{ errorMessage }}
           </div>
 
           <div class="form-group">
-            <label>User ID / Email</label>
+            <label>Workspace Email</label>
             <div class="input-wrap">
               <span class="input-icon">✉</span>
               <input type="email"
                 formControlName="email"
                 placeholder="name@company.com"
-                [class.error]="credForm.get('email')?.invalid
-                  && credForm.get('email')?.touched"/>
+                [class.error]="credForm.get('email')?.invalid && credForm.get('email')?.touched"
+                autocomplete="username"/>
             </div>
-            <span class="field-error"
-              *ngIf="credForm.get('email')?.hasError('email')
-                && credForm.get('email')?.touched">
-              Invalid email address
+            <span class="field-error" *ngIf="credForm.get('email')?.hasError('email') && credForm.get('email')?.touched">
+              Please enter a valid business email address.
             </span>
           </div>
 
           <div class="form-group" *ngIf="!loginWithOtp">
-            <label>Password</label>
+            <div class="label-row">
+              <label>Password</label>
+              <a routerLink="/forgot-password" class="forgot-link">Forgot password?</a>
+            </div>
             <div class="input-wrap">
               <span class="input-icon">🔒</span>
               <input
                 [type]="showPassword ? 'text' : 'password'"
                 formControlName="password"
                 placeholder="••••••••"
-                [class.error]="credForm.get('password')?.invalid
-                  && credForm.get('password')?.touched"/>
-              <button type="button" class="toggle-pass"
-                (click)="showPassword = !showPassword">
+                [class.error]="credForm.get('password')?.invalid && credForm.get('password')?.touched"
+                autocomplete="current-password"/>
+              <button type="button" class="toggle-pass" (click)="showPassword = !showPassword">
                 {{ showPassword ? '🙈' : '👁' }}
               </button>
             </div>
           </div>
 
-          <!-- Checkbox -->
           <div class="otp-toggle-row">
             <label class="otp-checkbox-label">
-              <input type="checkbox"
-                class="otp-checkbox"
-                [checked]="loginWithOtp"
-                (change)="toggleOtpMode($event)"/>
+              <input type="checkbox" class="otp-checkbox" [checked]="loginWithOtp" (change)="toggleOtpMode($event)"/>
               <span class="otp-checkbox-custom"></span>
-              <span class="otp-checkbox-text">Login with OTP</span>
+              <span class="otp-checkbox-text">Sign in using security OTP instead</span>
             </label>
           </div>
 
-          <div class="forgot-row" *ngIf="!loginWithOtp">
-            <a routerLink="/forgot-password" class="forgot-link">
-              Forgot Password?
-            </a>
-          </div>
-
           <button type="submit" class="submit-btn" [disabled]="loading">
-            <span *ngIf="!loading">
-              {{ loginWithOtp ? 'Send OTP →' : 'Login →' }}
+            <span *ngIf="!loading" class="btn-text">
+              {{ loginWithOtp ? 'Send OTP Code' : 'Continue' }} <span class="arrow">→</span>
             </span>
             <span *ngIf="loading" class="btn-loading">
               <span class="spinner"></span>
-              {{ loginWithOtp ? 'Sending OTP...' : 'Signing in...' }}
+              {{ loginWithOtp ? 'Sending code...' : 'Authenticating...' }}
             </span>
           </button>
 
-          <div class="divider"><span>OR</span></div>
+          <div class="divider"><span>or securely log in with</span></div>
 
           <div class="alt-links">
-            <span>Don't have an account?</span>
-            <a routerLink="/register" class="create-link">
-              Create an account
-            </a>
+            <span>New to the platform?</span>
+            <a routerLink="/register" class="create-link">Create an account</a>
           </div>
 
         </form>
 
         <div class="footer-links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="#">Contact</a>
+          <a href="#">Privacy Standard</a>
+          <span class="bullet">•</span>
+          <a href="#">Terms of Use</a>
         </div>
       </ng-container>
 
-      <!-- ── STEP 2: OTP ── -->
       <ng-container *ngIf="step === 'otp'">
+        <button class="back-btn" type="button" (click)="backToLogin()">
+          <span class="back-arrow">←</span> Back to workspace login
+        </button>
 
-        <button class="back-btn" type="button"
-          (click)="backToLogin()">← Back</button>
-
-        <div class="otp-header">
-          <div class="otp-icon-wrap">🔐</div>
-          <h2>Verify your identity</h2>
+        <div class="workspace-header text-center">
+          <div class="security-badge">🔐</div>
+          <h2>Verify Identity</h2>
           <p class="auth-subtitle">
-            We sent a 6-digit code to<br/>
+            A 6-digit confirmation code was sent to <br/>
             <strong class="otp-email">{{ otpEmail }}</strong>
           </p>
         </div>
 
         <div class="error-alert" *ngIf="errorMessage">
-          <span>⚠</span> {{ errorMessage }}
+          <span class="alert-icon">✦</span> {{ errorMessage }}
         </div>
 
-        <!--
-          ✅ KEY FIX:
-          - NO *ngFor — 6 static inputs
-          - NO [value] binding — pure DOM
-          - NO (keydown)/(input) Angular binding
-          - All events handled via pure JS in initOtpBoxes()
-          - #otpContainer gives us the parent reference
-        -->
         <div class="otp-boxes" #otpContainer>
           <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="one-time-code"/>
           <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
@@ -152,39 +135,31 @@
           <input type="text" inputmode="numeric" maxlength="1" class="otp-box" autocomplete="off"/>
         </div>
 
-        <button class="submit-btn" type="button"
-          (click)="verifyOtp()"
-          [disabled]="loading">
-          <span *ngIf="!loading">Verify & Sign In →</span>
+        <button class="submit-btn" type="button" (click)="verifyOtp()" [disabled]="loading">
+          <span *ngIf="!loading" class="btn-text">Verify & Authorize <span class="arrow">→</span></span>
           <span *ngIf="loading" class="btn-loading">
-            <span class="spinner"></span> Verifying...
+            <span class="spinner"></span> Validating secure code...
           </span>
         </button>
 
         <div class="resend-row">
-          <span>Didn't receive it?</span>
-          <button type="button" class="resend-btn"
-            (click)="resendOtp()"
-            [disabled]="resendCooldown > 0 || loading">
-            <ng-container *ngIf="resendCooldown > 0">
-              Resend in {{ resendCooldown }}s
-            </ng-container>
-            <ng-container *ngIf="resendCooldown === 0">
-              Resend OTP
-            </ng-container>
+          <span>Didn't get the secure email?</span>
+          <button type="button" class="resend-btn" (click)="resendOtp()" [disabled]="resendCooldown > 0 || loading">
+            <ng-container *ngIf="resendCooldown > 0">Resend in {{ resendCooldown }}s</ng-container>
+            <ng-container *ngIf="resendCooldown === 0">Request fresh code</ng-container>
           </button>
         </div>
 
-        <p class="otp-note">⏱ Code expires in 5 minutes</p>
-
+        <p class="otp-note">⏱ Security token window closes in 5 minutes</p>
       </ng-container>
 
-      <!-- ── STEP 3: Success ── -->
       <ng-container *ngIf="step === 'success'">
         <div class="success-state">
-          <div class="success-circle">✓</div>
-          <h3>Login Successful!</h3>
-          <p>Redirecting to your dashboard...</p>
+          <div class="success-circle">
+            <span class="check-mark">✓</span>
+          </div>
+          <h3>Handshake Complete</h3>
+          <p>Secure workspace sessions authenticated. Initializing dashboard sync...</p>
           <div class="success-bar">
             <div class="success-bar-fill"></div>
           </div>

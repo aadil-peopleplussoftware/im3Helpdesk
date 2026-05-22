@@ -9,16 +9,16 @@
   h2 {
     font-size: 20px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     margin-bottom: 4px;
   }
 
-  p { font-size: 13px; color: var(--text-muted, #999); }
+  p { font-size: 13px; color: var(--text-muted, var(--ui-color-text-faint)); }
 }
 
 .add-btn {
   padding: 9px 18px;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--ui-color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -31,17 +31,17 @@
 .form-card {
   background: var(--bg-card, white);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   padding: 24px;
   margin-bottom: 20px;
 
   h4 {
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     margin-bottom: 20px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   }
 }
 
@@ -68,22 +68,22 @@
   label {
     font-size: 12px;
     font-weight: 500;
-    color: var(--text-secondary, #555);
+    color: var(--text-secondary, var(--ui-color-text-secondary));
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
 
   input, textarea {
     padding: 9px 12px;
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color, var(--ui-color-border));
     border-radius: 8px;
     font-size: 13px;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     background: var(--bg-card, white);
     outline: none;
     font-family: inherit;
 
-    &:focus { border-color: var(--accent, #2563eb); }
+    &:focus { border-color: var(--accent, var(--ui-color-primary)); }
   }
 
   textarea { resize: vertical; }
@@ -91,22 +91,22 @@
 
 .form-sel {
   padding: 9px 10px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   font-size: 13px;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   background: var(--bg-card, white);
   outline: none;
   cursor: pointer;
 
-  &:focus { border-color: var(--accent, #2563eb); }
+  &:focus { border-color: var(--accent, var(--ui-color-primary)); }
 }
 
-.req { color: #ef4444; }
+.req { color: var(--ui-color-danger); }
 
 .error {
   font-size: 11px;
-  color: #ef4444;
+  color: var(--ui-color-danger);
 }
 
 .form-actions {
@@ -115,22 +115,22 @@
   gap: 10px;
   margin-top: 8px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color, #f0f0f0);
+  border-top: 1px solid var(--border-color, var(--ui-color-border));
 }
 
 .cancel-btn {
   padding: 9px 16px;
   background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 }
 
 .save-btn {
   padding: 9px 20px;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--ui-color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -151,13 +151,13 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--border-color, #e0e0e0);
-  border-top-color: var(--accent, #2563eb);
+  border: 3px solid var(--border-color, var(--ui-color-border));
+  border-top-color: var(--accent, var(--ui-color-primary));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 /* Empty */
 .empty-state {
@@ -165,21 +165,21 @@
   padding: 48px;
   background: var(--bg-card, white);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
 
   .empty-icon { font-size: 36px; }
-  p { font-size: 14px; color: var(--text-muted, #999); }
+  p { font-size: 14px; color: var(--text-muted, var(--ui-color-text-faint)); }
 }
 
 /* Table */
 .templates-table-wrap {
   background: var(--bg-card, white);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   overflow: hidden;
 }
 
@@ -192,23 +192,23 @@
     text-align: left;
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-muted, #9ca3af);
+    color: var(--text-muted, var(--ui-color-text-faint));
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    background: var(--bg-secondary, #fafafa);
-    border-bottom: 1px solid var(--border-color, #e8e8e8);
+    background: var(--bg-secondary, var(--ui-color-bg-subtle));
+    border-bottom: 1px solid var(--border-color, var(--ui-color-border));
     white-space: nowrap;
   }
 
   td {
     padding: 14px 16px;
     font-size: 13px;
-    color: var(--text-primary, #333);
-    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    color: var(--text-primary, var(--ui-color-text-primary));
+    border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   }
 
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--hover-bg, #fafafa); }
+  tr:hover td { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
 }
 
 .title-cell {
@@ -219,8 +219,8 @@
 }
 
 .type-badge {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -229,8 +229,8 @@
 }
 
 .cat-badge {
-  background: var(--accent-light, #dbeafe);
-  color: var(--accent, #1d4ed8);
+  background: var(--accent-light, var(--ui-color-primary-soft));
+  color: var(--accent, var(--ui-color-primary-hover));
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -238,8 +238,8 @@
 }
 
 .status-badge {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--ui-color-success-bg);
+  color: var(--ui-color-success);
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
@@ -264,7 +264,7 @@
 .del-btn {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--ui-color-danger);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;

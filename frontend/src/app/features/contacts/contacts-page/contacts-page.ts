@@ -1,7 +1,4 @@
-import {
-  Component, OnInit,
-  ChangeDetectorRef, inject
-} from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -14,10 +11,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-contacts-page',
   standalone: true,
-  imports: [
-    CommonModule, FormsModule,
-    RouterModule, LayoutComponent
-  ],
+  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent],
   templateUrl: './contacts-page.html',
   styleUrls: ['./contacts-page.scss']
 })
@@ -39,92 +33,64 @@ export class ContactsPageComponent implements OnInit {
   filteredCompanies: any[] = [];
   selectedCompany: any = null;
   companyContacts: any[] = [];
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
-
   coActiveTab = 'contacts';
-  showCreateForm = false;
-
-  viewContact(c: any) {
-    this.selectedContact = c;
-    this.activeView = 'contacts';
-    this.cdr.detectChanges();
-  }
 
   ngOnInit() {
     this.loadContacts();
     this.loadCompanies();
   }
 
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({ 'Authorization': `Bearer ${this.authService.getToken()}` });
+  }
+
   loadContacts() {
     this.loading = true;
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Contacts`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         this.contacts = data;
-        this.filteredContacts = data;
+        this.buildFilteredContacts(data);
         this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-      }
+      error: () => { this.loading = false; }
     });
+  }
+
+  buildFilteredContacts(data: any[]) {
+    const sorted = [...data].sort((a,b) => a.fullName.localeCompare(b.fullName));
+    const groups: { [key: string]: any[] } = {};
+    
+    sorted.forEach(c => {
+      const letter = c.fullName?.charAt(0)?.toUpperCase() || '#';
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(c);
+    });
+
+    this.filteredContacts = Object.entries(groups).map(([letter, list]) => ({ letter, contacts: list }));
   }
 
   search() {
     const q = this.searchQuery.toLowerCase().trim();
-    if (!q) {
-      this.filteredContacts = [...this.contacts];
-      this.filteredCompanies = [...this.companies];
-      this.cdr.detectChanges();
-      return;
+    if (this.activeView === 'contacts') {
+      if (!q) {
+        this.buildFilteredContacts(this.contacts);
+      } else {
+        const matches = this.contacts.filter(c => c.fullName.toLowerCase().includes(q) || (c.company && c.company.toLowerCase().includes(q)));
+        this.buildFilteredContacts(matches);
+      }
+    } else {
+      if (!q) {
+        this.filteredCompanies = [...this.companies];
+      } else {
+        this.filteredCompanies = this.companies.filter(co => co.name.toLowerCase().includes(q));
+      }
     }
-
-    // Contacts: search by name, email, company
-    this.filteredContacts = this.contacts.filter(c =>
-      c.fullName?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.company?.toLowerCase().includes(q)
-    );
-
-    // Companies: search by company name
-    this.filteredCompanies = this.companies.filter(
-      (c: any) => c.name?.toLowerCase().includes(q)
-    );
-
     this.cdr.detectChanges();
   }
 
-  filterContacts() { this.search(); }
-  searchCompanies() { this.search(); }
-
-  get companyGroups(): any[] {
-  const groups: { [key: string]: any[] } = {};
-  this.filteredContacts.forEach(c => {
-    const company = c.company || 'No Company';
-    if (!groups[company]) groups[company] = [];
-    groups[company].push(c);
-  });
-  return Object.entries(groups)
-    .map(([name, contacts]) => ({ name, contacts }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
   loadCompanies() {
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Contacts`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Contacts`, { headers: this.getHeaders() }).subscribe({
       next: (data) => {
         const groups: any = {};
         data.forEach(c => {
@@ -134,9 +100,7 @@ export class ContactsPageComponent implements OnInit {
           }
           groups[co].contacts.push(c);
         });
-        this.companies = Object.values(groups)
-          .sort((a: any, b: any) =>
-            a.name.localeCompare(b.name));
+        this.companies = Object.values(groups).sort((a: any, b: any) => a.name.localeCompare(b.name));
         this.filteredCompanies = [...this.companies];
         this.cdr.detectChanges();
       }
@@ -150,26 +114,17 @@ export class ContactsPageComponent implements OnInit {
   }
 
   selectContact(c: any) {
-    this.selectedContact =
-      this.selectedContact?.id === c.id ? null : c;
+    this.selectedContact = this.selectedContact?.id === c.id ? null : c;
     this.cdr.detectChanges();
   }
 
   getAvatarColor(name: string): string {
-    const colors = [
-      '#ef4444','#f97316','#eab308',
-      '#22c55e','#3b82f6','#8b5cf6','#ec4899'
-    ];
-    const idx = (name?.charCodeAt(0) || 0)
-      % colors.length;
-    return colors[idx];
+    const colors = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899'];
+    return colors[(name?.charCodeAt(0) || 0) % colors.length];
   }
 
   getInitials(name: string): string {
-    return name?.split(' ')
-      .map(n => n[0] || '')
-      .join('')
-      .toUpperCase()
-      .slice(0, 2) || '?';
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
   }
 }

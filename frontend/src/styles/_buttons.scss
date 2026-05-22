@@ -1,0 +1,122 @@
+.ticket-num-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ui-color-text-faint);
+  background: var(--ui-color-bg-subtle);
+  padding: 2px 8px;
+  border-radius: var(--ui-radius-6);
+  white-space: nowrap;
+}
+
+.ticket-id-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-color-text-muted);
+  background: var(--ui-color-bg-subtle);
+  padding: 4px 12px;
+  border-radius: var(--ui-radius-8);
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.error-alert {
+  background: var(--ui-color-danger-bg);
+  color: var(--ui-color-danger);
+  border: 1px solid var(--ui-color-danger-bg);
+  border-radius: var(--ui-radius-8);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.success-alert {
+  background: var(--ui-color-success-bg);
+  color: var(--ui-color-success);
+  border: 1px solid var(--ui-color-success-bg);
+  border-radius: var(--ui-radius-8);
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Shared auth button patterns (register + register-customer) */
+app-register,
+app-register-customer {
+  .auth-card-workspace .back-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: #0f172a;
+    }
+  }
+
+  .auth-card-workspace .submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #0f172a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    .btn-text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+
+      .arrow {
+        transition: transform 0.1s ease;
+      }
+    }
+
+    &:hover:not(:disabled) {
+      background: #1e293b;
+
+      .arrow {
+        transform: translateX(2px);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  .auth-card-workspace .btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .auth-card-workspace .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+}

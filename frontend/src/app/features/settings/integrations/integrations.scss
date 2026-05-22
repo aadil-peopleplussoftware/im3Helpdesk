@@ -3,19 +3,19 @@
 h2 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   margin-bottom: 4px;
 }
 
 .page-desc {
   font-size: 13px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted, var(--ui-color-text-faint));
   margin-bottom: 24px;
 }
 
 .int-card {
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -40,21 +40,21 @@ h2 {
   color: white;
   flex-shrink: 0;
 
-  &.slack { background: #4a154b; }
-  &.teams { background: #5b5ea6; }
-  &.wa { background: #25d366; }
+  &.slack { background: var(--ui-color-brand-slack); }
+  &.teams { background: var(--ui-color-brand-teams); }
+  &.wa { background: var(--ui-color-brand-whatsapp); }
 }
 
 .int-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   margin-bottom: 3px;
 }
 
 .int-header p {
   font-size: 12px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
 .int-status {
@@ -63,31 +63,31 @@ h2 {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--ui-color-bg-subtle);
+  color: var(--ui-color-text-muted);
 
   &.active {
-    background: #dcfce7;
-    color: #16a34a;
+    background: var(--ui-color-success-bg);
+    color: var(--ui-color-success);
   }
 }
 
 .int-settings-link {
   margin-left: auto;
-  color: var(--accent, #2563eb);
+  color: var(--accent, var(--ui-color-primary));
   font-size: 13px;
   text-decoration: none;
 }
 
 .int-steps {
-  background: var(--bg-secondary, #f9fafb);
+  background: var(--bg-secondary, var(--ui-color-bg-subtle));
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 14px;
 
   p {
     font-size: 12px;
-    color: var(--text-secondary, #666);
+    color: var(--text-secondary, var(--ui-color-text-muted));
     padding: 3px 0;
   }
 }
@@ -106,19 +106,19 @@ h2 {
   label {
     font-size: 12px;
     font-weight: 500;
-    color: var(--text-secondary, #555);
+    color: var(--text-secondary, var(--ui-color-text-secondary));
   }
 
   input {
     padding: 9px 12px;
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color, var(--ui-color-border));
     border-radius: 8px;
     font-size: 13px;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     background: var(--bg-card, white);
     outline: none;
 
-    &:focus { border-color: var(--accent, #2563eb); }
+    &:focus { border-color: var(--accent, var(--ui-color-primary)); }
   }
 }
 
@@ -131,18 +131,18 @@ h2 {
 .test-btn {
   padding: 8px 16px;
   background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .save-btn {
   padding: 8px 20px;
-  background: #4a154b;
+  background: var(--ui-color-brand-slack);
   color: white;
   border: none;
   border-radius: 8px;
@@ -150,5 +150,5 @@ h2 {
   font-size: 13px;
   font-weight: 500;
 
-  &.teams-save { background: #5b5ea6; }
+  &.teams-save { background: var(--ui-color-brand-teams); }
 }

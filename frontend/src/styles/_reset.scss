@@ -1,0 +1,32 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ui-color-bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ui-color-text-faint);
+  border-radius: 3px;
+}

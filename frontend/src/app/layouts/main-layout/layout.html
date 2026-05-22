@@ -1,9 +1,7 @@
 <div class="app-shell">
 
-  <!-- SIDEBAR -->
   <div class="sidebar" [class.collapsed]="isSidebarCollapsed">
 
-    <!-- Logo -->
     <div class="sidebar-logo">
       <div class="logo-icon">⚡</div>
       <span class="logo-text">
@@ -13,24 +11,29 @@
       </span>
     </div>
 
-    <!-- Agent/Admin Nav -->
     <nav class="sidebar-nav" *ngIf="!isSuperAdmin && !isCustomer">
 
       <div class="nav-section">
         <div class="nav-label">{{ tr.t('mainMenu') || 'Main Menu' }}</div>
 
         <a class="nav-item" routerLink="/dashboard" routerLinkActive="active">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          </span>
           <span>{{ tr.t('dashboard') }}</span>
         </a>
 
         <a class="nav-item" routerLink="/tickets" routerLinkActive="active">
-          <span class="nav-icon">🎫</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0-6h20a3 3 0 0 1 0 6M2 9v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9M2 9a3 3 0 0 0 0 6h20a3 3 0 0 0 0-6M12 12h.01M12 16h.01"/></svg>
+          </span>
           <span>{{ tr.t('tickets') }}</span>
         </a>
 
         <a class="nav-item" routerLink="/chat" routerLinkActive="active">
-          <span class="nav-icon">💬</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </span>
           <span>{{ tr.t('chat') }}</span>
           <span class="badge" *ngIf="chatUnreadCount > 0 && missedCallCount === 0">
             {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
@@ -45,12 +48,16 @@
         </a>
 
         <a class="nav-item" routerLink="/contacts" routerLinkActive="active">
-          <span class="nav-icon">👤</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
           <span>{{ tr.t('contacts') }}</span>
         </a>
 
         <a class="nav-item" routerLink="/todo" routerLinkActive="active">
-          <span class="nav-icon">📋</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
           <span>{{ tr.t('todo') }}</span>
           <span class="badge" *ngIf="todoCount > 0">
             {{ todoCount > 99 ? '99+' : todoCount }}
@@ -58,16 +65,23 @@
         </a>
 
         <a class="nav-item" routerLink="/kb" routerLinkActive="active">
-          <span class="nav-icon">📚</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+          </span>
           <span>{{ tr.t('insights') }}</span>
         </a>
+        
         <a class="nav-item" routerLink="/calendar" routerLinkActive="active">
-          <span class="nav-icon">📆</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          </span>
           <span>Calendar</span>
         </a>
 
         <a class="nav-item" routerLink="/notifications" routerLinkActive="active">
-          <span class="nav-icon">🔔</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </span>
           <span>{{ tr.t('notifications') }}</span>
           <span class="badge" *ngIf="unreadCount > 0">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
@@ -75,7 +89,9 @@
         </a>
 
         <a class="nav-item" routerLink="/ai-dashboard" routerLinkActive="active">
-          <span class="nav-icon">🤖</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          </span>
           <span>AI Forecast</span>
         </a>
       </div>
@@ -84,111 +100,126 @@
         <div class="nav-label">{{ tr.t('manage') || 'Manage' }}</div>
 
         <a class="nav-item" routerLink="/agents" routerLinkActive="active">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
           <span>{{ tr.t('team') }}</span>
         </a>
 
         <a class="nav-item" routerLink="/reports" routerLinkActive="active">
-          <span class="nav-icon">📈</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+          </span>
           <span>{{ tr.t('reports') }}</span>
         </a>
       </div>
-
-      <!-- Settings removed from sidebar as per new design -->
     </nav>
 
-    <!-- SuperAdmin Nav -->
     <nav class="sidebar-nav" *ngIf="isSuperAdmin">
       <div class="nav-section">
         <div class="nav-label">Super Admin</div>
         <a class="nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-          <span class="nav-icon">🏠</span><span>Overview</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </span>
+          <span>Overview</span>
         </a>
         <a class="nav-item" routerLink="/admin/organizations" routerLinkActive="active">
-          <span class="nav-icon">🏢</span><span>Organizations</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><line x1="9" x2="15" y1="22" y2="22"/><line x1="9" x2="15" y1="18" y2="18"/><line x1="9" x2="15" y1="14" y2="14"/><line x1="9" x2="15" y1="10" y2="10"/><line x1="9" x2="15" y1="6" y2="6"/></svg>
+          </span>
+          <span>Organizations</span>
         </a>
         <a class="nav-item" routerLink="/admin/users" routerLinkActive="active">
-          <span class="nav-icon">👤</span><span>All Users</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <span>All Users</span>
         </a>
       </div>
     </nav>
 
-    <!-- Customer Nav -->
     <nav class="sidebar-nav" *ngIf="isCustomer">
       <div class="nav-section">
         <div class="nav-label">My Support</div>
         <a class="nav-item" routerLink="/customer" routerLinkActive="active">
-          <span class="nav-icon">🎫</span><span>{{ tr.t('tickets') }}</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0-6h20a3 3 0 0 1 0 6M2 9v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9M2 9a3 3 0 0 0 0 6h20a3 3 0 0 0 0-6M12 12h.01M12 16h.01"/></svg>
+          </span>
+          <span>{{ tr.t('tickets') }}</span>
         </a>
         <a class="nav-item" routerLink="/kb" routerLinkActive="active">
-          <span class="nav-icon">📚</span><span>{{ tr.t('insights') }}</span>
+          <span class="nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+          </span>
+          <span>{{ tr.t('insights') }}</span>
         </a>
       </div>
     </nav>
 
-
-
     <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
-      <span class="nav-icon" style="font-size: 18px;">
-        {{ isSidebarCollapsed ? '⇥' : '⇤' }}
+      <span class="nav-icon-toggle">
+        <ng-container *ngIf="isSidebarCollapsed">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </ng-container>
+        <ng-container *ngIf="!isSidebarCollapsed">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" x2="5" y1="12" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </ng-container>
       </span>
       <span class="collapse-text" *ngIf="!isSidebarCollapsed">
-        {{ tr.t('collapse') || 'Collapse' }}
+        {{ tr.t('collapse') || 'Collapse Layout' }}
       </span>
     </div>
   </div>
-  <!-- End Sidebar -->
 
-  <!-- MAIN AREA -->
   <div class="main-area" [class.collapsed]="isSidebarCollapsed">
 
-    <!-- TOPBAR -->
     <div class="topbar">
       <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 
-      <!-- Search -->
       <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer">
-        <span class="ts-icon">🔍</span>
+        <span class="ts-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+        </span>
         <input class="ts-input"
           [(ngModel)]="searchQuery"
           (ngModelChange)="onSearch()"
-          [placeholder]="tr.t('search') + ' tickets, agents, KB...'"/>
+          [placeholder]="tr.t('search') + ' tickets, agents, workspace engine...'"/>
         <div class="search-dropdown" *ngIf="searchResults.length > 0">
           <div class="sr-item" *ngFor="let r of searchResults" (click)="goToResult(r)">
             <span class="sr-icon">
-              {{ r.type === 'ticket' ? '🎫' : r.type === 'agent' ? '👤' : '📚' }}
+              <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
+              <ng-container *ngIf="r.type === 'agent'">👤</ng-container>
+              <ng-container *ngIf="r.type === 'kb'">📚</ng-container>
             </span>
-            <span>{{ r.title }}</span>
+            <span class="sr-text">{{ r.title }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Customer header -->
-      <div class="customer-header" *ngIf="isCustomer">Support Portal</div>
+      <div class="customer-header" *ngIf="isCustomer">Support Portal Gateway</div>
 
-      <!-- SuperAdmin Topbar -->
       <div class="super-header" *ngIf="isSuperAdmin">
-        <span class="super-label">🔧 Platform Administration</span>
+        <span class="super-label">Platform Core Operations</span>
         <div class="super-nav">
-          <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">🏠 Overview</a>
-          <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">🏢 Organizations</a>
-          <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">👤 All Users</a>
+          <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Overview</a>
+          <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">Organizations</a>
+          <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">Users Ecosystem</a>
         </div>
       </div>
 
-      <!-- Right side -->
       <div class="topbar-right">
 
-        <!-- New Ticket btn -->
         <button class="new-ticket-btn"
           *ngIf="!isSuperAdmin && !isCustomer"
           (click)="router.navigate(['/tickets/create'])">
           + {{ tr.t('newTicket') }}
         </button>
 
-        <!-- Todo trigger -->
         <div class="todo-trigger" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleTodoPanel()">
-          📋
+          <span class="trigger-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </span>
           <span class="todo-count" *ngIf="todoCount > 0">
             {{ todoCount > 99 ? '99+' : todoCount }}
           </span>
@@ -197,23 +228,25 @@
           </div>
         </div>
 
-        <!-- Calendar Icon -->
         <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="router.navigate(['/calendar'])">
-          <span class="bell-icon" title="Calendar">📆</span>
+          <span class="bell-icon" title="Workspace Calendar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          </span>
         </div>
 
-        <!-- KB Bell -->
         <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleKbDropdown()">
-          <span class="bell-icon">📚</span>
-          <span class="notif-count" *ngIf="kbUnreadCount > 0">
+          <span class="bell-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+          </span>
+          <span class="notif-count-badge" *ngIf="kbUnreadCount > 0">
             {{ kbUnreadCount > 99 ? '99+' : kbUnreadCount }}
           </span>
           <div class="notif-dropdown" *ngIf="showKbDropdown" (click)="$event.stopPropagation()">
             <div class="nd-header">
-              <span>{{ tr.t('insights') }}</span>
-              <button (click)="router.navigate(['/kb']); showKbDropdown=false">View All</button>
+              <span>Knowledge Insights</span>
+              <button (click)="router.navigate(['/kb']); showKbDropdown=false">View Registry</button>
             </div>
-            <div class="nd-empty" *ngIf="kbUnreadArticles.length === 0">No new articles</div>
+            <div class="nd-empty" *ngIf="kbUnreadArticles.length === 0">No unread repository docs.</div>
             <div class="nd-scroll-area">
               <div class="nd-item" *ngFor="let a of kbUnreadArticles" (click)="goToKbArticle(a.id)">
                 <div class="nd-content">
@@ -224,23 +257,24 @@
               </div>
             </div>
             <div class="nd-footer" (click)="router.navigate(['/kb']); showKbDropdown=false">
-              Browse Knowledge Base
+              Open Knowledge Infrastructure
             </div>
           </div>
         </div>
 
-        <!-- Notification Bell -->
         <div class="notif-bell" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleNotifDropdown()">
-          <span class="bell-icon">🔔</span>
-          <span class="notif-count" *ngIf="unreadCount > 0">
+          <span class="bell-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          </span>
+          <span class="notif-count-badge" *ngIf="unreadCount > 0">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
           </span>
           <div class="notif-dropdown" *ngIf="showNotifDropdown" (click)="$event.stopPropagation()">
             <div class="nd-header">
-              <span>{{ tr.t('notifications') }}</span>
-              <button (click)="markAllRead()">Mark all read</button>
+              <span>Operational Signals</span>
+              <button (click)="markAllRead()">Dismiss All</button>
             </div>
-            <div class="nd-empty" *ngIf="notifications.length === 0">No notifications</div>
+            <div class="nd-empty" *ngIf="notifications.length === 0">Clear transmission pipeline.</div>
             <div class="nd-scroll-area">
               <div class="nd-item"
                 *ngFor="let n of notifications.slice(0,8)"
@@ -255,18 +289,17 @@
               </div>
             </div>
             <div class="nd-footer" (click)="router.navigate(['/notifications'])">
-              View all notifications
+              View All Transmissions
             </div>
           </div>
         </div>
 
-        <!-- Topbar User Avatar with Dropdown -->
         <div class="profile-dropdown-anchor">
           <div class="topbar-user" (click)="toggleProfileDropdown($event)">
             <div class="u-av" [style.background]="userPhotoUrl ? 'transparent' : getAvatarColor(userName)">
               <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="userName"
                 (error)="userPhotoUrl = ''"
-                style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>
+                class="avatar-img"/>
               <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
             </div>
           </div>
@@ -276,32 +309,33 @@
               <div class="profile-email">{{ userEmail }}</div>
             </div>
             <div class="profile-link-item" (click)="goToMainSettings()">
-              <span class="profile-link-icon">🛠️</span>
-              <span>Settings</span>
+              <span class="profile-link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V22a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+              <span>Workspace Settings</span>
             </div>
             <div class="profile-link-item" (click)="goToProfileSettings()">
-              <span class="profile-link-icon">⚙️</span>
-              <span>Profile settings</span>
+              <span class="profile-link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <span>Profile Settings</span>
             </div>
             <div class="profile-link-item logout" (click)="logout()">
-              <span class="profile-link-icon">↩️</span>
-              <span>Sign out</span>
+              <span class="profile-link-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              </span>
+              <span>Terminate Session</span>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <!-- End Topbar -->
 
-    <!-- PAGE CONTENT -->
     <div class="page-content">
       <ng-content></ng-content>
     </div>
 
   </div>
-  <!-- End Main Area -->
-
 </div>
 
-<!-- Global Call Popup -->
 <app-global-call-popup></app-global-call-popup>

@@ -1,7 +1,7 @@
 /* ── Organizations List Page ────────────────────── */
 .ol-page {
   padding: 28px;
-  background: var(--bg-primary, #f4f6f8);
+  background: var(--bg-primary, var(--ui-color-bg-subtle));
   min-height: 100%;
 }
 
@@ -20,26 +20,26 @@
 .ol-back-btn {
   padding: 7px 14px;
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary, var(--ui-color-text-secondary));
   transition: all 0.15s;
   white-space: nowrap;
-  &:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  &:hover { background: var(--ui-color-primary-soft); border-color: var(--ui-color-primary); color: var(--ui-color-primary); }
 }
 
 .ol-title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-primary, #1a1a2e);
+  color: var(--text-primary, var(--ui-color-text-primary));
   margin: 0 0 3px 0;
 }
 
 .ol-subtitle {
   font-size: 13px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
   margin: 0;
 }
 
@@ -59,9 +59,9 @@
   border-radius: 20px;
   font-size: 13px;
   border: 1px solid transparent;
-  &.total    { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
-  &.active   { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
-  &.inactive { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+  &.total    { background: var(--ui-color-primary-soft); border-color: var(--ui-color-primary-soft); color: var(--ui-color-primary-hover); }
+  &.active   { background: var(--ui-color-success-bg); border-color: var(--ui-color-success-bg); color: var(--ui-color-success); }
+  &.inactive { background: var(--ui-color-warning-bg); border-color: var(--ui-color-warning-bg); color: var(--ui-color-warning-strong); }
 }
 
 .chip-num   { font-size: 16px; font-weight: 700; }
@@ -83,10 +83,10 @@
   flex: 1;
   max-width: 420px;
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 0 12px;
-  &:focus-within { border-color: #2563eb; box-shadow: 0 0 0 3px #2563eb18; }
+  &:focus-within { border-color: var(--ui-color-primary); box-shadow: 0 0 0 3px var(--ui-color-primary)18; }
 }
 
 .ol-s-icon { font-size: 14px; margin-right: 8px; }
@@ -98,8 +98,8 @@
   background: transparent;
   padding: 10px 0;
   font-size: 14px;
-  color: var(--text-primary, #333);
-  &::placeholder { color: #9ca3af; }
+  color: var(--text-primary, var(--ui-color-text-primary));
+  &::placeholder { color: var(--ui-color-text-faint); }
 }
 
 .ol-s-clear {
@@ -107,37 +107,37 @@
   border: none;
   cursor: pointer;
   font-size: 13px;
-  color: #9ca3af;
-  &:hover { color: #ef4444; }
+  color: var(--ui-color-text-faint);
+  &:hover { color: var(--ui-color-danger); }
 }
 
 .ol-status-filter {
   padding: 9px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   background: var(--bg-card, white);
   font-size: 13px;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   cursor: pointer;
   outline: none;
-  &:focus { border-color: #2563eb; }
+  &:focus { border-color: var(--ui-color-primary); }
 }
 
 .ol-clear-btn {
   padding: 8px 14px;
-  background: #fee2e2;
-  border: 1px solid #fecaca;
+  background: var(--ui-color-danger-bg);
+  border: 1px solid var(--ui-color-danger-bg);
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
-  color: #dc2626;
+  color: var(--ui-color-danger);
   font-weight: 500;
-  &:hover { background: #fecaca; }
+  &:hover { background: var(--ui-color-danger-bg); }
 }
 
 .ol-count-label {
   font-size: 13px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
   margin-left: auto;
   white-space: nowrap;
 }
@@ -145,7 +145,7 @@
 /* Table */
 .ol-table-wrap {
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 12px;
   overflow: hidden;
 }
@@ -156,8 +156,8 @@
   font-size: 14px;
 
   thead tr {
-    background: var(--bg-primary, #f8fafc);
-    border-bottom: 1px solid var(--border-color, #e8e8e8);
+    background: var(--bg-primary, var(--ui-color-bg-page));
+    border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   }
 
   th {
@@ -165,7 +165,7 @@
     text-align: left;
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-muted, #6b7280);
+    color: var(--text-muted, var(--ui-color-text-muted));
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -174,8 +174,8 @@
 
   td {
     padding: 13px 16px;
-    border-bottom: 1px solid var(--border-color, #f3f4f6);
-    color: var(--text-primary, #333);
+    border-bottom: 1px solid var(--border-color, var(--ui-color-bg-subtle));
+    color: var(--text-primary, var(--ui-color-text-primary));
     vertical-align: middle;
     &.center { text-align: center; }
   }
@@ -183,7 +183,7 @@
 
 .ol-row {
   &:last-child td { border-bottom: none; }
-  &:hover { background: var(--hover-bg, #fafbff); }
+  &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
 }
 
 .ol-org-cell {
@@ -206,16 +206,16 @@
 }
 
 .ol-org-name { font-weight: 600; }
-.ol-email    { font-size: 13px; color: var(--text-secondary, #555); }
-.ol-date     { font-size: 13px; color: var(--text-secondary, #555); white-space: nowrap; }
+.ol-email    { font-size: 13px; color: var(--text-secondary, var(--ui-color-text-secondary)); }
+.ol-date     { font-size: 13px; color: var(--text-secondary, var(--ui-color-text-secondary)); white-space: nowrap; }
 .ol-num      { font-weight: 600; }
 
 .ol-slug {
-  background: #f5f5f5;
+  background: var(--ui-color-bg-subtle);
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 12px;
-  color: #555;
+  color: var(--ui-color-text-secondary);
   font-family: monospace;
 }
 
@@ -226,8 +226,8 @@
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  &.active   { background: #dcfce7; color: #15803d; }
-  &.inactive { background: #fee2e2; color: #dc2626; }
+  &.active   { background: var(--ui-color-success-bg); color: var(--ui-color-success); }
+  &.inactive { background: var(--ui-color-danger-bg); color: var(--ui-color-danger); }
 }
 
 .ol-toggle-btn {
@@ -240,15 +240,15 @@
   transition: all 0.15s;
 
   &.deactivate {
-    background: #fee2e2;
-    color: #dc2626;
-    &:hover { background: #fecaca; }
+    background: var(--ui-color-danger-bg);
+    color: var(--ui-color-danger);
+    &:hover { background: var(--ui-color-danger-bg); }
   }
 
   &.activate {
-    background: #dcfce7;
-    color: #15803d;
-    &:hover { background: #bbf7d0; }
+    background: var(--ui-color-success-bg);
+    color: var(--ui-color-success);
+    &:hover { background: var(--ui-color-success-bg); }
   }
 }
 
@@ -256,7 +256,7 @@
 .ol-empty {
   padding: 60px 32px;
   text-align: center;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -272,15 +272,15 @@
   align-items: center;
   padding: 80px;
   gap: 16px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
   font-size: 14px;
 }
 
 .ol-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #1e3a8a;
+  border: 3px solid var(--ui-color-border);
+  border-top-color: var(--ui-color-primary-hover);
   border-radius: 50%;
   animation: ol-spin 0.8s linear infinite;
 }

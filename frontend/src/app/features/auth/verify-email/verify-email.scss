@@ -100,7 +100,7 @@
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 // ── Status circles ──
 .status-circle {
@@ -123,10 +123,7 @@
   background: linear-gradient(135deg, #ef4444, #dc2626);
 }
 
-@keyframes pop-in {
-  0%   { transform: scale(0); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
+// moved to styles/_mixins.scss
 
 // ── Countdown ──
 .countdown-msg {

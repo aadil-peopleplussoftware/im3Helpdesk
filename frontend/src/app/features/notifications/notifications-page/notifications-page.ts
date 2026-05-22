@@ -32,6 +32,7 @@ export class NotificationsPageComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private destroy$ = new Subject<void>();
 
+  activeTab: string = 'notifications';
   notifications: any[] = [];
   activityLogs: any[] = [];
   loading = true;
