@@ -136,9 +136,7 @@
   flex-shrink: 0;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+// moved to styles/_mixins.scss
 
 /* ── Empty ── */
 .cl-empty {

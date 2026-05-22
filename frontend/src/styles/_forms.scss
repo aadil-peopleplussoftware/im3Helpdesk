@@ -1,0 +1,109 @@
+/* Shared auth form patterns (register + register-customer) */
+app-register,
+app-register-customer {
+  .auth-card-workspace .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .auth-card-workspace .form-group {
+    margin-bottom: 16px;
+
+    label {
+      display: block;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 600;
+      margin-bottom: 6px;
+
+      .lbl-opt {
+        color: #94a3b8;
+        font-weight: 400;
+        font-size: 11px;
+      }
+    }
+
+    .field-hint {
+      display: block;
+      color: #64748b;
+      font-size: 11.5px;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+  }
+
+  .auth-card-workspace .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 14px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px 11px 38px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      color: #0f172a;
+      font-size: 13.5px;
+      outline: none;
+      box-sizing: border-box;
+      transition: all 0.15s ease;
+
+      &::placeholder {
+        color: #94a3b8;
+        opacity: 0.7;
+      }
+
+      &:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+    }
+  }
+
+  .auth-card-workspace .field-error {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+  }
+
+  @media (max-width: 480px) {
+    .auth-card-workspace .form-row {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+}
+
+/* Angular Material dark mode form refinements */
+body.theme-dark,
+[data-theme="dark"] {
+  mat-form-field {
+    .mat-mdc-text-field-wrapper {
+      background: var(--ui-color-bg-subtle) !important;
+    }
+
+    .mat-mdc-floating-label {
+      color: var(--ui-color-text-muted) !important;
+    }
+
+    input,
+    textarea {
+      color: var(--ui-color-text-primary) !important;
+    }
+  }
+
+  .mat-mdc-select-value {
+    color: var(--ui-color-text-primary) !important;
+  }
+}

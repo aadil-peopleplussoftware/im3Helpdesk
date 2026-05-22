@@ -1,0 +1,21 @@
+body {
+  font-family: var(--ui-font-family);
+  background: var(--ui-color-bg-page);
+  color: var(--ui-color-text-primary);
+  line-height: 1.5;
+  transition: background 0.3s, color 0.3s;
+  color-scheme: light;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--ui-color-text-primary);
+}
+
+p {
+  color: var(--ui-color-text-secondary);
+}

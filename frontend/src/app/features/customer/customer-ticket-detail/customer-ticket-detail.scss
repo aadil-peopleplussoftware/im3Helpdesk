@@ -252,7 +252,7 @@
   animation: spin 0.7s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 // ═══════════════════════════════════
 // Ticket Info Card

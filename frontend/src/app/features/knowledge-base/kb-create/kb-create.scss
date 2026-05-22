@@ -150,7 +150,7 @@
   &:hover { background: var(--ui-color-danger); }
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 /* ── Fields ── */
 .field-wrap {

@@ -118,6 +118,6 @@
 
 .loading-center { display: flex; align-items: center; justify-content: center; padding: 40px; flex: 1; }
 .spinner { width: 20px; height: 20px; border: 2px solid var(--ui-color-border); border-top-color: var(--ui-color-primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 .cm-empty-state { text-align: center; max-width: 260px; .cm-empty-icon { font-size: 32px; color: var(--ui-color-border); margin-bottom: 8px; } h3 { font-size: 14px; font-weight: 700; color: var(--ui-color-text-secondary); margin-bottom: 4px; } p { font-size: 12px; color: var(--ui-color-text-muted); line-height: 1.5; } }

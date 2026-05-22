@@ -1,5 +1,10 @@
-﻿@use '@angular/material' as mat;
-@use './ui-tokens';
+@use '@angular/material' as mat;
+@use 'styles/variables';
+@use 'styles/reset';
+@use 'styles/typography';
+@use 'styles/mixins';
+@use 'styles/buttons';
+@use 'styles/forms';
 
 html {
   height: 100%;
@@ -13,34 +18,6 @@ html {
       density: 0,
     )
   );
-}
-
-html,
-body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--ui-font-family);
-  background: var(--ui-color-bg-page);
-  color: var(--ui-color-text-primary);
-  line-height: 1.5;
-  transition: background 0.3s, color 0.3s;
-  color-scheme: light;
-}
-
-a {
-  text-decoration: none;
-  color: inherit;
 }
 
 .mat-mdc-card {
@@ -59,23 +36,9 @@ a {
   display: none !important;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--ui-color-bg-surface);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--ui-color-text-faint);
-  border-radius: 3px;
-}
-
 /* Angular Material dark mode refinements */
-body.theme-dark {
+body.theme-dark,
+[data-theme="dark"] {
   .mat-mdc-table {
     background: var(--ui-color-bg-surface) !important;
     color: var(--ui-color-text-primary) !important;
@@ -94,77 +57,11 @@ body.theme-dark {
     background: var(--ui-color-bg-hover) !important;
   }
 
-  mat-form-field {
-    .mat-mdc-text-field-wrapper {
-      background: var(--ui-color-bg-subtle) !important;
-    }
-
-    .mat-mdc-floating-label {
-      color: var(--ui-color-text-muted) !important;
-    }
-
-    input,
-    textarea {
-      color: var(--ui-color-text-primary) !important;
-    }
-  }
-
-  .mat-mdc-select-value {
-    color: var(--ui-color-text-primary) !important;
-  }
-
   .mat-mdc-menu-panel,
   .mat-mdc-option {
     background: var(--ui-color-bg-surface) !important;
     color: var(--ui-color-text-primary) !important;
   }
-}
-
-.ticket-num-badge {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ui-color-text-faint);
-  background: var(--ui-color-bg-subtle);
-  padding: 2px 8px;
-  border-radius: var(--ui-radius-6);
-  white-space: nowrap;
-}
-
-.ticket-id-badge {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ui-color-text-muted);
-  background: var(--ui-color-bg-subtle);
-  padding: 4px 12px;
-  border-radius: var(--ui-radius-8);
-  display: inline-block;
-  margin-bottom: 6px;
-}
-
-.error-alert {
-  background: var(--ui-color-danger-bg);
-  color: var(--ui-color-danger);
-  border: 1px solid var(--ui-color-danger-bg);
-  border-radius: var(--ui-radius-8);
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.success-alert {
-  background: var(--ui-color-success-bg);
-  color: var(--ui-color-success);
-  border: 1px solid var(--ui-color-success-bg);
-  border-radius: var(--ui-radius-8);
-  padding: 10px 14px;
-  font-size: 13px;
-  margin-bottom: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Toastr */
