@@ -46,8 +46,17 @@ public class ProfileController : ControllerBase
       user.FullName,
       user.Email,
       user.PhoneNumber,
+      user.Department,
+      user.Location,
+      user.Designation,
+      user.DateOfBirth,
+      user.DateOfJoining,
+      user.Gender,
       user.PhotoUrl, // Included photo URL in response
+      UserName = user.Email.Split('@')[0],
       Role = user.Role.ToString(),
+      IsActive = !user.LockedUntil.HasValue ||
+          user.LockedUntil < DateTime.UtcNow,
       user.IsEmailVerified,
       user.CreatedAt,
       user.LastLoginAt,
@@ -134,9 +143,54 @@ public class ProfileController : ControllerBase
     });
   }
 
+  [HttpDelete("photo")]
+  public async Task<IActionResult> RemovePhoto()
+  {
+    var userIdClaim =
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Unauthorized();
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Id == userId);
+
+    if (user == null) return NotFound();
+
+    if (string.IsNullOrEmpty(user.PhotoUrl))
+      return Ok(new { message = "No photo to remove" });
+
+    var wwwRoot = _env.WebRootPath
+        ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+    var oldPath = Path.Combine(wwwRoot, user.PhotoUrl.TrimStart('/'));
+    if (System.IO.File.Exists(oldPath))
+      System.IO.File.Delete(oldPath);
+
+    user.PhotoUrl = null;
+    await _context.SaveChangesAsync();
+
+    return Ok(new { message = "Photo removed successfully" });
+  }
+
   [HttpPut]
   public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
   {
+    if (!ModelState.IsValid)
+      return ValidationProblem(ModelState);
+
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    if (dto.DateOfBirth.HasValue && dto.DateOfBirth.Value > today)
+      return BadRequest(new { message = "Date of birth cannot be in the future" });
+
+    if (dto.DateOfJoining.HasValue && dto.DateOfJoining.Value > today)
+      return BadRequest(new { message = "Date of joining cannot be in the future" });
+
+    if (dto.DateOfBirth.HasValue && dto.DateOfJoining.HasValue &&
+        dto.DateOfJoining.Value < dto.DateOfBirth.Value)
+      return BadRequest(new { message = "Date of joining cannot be before date of birth" });
+
     var userId = GetUserId();
     if (userId == null) return Unauthorized();
 
@@ -146,8 +200,25 @@ public class ProfileController : ControllerBase
 
     if (user == null) return NotFound();
 
-    user.FullName = dto.FullName;
-    user.PhoneNumber = dto.PhoneNumber;
+    user.FullName = dto.FullName.Trim();
+    user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber)
+      ? null
+      : dto.PhoneNumber.Trim();
+    user.Department = string.IsNullOrWhiteSpace(dto.Department)
+      ? null
+      : dto.Department.Trim();
+    user.Location = string.IsNullOrWhiteSpace(dto.Location)
+      ? null
+      : dto.Location.Trim();
+    user.Designation = string.IsNullOrWhiteSpace(dto.Designation)
+      ? null
+      : dto.Designation.Trim();
+    user.DateOfBirth = dto.DateOfBirth;
+    user.DateOfJoining = dto.DateOfJoining;
+    user.Gender = string.IsNullOrWhiteSpace(dto.Gender)
+      ? null
+      : dto.Gender.Trim();
+
     await _context.SaveChangesAsync();
 
     return Ok(new { message = "Profile updated successfully" });

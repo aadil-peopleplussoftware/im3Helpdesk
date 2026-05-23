@@ -22,4 +22,10 @@ public class User
     public DateTime? LockedUntil { get; set; }
     public string? Signature { get; set; }
     public string? PhotoUrl { get; set; }
+    public string? Department { get; set; }
+    public string? Location { get; set; }
+    public string? Designation { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public DateOnly? DateOfJoining { get; set; }
+    public string? Gender { get; set; }
 }

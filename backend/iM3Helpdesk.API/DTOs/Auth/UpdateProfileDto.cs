@@ -1,9 +1,31 @@
 ﻿namespace iM3Helpdesk.API.DTOs.Auth;
 
+using System.ComponentModel.DataAnnotations;
+
 public class UpdateProfileDto
 {
+    [Required]
+    [MaxLength(200)]
     public string FullName { get; set; } = string.Empty;
+
+    [MaxLength(30)]
     public string? PhoneNumber { get; set; }
+
+    [MaxLength(120)]
+    public string? Department { get; set; }
+
+    [MaxLength(120)]
+    public string? Location { get; set; }
+
+    [MaxLength(120)]
+    public string? Designation { get; set; }
+
+    public DateOnly? DateOfBirth { get; set; }
+
+    public DateOnly? DateOfJoining { get; set; }
+
+    [MaxLength(30)]
+    public string? Gender { get; set; }
 }
 
 public class ChangePasswordDto

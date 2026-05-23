@@ -134,6 +134,14 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.FullName)
           .HasMaxLength(200)
           .IsRequired();
+      e.Property(x => x.Department)
+          .HasMaxLength(120);
+      e.Property(x => x.Location)
+          .HasMaxLength(120);
+      e.Property(x => x.Designation)
+          .HasMaxLength(120);
+      e.Property(x => x.Gender)
+          .HasMaxLength(30);
       e.HasQueryFilter(u =>
           _isSuperAdmin ||
           u.OrganizationId ==

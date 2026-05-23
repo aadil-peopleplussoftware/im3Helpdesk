@@ -26,14 +26,16 @@ export class ProfileService {
     return this.http.put(`${this.baseUrl}/api/Organizations/current`, data);
   }
 
-  // Naya method photo upload ke liye
   uploadPhoto(file: File): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
     return this.http.post<any>(`${this.apiUrl}/upload-photo`, formData);
   }
 
-  // Helper method full URL banane ke liye
+  removePhoto(): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/photo`);
+  }
+
   getFullPhotoUrl(path: string | null): string {
     if (!path) return '';
     return path.startsWith('http') ? path : `${this.baseUrl}${path}`;
