@@ -92,6 +92,13 @@ builder.Services.AddAuthentication(options =>
       {
         context.Token = accessToken;
       }
+
+      // Cookie-first auth path for SPA requests using HttpOnly cookies.
+      if (string.IsNullOrEmpty(context.Token) &&
+          context.Request.Cookies.TryGetValue("im3_access", out var cookieToken))
+      {
+        context.Token = cookieToken;
+      }
       return Task.CompletedTask;
     }
   };

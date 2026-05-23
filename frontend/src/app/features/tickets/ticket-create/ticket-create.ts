@@ -2,13 +2,12 @@ import { Component, OnInit, ChangeDetectorRef, inject, ViewChild, ElementRef } f
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { TicketService } from '../../../core/services/ticket';
 import { AgentService } from '../../../core/services/agent';
 import { AgentGroupService } from '../../../core/services/agent-group';
-import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -26,7 +25,6 @@ export class TicketCreateComponent implements OnInit {
   private ticketService = inject(TicketService);
   private agentService = inject(AgentService);
   private groupService = inject(AgentGroupService);
-  private authService = inject(AuthService);
   private http = inject(HttpClient);
   public router = inject(Router);
   private toastr = inject(ToastrService);
@@ -102,12 +100,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadTemplates() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.get<any[]>(
-      `${environment.apiUrl}/TicketTemplates`, { headers }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/TicketTemplates`).subscribe({
       next: (data) => {
         this.templates = data;
         this.cdr.detectChanges();
@@ -116,12 +109,7 @@ export class TicketCreateComponent implements OnInit {
   }
 
   loadCustomFields() {
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-    this.http.get<any[]>(
-      `${environment.apiUrl}/CustomFields`, { headers }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/CustomFields`).subscribe({
       next: (data) => {
         this.customFields = data;
         data.forEach(f => this.customFieldValues[f.id] = '');
@@ -217,10 +205,6 @@ export class TicketCreateComponent implements OnInit {
       const ticketId = res?.id;
 
       if (ticketId) {
-        const headers = new HttpHeaders({
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        });
-
         // Save custom field values
         const cfValues = Object.entries(this.customFieldValues)
           .filter(([, v]) => v)
@@ -231,7 +215,7 @@ export class TicketCreateComponent implements OnInit {
         if (cfValues.length > 0) {
           await this.http.post(
             `${environment.apiUrl}/CustomFields/ticket/${ticketId}/values`,
-            cfValues, { headers }
+            cfValues
           ).toPromise();
         }
 
@@ -241,7 +225,7 @@ export class TicketCreateComponent implements OnInit {
           formData.append('file', file);
           await this.http.post(
             `${environment.apiUrl}/Attachments/upload/${ticketId}`,
-            formData, { headers }
+            formData
           ).toPromise();
         }
       }

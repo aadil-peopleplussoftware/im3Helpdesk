@@ -8,9 +8,8 @@ import {
   FormBuilder, FormGroup, Validators
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -29,7 +28,6 @@ export class CustomerPortalComponent
   implements OnInit {
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
@@ -54,23 +52,13 @@ export class CustomerPortalComponent
     'General', 'Technical', 'Billing', 'Account'
   ];
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadMyTickets();
   }
 
   loadMyTickets() {
     this.loading = true;
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Customer/my-tickets`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Customer/my-tickets`).subscribe({
       next: (data) => {
         this.myTickets = data;
         this.loading = false;
@@ -94,8 +82,7 @@ export class CustomerPortalComponent
     this.http.post<any>(
       `${environment.apiUrl}/Customer` +
       '/submit-ticket',
-      this.createForm.value,
-      { headers: this.getHeaders() }
+      this.createForm.value
     ).subscribe({
       next: (res) => {
         this.creating = false;

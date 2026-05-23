@@ -1,9 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -15,7 +14,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class WhatsappSettingsComponent implements OnInit {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -27,16 +25,9 @@ export class WhatsappSettingsComponent implements OnInit {
   saving = false;
   webhookUrl = `${environment.apiUrl}/WhatsApp/webhook`;
 
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.http.get<any>(
-      `${environment.apiUrl}/Organizations/current`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/Organizations/current`
     ).subscribe({
       next: (data) => {
         this.config.whatsAppNumber = data.whatsAppNumber || '';
@@ -54,8 +45,7 @@ export class WhatsappSettingsComponent implements OnInit {
         whatsAppNumber: this.config.whatsAppNumber,
         twilioAccountSid: this.config.twilioAccountSid,
         twilioAuthToken: this.config.twilioAuthToken
-      },
-      { headers: this.getHeaders() }
+      }
     ).subscribe({
       next: () => {
         this.saving = false;

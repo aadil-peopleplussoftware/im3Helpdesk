@@ -7,9 +7,8 @@ import {
   FormsModule, ReactiveFormsModule,
   FormBuilder, FormGroup, Validators
 } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -22,7 +21,6 @@ import { environment } from '../../../../environments/environment';
 export class AgentGroupsSettingsComponent implements OnInit {
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
@@ -39,12 +37,6 @@ export class AgentGroupsSettingsComponent implements OnInit {
     description: ['']
   });
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadGroups();
     this.loadAgents();
@@ -52,8 +44,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   loadGroups() {
     this.http.get<any[]>(
-      `${environment.apiUrl}/AgentGroups`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/AgentGroups`
     ).subscribe({
       next: (data) => {
         this.groups = data;
@@ -64,8 +55,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   loadAgents() {
     this.http.get<any[]>(
-      `${environment.apiUrl}/Agents`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/Agents`
     ).subscribe({
       next: (data) => {
         this.agents = data;
@@ -102,12 +92,10 @@ export class AgentGroupsSettingsComponent implements OnInit {
     const req = this.editingId
       ? this.http.put(
           `${environment.apiUrl}/AgentGroups/${this.editingId}`,
-          payload,
-          { headers: this.getHeaders() })
+        payload)
       : this.http.post(
           `${environment.apiUrl}/AgentGroups`,
-          payload,
-          { headers: this.getHeaders() });
+        payload);
 
     req.subscribe({
       next: () => {
@@ -152,10 +140,7 @@ export class AgentGroupsSettingsComponent implements OnInit {
 
   deleteGroup(id: string) {
     if (!confirm('Delete this group? All members will be removed.')) return;
-    this.http.delete(
-      `${environment.apiUrl}/AgentGroups/${id}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.delete(`${environment.apiUrl}/AgentGroups/${id}`).subscribe({
       next: () => {
         Promise.resolve().then(() =>
           this.toastr.success('Group deleted'));

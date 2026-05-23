@@ -6,11 +6,10 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -56,7 +55,6 @@ interface DayCell {
 })
 export class CalendarEventComponent implements OnInit, OnDestroy {
 
-  private authService = inject(AuthService);
   private http = inject(HttpClient);
   private toastr = inject(ToastrService);
   private router = inject(Router);
@@ -157,19 +155,12 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   // ─────────────────────────────────────────────────
   // Data loading
   // ─────────────────────────────────────────────────
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   loadAll() {
     this.loading = true;
-    const h = { headers: this.getHeaders() };
 
     // Load events from backend
     this.http.get<CalendarEvent[]>(
-      `${environment.apiUrl}/CalendarEvents`, h
+      `${environment.apiUrl}/CalendarEvents`
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (events) => {
         this.allEvents = events || [];
@@ -191,7 +182,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
     // Load tickets for calendar
     this.http.get<any[]>(
-      `${environment.apiUrl}/Tickets`, h
+      `${environment.apiUrl}/Tickets`
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (tickets) => {
         this.allTickets = tickets || [];
@@ -415,13 +406,12 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const h = { headers: this.getHeaders() };
     const payload = { ...this.newEvent };
 
     if (this.isEditMode && payload.id) {
       this.http.put<CalendarEvent>(
         `${environment.apiUrl}/CalendarEvents/${payload.id}`,
-        payload, h
+        payload
       ).subscribe({
         next: (updated) => {
           const idx = this.allEvents.findIndex(e => e.id === updated.id);
@@ -451,7 +441,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
       } as CalendarEvent;
 
       this.http.post<CalendarEvent>(
-        `${environment.apiUrl}/CalendarEvents`, newEv, h
+        `${environment.apiUrl}/CalendarEvents`, newEv
       ).subscribe({
         next: (created) => {
           this.allEvents.push(created);
@@ -475,9 +465,8 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   deleteEvent(event: CalendarEvent) {
     if (!confirm(`Delete "${event.title}"?`)) return;
-    const h = { headers: this.getHeaders() };
     this.http.delete(
-      `${environment.apiUrl}/CalendarEvents/${event.id}`, h
+      `${environment.apiUrl}/CalendarEvents/${event.id}`
     ).subscribe({
       next: () => this.removeEventLocally(event.id),
       error: () => this.removeEventLocally(event.id)
@@ -496,9 +485,8 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
 
   toggleComplete(event: CalendarEvent) {
     event.isCompleted = !event.isCompleted;
-    const h = { headers: this.getHeaders() };
     this.http.put(
-      `${environment.apiUrl}/CalendarEvents/${event.id}`, event, h
+      `${environment.apiUrl}/CalendarEvents/${event.id}`, event
     ).subscribe({
       next: () => {},
       error: () => {}
@@ -654,10 +642,9 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
     this.sendingReminder = true;
     this.cdr.detectChanges();
 
-    const h = { headers: this.getHeaders() };
     this.http.post(
       `${environment.apiUrl}/CalendarEvents/${ev.id}/send-reminder`,
-      {}, h
+      {}
     ).subscribe({
       next: (res: any) => {
         this.sendingReminder = false;

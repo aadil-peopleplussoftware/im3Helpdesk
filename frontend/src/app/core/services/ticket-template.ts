@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from '../../features/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 export interface TicketTemplate {
@@ -18,33 +17,26 @@ export interface TicketTemplate {
 })
 export class TicketTemplateService {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
-  
+
   private readonly apiUrl = `${environment.apiUrl}/TicketTemplates`;
 
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   getAll(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrl, { headers: this.getHeaders() });
+    return this.http.get<any[]>(this.apiUrl);
   }
 
   getById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
   }
 
   create(data: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, data, { headers: this.getHeaders() });
+    return this.http.post<any>(this.apiUrl, data);
   }
 
   update(id: string, data: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, data, { headers: this.getHeaders() });
+    return this.http.put<any>(`${this.apiUrl}/${id}`, data);
   }
 
   delete(id: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
 }

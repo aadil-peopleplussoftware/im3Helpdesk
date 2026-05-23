@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../auth/auth.service';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, takeUntil, forkJoin, of } from 'rxjs';
@@ -77,51 +77,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private initUserFromToken(): void {
-    const token = this.authService.getToken();
-    if (!token) return;
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-
-      this.userName =
-        payload['fullName'] ||
-        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-        payload.email?.split('@')[0] ||
-        'User';
-
-      this.userEmail = payload.email || '';
-
-      this.userRole =
-        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-        payload.role || '';
-
-      this.userInitials = this.userName
-        .split(' ')
-        .filter((n: string) => n.length)
-        .map((n: string) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    } catch {}
-  }
-
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      Authorization: `Bearer ${this.authService.getToken()}`
-    });
+    this.userName = this.authService.getUserName() || 'User';
+    this.userRole = this.authService.getUserRole() || '';
+    this.userEmail = '';
+    this.userInitials = this.userName
+      .split(' ')
+      .filter((n: string) => n.length)
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   }
 
   loadAll(): void {
-    const h = { headers: this.getHeaders() };
-
     forkJoin({
-      stats: this.http.get<any>(`${API_BASE}/Dashboard/stats`, h).pipe(
+      stats: this.http.get<any>(`${API_BASE}/Dashboard/stats`).pipe(
         catchError(err => {
           console.error('Stats error:', err.status, err.error);
           this.toastr.error('Could not load dashboard stats', 'Error');
           return of(null);
         })
       ),
-      widgets: this.http.get<any>(`${API_BASE}/Dashboard/widgets`, h).pipe(
+      widgets: this.http.get<any>(`${API_BASE}/Dashboard/widgets`).pipe(
         catchError(err => {
           console.warn('Widgets error:', err.status);
           return of(null);

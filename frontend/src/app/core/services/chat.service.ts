@@ -8,20 +8,18 @@ import {
   Injectable, inject
 } from '@angular/core';
 import {
-  HttpClient, HttpHeaders
+  HttpClient
 } from '@angular/common/http';
 import {
   BehaviorSubject, Observable
 } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
-import { AuthService } from '../../features/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
 
   private http        = inject(HttpClient);
-  private authService = inject(AuthService);
 
   readonly BASE = environment.baseUrl;
   private hub!: signalR.HubConnection;
@@ -66,18 +64,9 @@ export class ChatService {
         signalR.HubConnectionState.Connected;
   }
 
-  getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   // ── Chat API ───────────────────────────
   getChatUsers(): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.BASE}/api/Chat/users`,
-      { headers: this.getHeaders() });
+    return this.http.get<any[]>(`${this.BASE}/api/Chat/users`);
   }
 
   getMessages(
@@ -86,14 +75,11 @@ export class ChatService {
   ): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.BASE}/api/Chat/messages/` +
-      `${userId}?page=${page}&pageSize=50`,
-      { headers: this.getHeaders() });
+      `${userId}?page=${page}&pageSize=50`);
   }
 
   getGroups(): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.BASE}/api/Chat/groups`,
-      { headers: this.getHeaders() });
+    return this.http.get<any[]>(`${this.BASE}/api/Chat/groups`);
   }
 
   getGroupMessages(
@@ -102,8 +88,7 @@ export class ChatService {
   ): Observable<any[]> {
     return this.http.get<any[]>(
       `${this.BASE}/api/Chat/group/` +
-      `${groupId}/messages?page=${page}`,
-      { headers: this.getHeaders() });
+      `${groupId}/messages?page=${page}`);
   }
 
   createGroup(dto: {
@@ -113,26 +98,19 @@ export class ChatService {
   }): Observable<any> {
     return this.http.post<any>(
       `${this.BASE}/api/Chat/groups`,
-      dto,
-      { headers: this.getHeaders() });
+      dto);
   }
 
   uploadFile(file: File): Observable<any> {
     const fd = new FormData();
     fd.append('file', file);
-    const h = new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
     return this.http.post<any>(
       `${this.BASE}/api/Chat/upload`,
-      fd, { headers: h });
+      fd);
   }
 
   getUnreadCount(): Observable<any> {
-    return this.http.get<any>(
-      `${this.BASE}/api/Chat/unread-count`,
-      { headers: this.getHeaders() });
+    return this.http.get<any>(`${this.BASE}/api/Chat/unread-count`);
   }
 
   addGroupMembers(
@@ -142,8 +120,7 @@ export class ChatService {
     return this.http.post<any>(
       `${this.BASE}/api/Chat/groups/` +
       `${groupId}/members`,
-      { memberIds },
-      { headers: this.getHeaders() });
+      { memberIds });
   }
 
   loadUnreadCount() {
@@ -168,22 +145,18 @@ export class ChatService {
     return this.http.get<any>(
       `${this.BASE}/api/CallLog` +
       `?filter=${filter}&page=${page}` +
-      `&size=${size}`,
-      { headers: this.getHeaders() });
+      `&size=${size}`);
   }
 
   getMissedCallCount(): Observable<any> {
-    return this.http.get<any>(
-      `${this.BASE}/api/CallLog/unread-missed`,
-      { headers: this.getHeaders() });
+    return this.http.get<any>(`${this.BASE}/api/CallLog/unread-missed`);
   }
 
   markCallsRead(): Observable<any> {
     return new Observable(observer => {
       this.http.post<any>(
         `${this.BASE}/api/CallLog/mark-read`,
-        {},
-        { headers: this.getHeaders() }
+        {}
       ).subscribe({
         next: (d) => {
           // ✅ Instantly badge 0 karo
@@ -224,10 +197,7 @@ export class ChatService {
     if (this.isConnected) return;
 
     this.hub = new signalR.HubConnectionBuilder()
-      .withUrl(`${this.BASE}/hubs/chat`, {
-        accessTokenFactory: () =>
-          this.authService.getToken() || ''
-      })
+      .withUrl(`${this.BASE}/hubs/chat`, { withCredentials: true })
       .withAutomaticReconnect([
         0, 2000, 5000, 10000, 30000
       ])

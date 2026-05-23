@@ -8,6 +8,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { ChatService } from '../../../core/services/chat.service';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
@@ -29,6 +30,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private chatService = inject(ChatService);
   private authService = inject(AuthService);
+  private http        = inject(HttpClient);
   public  router      = inject(Router);
   private cdr         = inject(ChangeDetectorRef);
   public  callSvc     = inject(GlobalCallNotificationService);
@@ -103,20 +105,27 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // ─────────────────────────────────────────
   ngOnInit() {
-    const token = this.authService.getToken();
-    if (token) {
-      try {
-        const p = JSON.parse(atob(token.split('.')[1]));
-        this.myId   = p.sub || p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || '';
-        this.myName = p.fullName || p.email?.split('@')[0] || '';
-      } catch {}
-    }
+    this.loadMyProfile();
 
     this.chatService.connect();
     this.loadUsers();
     this.loadGroups();
     this.subscribeToEvents();
     this.restoreCallState();
+  }
+
+  private loadMyProfile() {
+    this.myName = this.authService.getUserName() || '';
+    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+      next: (profile) => {
+        this.myId = profile?.id || profile?.userId || '';
+        if (!this.myName) {
+          this.myName = profile?.fullName || '';
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
   }
 
   // ✅ Call state restore on page load/navigate

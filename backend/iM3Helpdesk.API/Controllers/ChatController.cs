@@ -326,7 +326,13 @@ public class ChatController : ControllerBase
       GetGroups()
   {
     var myId = GetUserId();
-    var orgId = _tenant.OrganizationId!.Value;
+    if (!_tenant.OrganizationId.HasValue)
+      return Unauthorized(new
+      {
+        message = "Organization context is missing"
+      });
+
+    var orgId = _tenant.OrganizationId.Value;
 
     // Groups where I am a member
     var myGroupIds = await _context
@@ -501,7 +507,13 @@ public class ChatController : ControllerBase
       [FromBody] ChatCreateGroupDto dto)
   {
     var myId = GetUserId();
-    var orgId = _tenant.OrganizationId!.Value;
+    if (!_tenant.OrganizationId.HasValue)
+      return Unauthorized(new
+      {
+        message = "Organization context is missing"
+      });
+
+    var orgId = _tenant.OrganizationId.Value;
 
     if (string.IsNullOrEmpty(dto.Name))
       return BadRequest("Name required");

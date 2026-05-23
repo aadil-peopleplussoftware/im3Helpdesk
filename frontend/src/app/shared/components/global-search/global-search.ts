@@ -5,8 +5,7 @@ import { Router } from '@angular/router';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../../features/auth/auth.service';
+import { HttpClient } from '@angular/common/http';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
@@ -22,7 +21,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class GlobalSearchComponent {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
@@ -37,13 +35,7 @@ export class GlobalSearchComponent {
       distinctUntilChanged(),
       switchMap(q => {
         if (q.length < 2) return [];
-        const headers = new HttpHeaders({
-          'Authorization': `Bearer ${this.authService.getToken()}`
-        });
-        return this.http.get<any>(
-          `${environment.apiUrl}/Search?q=${q}`,
-          { headers }
-        );
+        return this.http.get<any>(`${environment.apiUrl}/Search?q=${q}`);
       })
     ).subscribe({
       next: (data) => {

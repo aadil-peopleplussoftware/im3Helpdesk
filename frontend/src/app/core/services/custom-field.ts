@@ -1,53 +1,39 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from '../../features/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CustomFieldService {
   private readonly apiUrl = `${environment.apiUrl}/CustomFields`;
 
-  constructor(
-    private http: HttpClient,
-    private authService: AuthService) {}
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
+  constructor(private http: HttpClient) {}
 
   getAll(): Observable<any[]> {
-    return this.http.get<any[]>(
-      this.apiUrl, { headers: this.getHeaders() });
+    return this.http.get<any[]>(this.apiUrl);
   }
 
   create(data: any): Observable<any> {
-    return this.http.post(
-      this.apiUrl, data, { headers: this.getHeaders() });
+    return this.http.post(this.apiUrl, data);
   }
 
   update(id: string, data: any): Observable<any> {
     return this.http.put(
-      `${this.apiUrl}/${id}`, data,
-      { headers: this.getHeaders() });
+      `${this.apiUrl}/${id}`, data);
   }
 
   delete(id: string): Observable<any> {
-    return this.http.delete(
-      `${this.apiUrl}/${id}`, { headers: this.getHeaders() });
+    return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
   getTicketValues(ticketId: string): Observable<any[]> {
     return this.http.get<any[]>(
-      `${this.apiUrl}/ticket/${ticketId}/values`,
-      { headers: this.getHeaders() });
+      `${this.apiUrl}/ticket/${ticketId}/values`);
   }
 
   saveTicketValues(ticketId: string, values: any[]): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/ticket/${ticketId}/values`,
-      values, { headers: this.getHeaders() });
+      values);
   }
 }

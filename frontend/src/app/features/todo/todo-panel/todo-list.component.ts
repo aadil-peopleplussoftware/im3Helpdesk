@@ -5,10 +5,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService }
-  from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
@@ -36,7 +34,6 @@ export interface SubTask {
 export class TodoListComponent implements OnInit {
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -71,22 +68,13 @@ export class TodoListComponent implements OnInit {
     return this.todos.filter(t => t.isCompleted).length;
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadTodos();
   }
 
   loadTodos() {
     this.loading = true;
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Todo`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Todo`).subscribe({
       next: (data) => {
         const savedPriorities = this.loadPriorityMap();
         const savedSubtasks = this.loadSubtaskMap();
@@ -165,8 +153,7 @@ export class TodoListComponent implements OnInit {
 
     this.http.post<any>(
       `${environment.apiUrl}/Todo`,
-      { title: this.newTitle.trim() },
-      { headers: this.getHeaders() }
+      { title: this.newTitle.trim() }
     ).subscribe({
       next: (todo) => {
         todo.priority = this.newPriority;
@@ -189,8 +176,7 @@ export class TodoListComponent implements OnInit {
   toggleTodo(todo: any) {
     this.http.put<any>(
       `${environment.apiUrl}/Todo/${todo.id}/toggle`,
-      {},
-      { headers: this.getHeaders() }
+      {}
     ).subscribe({
       next: (res) => {
         todo.isCompleted = res.isCompleted;
@@ -206,10 +192,7 @@ export class TodoListComponent implements OnInit {
     event.stopPropagation();
     if (!confirm('Delete this task?')) return;
 
-    this.http.delete(
-      `${environment.apiUrl}/Todo/${id}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.delete(`${environment.apiUrl}/Todo/${id}`).subscribe({
       next: () => {
         this.todos = this.todos.filter(t => t.id !== id);
         if (this.expandedTodoId === id)
@@ -231,10 +214,7 @@ export class TodoListComponent implements OnInit {
 
     Promise.all(
       done.map(t =>
-        this.http.delete(
-          `${environment.apiUrl}/Todo/${t.id}`,
-          { headers: this.getHeaders() }
-        ).toPromise()
+        this.http.delete(`${environment.apiUrl}/Todo/${t.id}`).toPromise()
       )
     ).then(() => {
       this.todos = this.todos.filter(t => !t.isCompleted);

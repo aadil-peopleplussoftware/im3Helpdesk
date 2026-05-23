@@ -5,7 +5,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { AgentService } from '../../../core/services/agent';
@@ -42,34 +42,15 @@ export class AgentsComponent implements OnInit {
   isCompanyAdmin = false;
 
   ngOnInit() {
-    const token = this.authService.getToken();
-    if (token) {
-      const p = JSON.parse(atob(token.split('.')[1]));
-      const role = p[
-        'http://schemas.microsoft.com/ws/2008/06/' +
-        'identity/claims/role'
-      ] || p.role || '';
-      this.isAdmin = ['CompanyAdmin',
-        'Agent'].includes(role);
-      // ✅ Only CompanyAdmin can delete
-      this.isCompanyAdmin = role === 'CompanyAdmin';
-    }
+    const role = this.authService.getUserRole();
+    this.isAdmin = ['CompanyAdmin', 'Agent'].includes(role);
+    this.isCompanyAdmin = role === 'CompanyAdmin';
     this.loadAgents();
-  }
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
   }
 
   loadAgents() {
     // ✅ Groups aur Agents dono load karo, phir UUID lowercase se match karo
-    this.http.get<any[]>(
-      `${environment.apiUrl}/AgentGroups`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/AgentGroups`).subscribe({
       next: (groups) => {
         this.agentService.getAll().subscribe({
           next: (data: any[]) => {
@@ -192,8 +173,7 @@ export class AgentsComponent implements OnInit {
       `Delete agent ${agent.fullName}?`)) return;
 
     this.http.delete(
-      `${environment.apiUrl}/Agents/${agent.id}`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/Agents/${agent.id}`
     ).subscribe({
       next: () => {
         Promise.resolve().then(() =>
@@ -211,8 +191,7 @@ export class AgentsComponent implements OnInit {
   toggleActive(agent: any) {
     this.http.put(
       `${environment.apiUrl}/Agents/${agent.id}/toggle-active`,
-      {},
-      { headers: this.getHeaders() }
+      {}
     ).subscribe({
       next: () => {
         Promise.resolve().then(() =>

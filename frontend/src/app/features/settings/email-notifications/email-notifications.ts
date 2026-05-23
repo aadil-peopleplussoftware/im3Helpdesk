@@ -2,9 +2,8 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 interface NotifSetting {
@@ -23,7 +22,6 @@ interface NotifSetting {
 })
 export class EmailNotificationsComponent implements OnInit {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -106,9 +104,6 @@ export class EmailNotificationsComponent implements OnInit {
     localStorage.setItem('im3_notif_settings', JSON.stringify(settings));
 
     // Save to backend
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
     const payload = all.map(n => ({
       notifKey: n.key,
       isEnabled: n.enabled
@@ -116,7 +111,7 @@ export class EmailNotificationsComponent implements OnInit {
 
     this.http.post(
       `${environment.apiUrl}/EmailNotificationSettings`,
-      payload, { headers }
+      payload
     ).subscribe({
       next: () =>
         Promise.resolve().then(() =>

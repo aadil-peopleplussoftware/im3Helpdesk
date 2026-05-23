@@ -5,9 +5,8 @@ import { Router, RouterModule } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -25,7 +24,6 @@ export class AuditLogComponent implements OnInit {
   @Input() embedded = false;
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
@@ -39,12 +37,6 @@ export class AuditLogComponent implements OnInit {
   selectedType = '';
   entityTypes = ['', 'Ticket', 'Agent', 'Profile'];
 
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadLogs();
   }
@@ -57,7 +49,7 @@ loadLogs() {
     url += `&entityType=${this.selectedType}`;
   }
 
-  this.http.get<any>(url, { headers: this.getHeaders() }).subscribe({
+  this.http.get<any>(url).subscribe({
     next: (res) => {
       this.logs = res.logs;
       this.total = res.total;

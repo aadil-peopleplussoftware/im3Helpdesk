@@ -17,7 +17,7 @@ import { MatProgressSpinnerModule }
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { TicketService } from '../../../core/services/ticket';
 import { AgentService } from '../../../core/services/agent';
 import { AgentGroupService }
@@ -131,13 +131,6 @@ export class TicketDetailComponent
     });
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   sanitizeHtml(html: string): string {
     if (!html) return '';
     return this.sanitizer.sanitize(
@@ -215,20 +208,8 @@ export class TicketDetailComponent
     this.ticketId =
       this.route.snapshot.paramMap
         .get('id') || '';
-
-    const token = this.authService.getToken();
-    if (token) {
-      try {
-        const p = JSON.parse(
-          atob(token.split('.')[1]));
-        const role = p[
-          'http://schemas.microsoft.com/ws/' +
-          '2008/06/identity/claims/role'
-        ] || p.role || '';
-        this.isAgent = ['Agent', 'CompanyAdmin',
-          'SuperAdmin'].includes(role);
-      } catch {}
-    }
+    const role = this.authService.getUserRole();
+    this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
 
     Promise.resolve().then(() => {
       this.loadTicket();
@@ -289,8 +270,7 @@ loadTicket() {
   loadAttachments() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Attachments` +
-      `/ticket/${this.ticketId}`,
-      { headers: this.getHeaders() }
+      `/ticket/${this.ticketId}`
     ).subscribe({
       next: (data) => { this.attachments = data; }
     });
@@ -315,8 +295,7 @@ loadTicket() {
   loadTimeline() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +
-      `/${this.ticketId}/timeline`,
-      { headers: this.getHeaders() }
+      `/${this.ticketId}/timeline`
     ).subscribe({
       next: (data) => { this.timeline = data; }
     });
@@ -326,16 +305,14 @@ loadTicket() {
     this.http.post(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/view`,
-      {},
-      { headers: this.getHeaders() }
+      {}
     ).subscribe();
   }
 
   loadViewers() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +
-      `/${this.ticketId}/viewers`,
-      { headers: this.getHeaders() }
+      `/${this.ticketId}/viewers`
     ).subscribe({
       next: (data) => { this.viewers = data; }
     });
@@ -344,8 +321,7 @@ loadTicket() {
   loadOrgInfo() {
     this.http.get<any>(
       `${environment.apiUrl}/Organizations` +
-      '/current',
-      { headers: this.getHeaders() }
+      '/current'
     ).subscribe({
       next: (data) => {
         this.orgSupportEmail =
@@ -355,32 +331,24 @@ loadTicket() {
   }
 
   loadAgentSignature() {
-    const token = this.authService.getToken();
-    if (!token) return;
-    try {
-      const p = JSON.parse(
-        atob(token.split('.')[1]));
-      const userId = p.sub ||
-        p['http://schemas.xmlsoap.org/ws/2005/' +
-          '05/identity/claims/nameidentifier'];
-      if (!userId) return;
-
-      this.http.get<any>(
-        `${environment.apiUrl}/Agents` +
-        `/${userId}`,
-        { headers: this.getHeaders() }
-      ).subscribe({
-        next: (d) => {
-          this.agentSignature = d.signature || '';
-        }
-      });
-    } catch {}
+    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
+      next: (profile) => {
+        const userId = profile?.id || profile?.userId;
+        if (!userId) return;
+        this.http.get<any>(
+          `${environment.apiUrl}/Agents/${userId}`
+        ).subscribe({
+          next: (d) => {
+            this.agentSignature = d.signature || '';
+          }
+        });
+      }
+    });
   }
 
   loadCustomFieldValues() {
     this.http.get<any[]>(
-      `${environment.apiUrl}/CustomFields`,
-      { headers: this.getHeaders() }
+      `${environment.apiUrl}/CustomFields`
     ).subscribe({
       next: (fields) => {
         this.customFields = fields;
@@ -388,8 +356,7 @@ loadTicket() {
 
         this.http.get<any[]>(
           `${environment.apiUrl}/CustomFields` +
-          `/ticket/${this.ticketId}/values`,
-          { headers: this.getHeaders() }
+          `/ticket/${this.ticketId}/values`
         ).subscribe({
           next: (values) => {
             fields.forEach(f => {
@@ -417,8 +384,7 @@ loadTicket() {
     this.http.post(
       `${environment.apiUrl}/CustomFields` +
       `/ticket/${this.ticketId}/values`,
-      values,
-      { headers: this.getHeaders() }
+      values
     ).subscribe({
       next: () =>
         this.showToast('success',
@@ -433,8 +399,7 @@ loadTicket() {
     this.http.put(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/status`,
-      { status: status },
-      { headers: this.getHeaders() }
+      { status: status }
     ).subscribe({
       next: () => {
         this.showToast('success',
@@ -454,8 +419,7 @@ loadTicket() {
     this.http.put(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/priority`,
-      { priority },
-      { headers: this.getHeaders() }
+      { priority }
     ).subscribe({
       next: () => {
         this.showToast('success',
@@ -468,8 +432,7 @@ loadTicket() {
     this.http.put(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/type`,
-      { ticketType: this.ticket.ticketType },
-      { headers: this.getHeaders() }
+      { ticketType: this.ticket.ticketType }
     ).subscribe({
       next: () =>
         this.showToast('success', 'Type updated!')
@@ -506,8 +469,7 @@ loadTicket() {
 
     this.http.delete(
       `${environment.apiUrl}/Tickets` +
-      `/${this.ticketId}`,
-      { headers: this.getHeaders() }
+      `/${this.ticketId}`
     ).subscribe({
       next: () => {
         this.showToast('success', 'Ticket deleted');
@@ -596,16 +558,10 @@ async sendReply() {
   }, 0);
 
   try {
-    const uploadHeaders = new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-
     const res: any = await this.http.post(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/comments`,
-      { comment: content, isInternal: false },
-      { headers: this.getHeaders() }
+      { comment: content, isInternal: false }
     ).toPromise();
 
     const commentId = res?.commentId;
@@ -620,8 +576,7 @@ async sendReply() {
           `/api/Attachments/upload` +
           `/${this.ticketId}` +
           `?commentId=${commentId}`,
-          fd,
-          { headers: uploadHeaders }
+          fd
         ).toPromise();
       }
     }
@@ -655,11 +610,6 @@ async sendNote() {
   setTimeout(() => { this.updating = true; }, 0);
 
   try {
-    const uploadHeaders = new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-
     const res: any = await this.http.post(
       `${environment.apiUrl}/Tickets` +
       `/${this.ticketId}/comments`,
@@ -667,7 +617,7 @@ async sendNote() {
         comment: content,
         isInternal: this.noteIsPrivate
       },
-      { headers: this.getHeaders() }
+      {}
     ).toPromise();
 
     const commentId = res?.commentId;
@@ -682,8 +632,7 @@ async sendNote() {
           `/api/Attachments/upload` +
           `/${this.ticketId}` +
           `?commentId=${commentId}`,
-          fd,
-          { headers: uploadHeaders }
+          fd
         ).toPromise();
       }
     }
@@ -718,16 +667,14 @@ updateAllProps() {
   const p1 = this.http.put(
     `${environment.apiUrl}/Tickets` +
     `/${this.ticketId}/assign`,
-    { agentId: this.selectedAgentId || null },
-    { headers: this.getHeaders() }
+    { agentId: this.selectedAgentId || null }
   ).toPromise();
 
   const p2 = this.http.put(
     `${environment.apiUrl}/Tickets` +
     `/${this.ticketId}/group`,
     { agentGroupId:
-        this.selectedGroupId || null },
-    { headers: this.getHeaders() }
+        this.selectedGroupId || null }
   ).toPromise();
 
   Promise.all([p1, p2]).then(() => {
@@ -766,8 +713,7 @@ updateAllProps() {
       {
         toEmail: this.forwardEmail,
         message: this.forwardText
-      },
-      { headers: this.getHeaders() }
+      }
     ).subscribe({
       next: () => {
         this.forwardEmail = '';

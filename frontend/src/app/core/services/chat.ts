@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { AuthService } from '../../features/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable()
@@ -13,13 +12,12 @@ export class ChatService {
   messages$ = this.messageSubject.asObservable();
   newTicket$ = this.newTicketSubject.asObservable();
 
-  constructor(private authService: AuthService) {}
+  constructor() {}
 
   connect(): Promise<void> {
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(`${environment.baseUrl}/hubs/chat`, {
-        accessTokenFactory: () =>
-          this.authService.getToken() || ''
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();

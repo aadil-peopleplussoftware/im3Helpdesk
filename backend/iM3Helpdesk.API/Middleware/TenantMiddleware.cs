@@ -21,42 +21,63 @@ public class TenantMiddleware
   public async Task InvokeAsync(HttpContext context,
       ICurrentTenantService tenantService)
   {
-    var token = context.Request.Headers["Authorization"]
-        .FirstOrDefault()?.Split(" ").Last();
-
-    if (!string.IsNullOrEmpty(token))
+    if (context.User?.Identity?.IsAuthenticated == true)
     {
-      try
+      var orgId = context.User.Claims
+          .FirstOrDefault(c => c.Type == "organizationId")?.Value;
+
+      var role = context.User.Claims
+          .FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value
+          ?? context.User.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
+
+      var isSuperAdmin = role == "SuperAdmin";
+      ((CurrentTenantService)tenantService).IsSuperAdmin = isSuperAdmin;
+
+      if (!isSuperAdmin && !string.IsNullOrEmpty(orgId)
+          && Guid.TryParse(orgId, out var tenantId))
       {
-        var handler = new JwtSecurityTokenHandler();
-        handler.ValidateToken(token, _tokenValidationParameters, out var validatedToken);
+        ((CurrentTenantService)tenantService).OrganizationId = tenantId;
+      }
+    }
+    else
+    {
+      var token = context.Request.Headers["Authorization"]
+          .FirstOrDefault()?.Split(" ").Last();
 
-        if (validatedToken is JwtSecurityToken jwt)
+      if (!string.IsNullOrEmpty(token))
+      {
+        try
         {
-          var orgId = jwt.Claims
-              .FirstOrDefault(c => c.Type == "organizationId")?.Value;
+          var handler = new JwtSecurityTokenHandler();
+          handler.ValidateToken(token, _tokenValidationParameters, out var validatedToken);
 
-          var role = jwt.Claims
-              .FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value
-              ?? jwt.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
-
-          var isSuperAdmin = role == "SuperAdmin";
-          ((CurrentTenantService)tenantService).IsSuperAdmin = isSuperAdmin;
-
-          if (!isSuperAdmin && !string.IsNullOrEmpty(orgId)
-              && Guid.TryParse(orgId, out var tenantId))
+          if (validatedToken is JwtSecurityToken jwt)
           {
-            ((CurrentTenantService)tenantService).OrganizationId = tenantId;
+            var orgId = jwt.Claims
+                .FirstOrDefault(c => c.Type == "organizationId")?.Value;
+
+            var role = jwt.Claims
+                .FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value
+                ?? jwt.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
+
+            var isSuperAdmin = role == "SuperAdmin";
+            ((CurrentTenantService)tenantService).IsSuperAdmin = isSuperAdmin;
+
+            if (!isSuperAdmin && !string.IsNullOrEmpty(orgId)
+                && Guid.TryParse(orgId, out var tenantId))
+            {
+              ((CurrentTenantService)tenantService).OrganizationId = tenantId;
+            }
           }
         }
-      }
-      catch (SecurityTokenException ex)
-      {
-        _logger.LogWarning(ex, "Invalid JWT token.");
-      }
-      catch (Exception ex)
-      {
-        _logger.LogError(ex, "An error occurred while processing the JWT token.");
+        catch (SecurityTokenException ex)
+        {
+          _logger.LogWarning(ex, "Invalid JWT token.");
+        }
+        catch (Exception ex)
+        {
+          _logger.LogError(ex, "An error occurred while processing the JWT token.");
+        }
       }
     }
 

@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
@@ -58,17 +58,8 @@ export class ProfilePageComponent implements OnInit {
     this.loadOrg();
   }
 
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   loadProfile() {
-    this.http.get<any>(
-      `${environment.apiUrl}/Profile`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
       next: (data) => {
         this.profileForm.patchValue(data);
         if (data.photoUrl) {
@@ -81,10 +72,7 @@ export class ProfilePageComponent implements OnInit {
   }
 
   loadOrg() {
-    this.http.get<any>(
-      `${environment.apiUrl}/Organizations/current`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
       next: (data) => {
         this.orgForm.patchValue(data);
         this.cdr.detectChanges();
@@ -110,8 +98,7 @@ onPhotoSelect(event: any) {
 
   this.http.post<any>(
     `${environment.apiUrl}/Profile/upload-photo`,
-    formData,
-    { headers: this.getHeaders() }
+    formData
   ).subscribe({
     next: (res) => {
       const fullUrl =
@@ -154,8 +141,7 @@ onPhotoSelect(event: any) {
 
     this.http.put(
       `${environment.apiUrl}/Profile`,
-      this.profileForm.value,
-      { headers: this.getHeaders() }
+      this.profileForm.value
     ).subscribe({
       next: () => {
         this.savingProfile = false;
@@ -188,8 +174,7 @@ onPhotoSelect(event: any) {
 
     this.http.put(
       `${environment.apiUrl}/Profile/change-password`,
-      this.passwordForm.value,
-      { headers: this.getHeaders() }
+      this.passwordForm.value
     ).subscribe({
       next: () => {
         this.savingPassword = false;
@@ -215,8 +200,7 @@ onPhotoSelect(event: any) {
 
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
-      this.orgForm.value,
-      { headers: this.getHeaders() }
+      this.orgForm.value
     ).subscribe({
       next: () => {
         this.savingOrg = false;

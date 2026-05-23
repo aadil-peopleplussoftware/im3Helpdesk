@@ -7,10 +7,8 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders }
+import { HttpClient }
   from '@angular/common/http';
-import { AuthService }
-  from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import Chart from 'chart.js/auto';
@@ -31,7 +29,6 @@ export class AIDashboardComponent
   implements OnInit, AfterViewInit {
 
   private http = inject(HttpClient);
-  private auth = inject(AuthService);
   public router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
@@ -67,13 +64,6 @@ export class AIDashboardComponent
 
   private readonly BASE = environment.baseUrl;
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.auth.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadTide();
     this.loadInsights();
@@ -97,8 +87,7 @@ export class AIDashboardComponent
     this.tideLoading = true;
     this.http.get<any>(
       `${this.BASE}/api/AIFeatures` +
-      `/tide-forecast?days=7`,
-      { headers: this.getHeaders() }
+      `/tide-forecast?days=7`
     ).subscribe({
       next: (d) => {
         this.tideData = d;
@@ -237,10 +226,7 @@ export class AIDashboardComponent
   // ── INSIGHTS ─────────────────────────
   loadInsights() {
     this.insightsLoading = true;
-    this.http.get<any>(
-      `${this.BASE}/api/AIFeatures/insights`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${this.BASE}/api/AIFeatures/insights`).subscribe({
       next: (d) => {
         this.insightsData = d;
         this.insightsLoading = false;
@@ -267,10 +253,7 @@ export class AIDashboardComponent
   // ── DUPLICATES ───────────────────────
   loadDuplicates() {
     this.duplicatesLoading = true;
-    this.http.get<any>(
-      `${this.BASE}/api/AIFeatures/duplicates`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${this.BASE}/api/AIFeatures/duplicates`).subscribe({
       next: (d) => {
         this.duplicatesData = d;
         this.duplicatesLoading = false;
@@ -308,8 +291,7 @@ export class AIDashboardComponent
       {
         originalTicketId: origTicket.id,
         ticketIdsToClose: toClose
-      },
-      { headers: this.getHeaders() }
+      }
     ).subscribe({
       next: (res: any) => {
         this.mergeLoading = false;
@@ -330,10 +312,7 @@ export class AIDashboardComponent
 
   // ── TICKET SUMMARY ───────────────────
   loadRecentTickets() {
-    this.http.get<any[]>(
-      `${this.BASE}/api/Tickets`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${this.BASE}/api/Tickets`).subscribe({
       next: (d) => {
         this.recentTickets = d.slice(0, 15);
         this.cdr.detectChanges();
@@ -353,8 +332,7 @@ export class AIDashboardComponent
 
     this.http.get<any>(
       `${this.BASE}/api/AIFeatures` +
-      `/summary/${id}`,
-      { headers: this.getHeaders() }
+      `/summary/${id}`
     ).subscribe({
       next: (d) => {
         this.summaryData = d;

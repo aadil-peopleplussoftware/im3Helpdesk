@@ -140,6 +140,8 @@ public class AuthController : ControllerBase
       var refreshToken = Guid.NewGuid().ToString();
       var isFirstLogin = user.LastLoginAt == null;
 
+      SetAuthCookies(token, refreshToken);
+
       user.RefreshToken = refreshToken;
       user.RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(7);
       user.LastLoginAt = DateTime.UtcNow;
@@ -161,6 +163,31 @@ public class AuthController : ControllerBase
         }
       });
     }
+  }
+
+  private void SetAuthCookies(string accessToken, string refreshToken)
+  {
+    var secureCookie = Request.IsHttps;
+    var accessCookieOptions = new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.None,
+      Expires = DateTimeOffset.UtcNow.AddMinutes(60),
+      Path = "/"
+    };
+
+    var refreshCookieOptions = new CookieOptions
+    {
+      HttpOnly = true,
+      Secure = secureCookie,
+      SameSite = SameSiteMode.None,
+      Expires = DateTimeOffset.UtcNow.AddDays(7),
+      Path = "/api/Auth/refresh"
+    };
+
+    Response.Cookies.Append("im3_access", accessToken, accessCookieOptions);
+    Response.Cookies.Append("im3_refresh", refreshToken, refreshCookieOptions);
   }
 
 
@@ -217,6 +244,8 @@ public class AuthController : ControllerBase
     var token = GenerateJwtToken(user);
     var refreshToken = Guid.NewGuid().ToString();
     var isFirstLogin = user.LastLoginAt == null;
+
+    SetAuthCookies(token, refreshToken);
 
     user.RefreshToken = refreshToken;
     user.RefreshTokenExpiresAt =
@@ -387,11 +416,19 @@ public class AuthController : ControllerBase
   public async Task<IActionResult> Refresh(
       [FromBody] RefreshTokenDto dto)
   {
+    var presentedRefreshToken = !string.IsNullOrWhiteSpace(dto.RefreshToken)
+      ? dto.RefreshToken
+      : Request.Cookies["im3_refresh"];
+
+    if (string.IsNullOrWhiteSpace(presentedRefreshToken))
+      return Unauthorized(
+        new { message = "Invalid or expired refresh token" });
+
     var user = await _context.Users
         .IgnoreQueryFilters()
         .Include(u => u.Organization)
         .FirstOrDefaultAsync(u =>
-            u.RefreshToken == dto.RefreshToken &&
+        u.RefreshToken == presentedRefreshToken &&
             u.RefreshTokenExpiresAt > DateTime.UtcNow);
 
     if (user == null)
@@ -404,6 +441,8 @@ public class AuthController : ControllerBase
     user.RefreshTokenExpiresAt =
         DateTime.UtcNow.AddDays(7);
     await _context.SaveChangesAsync();
+
+    SetAuthCookies(newToken, newRefreshToken);
 
     return Ok(new
     {

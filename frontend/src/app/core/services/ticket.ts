@@ -1,48 +1,30 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, interval, switchMap } from 'rxjs';
-import { AuthService } from '../../features/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class TicketService {
   private apiUrl = `${environment.apiUrl}/Tickets`;
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
-
-  private getHeaders(): HttpHeaders {
-    const token = this.authService.getToken();
-    return new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-  }
 
   getAll(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrl, {
-      headers: this.getHeaders()
-    });
+    return this.http.get<any[]>(this.apiUrl);
   }
 
 
   getById(id: string): Observable<any> {
-    return this.http.get<any>(
-      `${environment.apiUrl}/Tickets/${id}`,
-      { headers: this.getHeaders() }
-    );
+    return this.http.get<any>(`${environment.apiUrl}/Tickets/${id}`);
   }
 
   create(data: any): Observable<any> {
-    return this.http.post(this.apiUrl, data, {
-      headers: this.getHeaders()
-    });
+    return this.http.post(this.apiUrl, data);
   }
 
   updateStatus(id: string, status: string): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/${id}/status`,
-      { status },
-      { headers: this.getHeaders() }
+      { status }
     );
   }
 
@@ -50,8 +32,7 @@ export class TicketService {
   assign(id: string, agentId: string | null): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/${id}/assign`,
-      { assignedToUserId: agentId },
-      { headers: this.getHeaders() }
+      { assignedToUserId: agentId }
     );
   }
 
@@ -61,8 +42,7 @@ export class TicketService {
     isInternal: boolean = false): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/${id}/comments`,
-      { comment, isInternal },
-      { headers: this.getHeaders() }
+      { comment, isInternal }
     );
   }
 
@@ -70,24 +50,19 @@ export class TicketService {
   updateTags(id: string, tags: string[]): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/${id}/tags`,
-      { tags },
-      { headers: this.getHeaders() }
+      { tags }
     );
   }
 
   getByTag(tag: string): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.apiUrl}/by-tag/${tag}`,
-      { headers: this.getHeaders() }
-    );
+    return this.http.get<any[]>(`${this.apiUrl}/by-tag/${tag}`);
   }
 
   // Backend: [HttpPut] — PUT sahi hai
   logTime(id: string, minutes: number, note?: string): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/${id}/log-time`,
-      { minutes, note },
-      { headers: this.getHeaders() }
+      { minutes, note }
     );
   }
 
@@ -102,17 +77,13 @@ export class TicketService {
     if (params.status)   query.set('status',   params.status);
     if (params.priority) query.set('priority', params.priority);
     if (params.category) query.set('category', params.category);
-    return this.http.get<any[]>(
-      `${this.apiUrl}/search?${query.toString()}`,
-      { headers: this.getHeaders() }
-    );
+    return this.http.get<any[]>(`${this.apiUrl}/search?${query.toString()}`);
   }
 
   bulkUpdate(data: any): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/bulk-update`,
-      data,
-      { headers: this.getHeaders() }
+      data
     );
   }
 
@@ -121,23 +92,16 @@ export class TicketService {
     const params = new URLSearchParams();
     if (status)   params.set('status',   status);
     if (priority) params.set('priority', priority);
-    const token = this.authService.getToken();
     return this.http.get(
       `${this.apiUrl}/export?${params.toString()}`,
       {
-        headers: new HttpHeaders({
-          'Authorization': `Bearer ${token}`
-        }),
         responseType: 'blob'
       }
     );
   }
 
   delete(id: string): Observable<any> {
-    return this.http.delete(
-      `${this.apiUrl}/${id}`, {
-      headers: this.getHeaders()
-    });
+    return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
   // Poll single ticket every 15 seconds

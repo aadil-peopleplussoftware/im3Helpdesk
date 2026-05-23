@@ -86,19 +86,14 @@ export class LiveChatComponent
 
   ngOnInit() {
     if (!this.ticketId) return;
-    const token = this.authService.getToken();
-    if (token) {
-      const p = JSON.parse(atob(token.split('.')[1]));
-      this.currentUserId = p.sub || '';
-    }
+    this.currentUserId = this.authService.getUserName();
     this.connectHub();
   }
 
   connectHub() {
     this.hub = new signalR.HubConnectionBuilder()
       .withUrl(`${environment.baseUrl}/hubs/chat`, {
-        accessTokenFactory: () =>
-          this.authService.getToken() || ''
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();
@@ -106,7 +101,9 @@ export class LiveChatComponent
     this.hub.on('ReceiveMessage', (data) => {
       this.messages.push({
         ...data,
-        isOwn: data.senderId === this.currentUserId
+        isOwn:
+          data.senderName === this.currentUserId ||
+          data.sender === this.currentUserId
       });
       this.cdr.detectChanges();
     });

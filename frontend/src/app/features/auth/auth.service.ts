@@ -11,47 +11,52 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router) {}
 
   register(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, data);
+    return this.http.post(`${this.apiUrl}/register`, data,
+      { withCredentials: true });
   }
 
   login(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, data);
+    return this.http.post(`${this.apiUrl}/login`, data,
+      { withCredentials: true });
   }
 
 verifyOtp(dto: { email: string; otp: string }) {
   return this.http.post<any>(
     `${this.apiUrl}/verify-otp`,   // ✅ sirf /verify-otp
-    dto
+    dto,
+    { withCredentials: true }
   );
 }
 
 resendOtp(dto: { email: string }) {
   return this.http.post<any>(
     `${this.apiUrl}/resend-otp`,   // ✅ sirf /resend-otp
-    dto
+    dto,
+    { withCredentials: true }
   );
 }
 
   forgotPassword(data: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/forgot-password`, data);
+    return this.http.post(`${this.apiUrl}/forgot-password`, data,
+      { withCredentials: true });
   }
 
   verifyEmail(token: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {});
+    return this.http.post(`${this.apiUrl}/verify-email?token=${token}`, {},
+      { withCredentials: true });
   }
 
   registerCustomer(data: any): Observable<any> {
   return this.http.post(
-    `${this.apiUrl}/register-customer`, data);
+    `${this.apiUrl}/register-customer`, data,
+    { withCredentials: true });
 }
 
   saveToken(token: string): void {
-    localStorage.setItem('im3_token', token);
+    void token;
   }
 
   saveUserData(data: any): void {
-    localStorage.setItem('im3_token', data.token);
-    localStorage.setItem('im3_refresh', data.refreshToken || '');
     localStorage.setItem('im3_isFirstLogin', data.isFirstLogin?.toString() || 'false');
     localStorage.setItem('im3_role', data.user?.role || '');
     localStorage.setItem('im3_name', data.user?.fullName || '');
@@ -59,20 +64,20 @@ resendOtp(dto: { email: string }) {
   }
 
   getToken(): string | null {
-  return localStorage.getItem('im3_token');
+  return null;
 }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem('im3_refresh');
+    return null;
   }
 
   refreshAccessToken(): Observable<any> {
-    const refreshToken = this.getRefreshToken();
-    return this.http.post(`${this.apiUrl}/refresh`, { refreshToken });
+    return this.http.post(`${this.apiUrl}/refresh`, {},
+      { withCredentials: true });
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return !!localStorage.getItem('im3_role');
   }
 
   isFirstLogin(): boolean {
@@ -88,23 +93,10 @@ resendOtp(dto: { email: string }) {
   }
 
   isTokenValid(): boolean {
-  const token = this.getToken();
-  if (!token) return false;
-
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const exp = payload.exp;
-    if (!exp) return false;
-    // Check if token expires in next 60 seconds
-    return (exp * 1000) > (Date.now() - 60000);
-  } catch {
-    return false;
-  }
+  return this.isLoggedIn();
 }
 
   logout(): void {
-    localStorage.removeItem('im3_token');
-    localStorage.removeItem('im3_refresh'); // Clear refresh token on logout
     localStorage.removeItem('im3_isFirstLogin');
     localStorage.removeItem('im3_role');
     localStorage.removeItem('im3_name');

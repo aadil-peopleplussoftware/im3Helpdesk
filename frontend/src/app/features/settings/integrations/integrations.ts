@@ -2,9 +2,8 @@ import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -16,7 +15,6 @@ import { environment } from '../../../../environments/environment';
 })
 export class IntegrationsComponent implements OnInit {
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -29,6 +27,7 @@ export class IntegrationsComponent implements OnInit {
   testSubject = '';
   testBody = '';
   emailTestResult = '';
+  organizationId = '';
 
 simulateEmail() {
   if (!this.testFromEmail || !this.testToEmail) {
@@ -46,8 +45,7 @@ simulateEmail() {
       toEmail: this.testToEmail,
       subject: this.testSubject,
       body: this.testBody
-    },
-    { headers: this.getHeaders() }
+    }
   ).subscribe({
     next: (res) => {
       this.emailTestResult =
@@ -65,20 +63,10 @@ simulateEmail() {
     }
   });
 }
-
-
-  private getHeaders() {
-    return new HttpHeaders({
-      'Authorization': `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
-    this.http.get<any>(
-      `${environment.apiUrl}/Organizations/current`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
       next: (data) => {
+        this.organizationId = data.id || data.organizationId || '';
         this.slackWebhookUrl = data.slackWebhookUrl || '';
         this.teamsWebhookUrl = data.teamsWebhookUrl || '';
         this.cdr.detectChanges();
@@ -90,8 +78,7 @@ simulateEmail() {
     this.saving = true;
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
-      { slackWebhookUrl: this.slackWebhookUrl },
-      { headers: this.getHeaders() }
+      { slackWebhookUrl: this.slackWebhookUrl }
     ).subscribe({
       next: () => {
         this.saving = false;
@@ -107,8 +94,7 @@ simulateEmail() {
     this.saving = true;
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
-      { teamsWebhookUrl: this.teamsWebhookUrl },
-      { headers: this.getHeaders() }
+      { teamsWebhookUrl: this.teamsWebhookUrl }
     ).subscribe({
       next: () => {
         this.saving = false;
@@ -121,20 +107,21 @@ simulateEmail() {
   }
 
   testSlack() {
-    const token = this.authService.getToken();
-    if (!token) return;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const orgId = payload.organizationId;
+    if (!this.organizationId) {
+      Promise.resolve().then(() =>
+        this.toastr.error('Organization context not found.')
+      );
+      return;
+    }
 
     this.http.post(
       `${environment.apiUrl}/Slack/notify`,
       {
-        orgId,
+        orgId: this.organizationId,
         message: 'Test notification from iM3 Helpdesk!',
         ticketTitle: 'Test Ticket',
         status: 'Open'
-      },
-      { headers: this.getHeaders() }
+      }
     ).subscribe({
       next: () =>
         Promise.resolve().then(() =>
@@ -148,20 +135,21 @@ simulateEmail() {
   }
 
   testTeams() {
-    const token = this.authService.getToken();
-    if (!token) return;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const orgId = payload.organizationId;
+    if (!this.organizationId) {
+      Promise.resolve().then(() =>
+        this.toastr.error('Organization context not found.')
+      );
+      return;
+    }
 
     this.http.post(
       `${environment.apiUrl}/Slack/teams/notify`,
       {
-        orgId,
+        orgId: this.organizationId,
         message: 'Test notification from iM3 Helpdesk!',
         ticketTitle: 'Test Ticket',
         status: 'Open'
-      },
-      { headers: this.getHeaders() }
+      }
     ).subscribe({
       next: () =>
         Promise.resolve().then(() =>

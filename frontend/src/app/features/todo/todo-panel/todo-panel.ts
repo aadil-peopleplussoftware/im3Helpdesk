@@ -4,10 +4,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { AuthService }
-  from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -22,7 +20,6 @@ export class TodoPanelComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   public router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
@@ -39,22 +36,12 @@ export class TodoPanelComponent implements OnInit {
       t => t.isCompleted).length;
   }
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadTodos();
   }
 
   loadTodos() {
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Todo`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/Todo`).subscribe({
       next: (data) => {
         this.todos = data;
         this.cdr.detectChanges();
@@ -67,8 +54,7 @@ export class TodoPanelComponent implements OnInit {
 
     this.http.post<any>(
       `${environment.apiUrl}/Todo`,
-      { title: this.newTitle.trim() },
-      { headers: this.getHeaders() }
+      { title: this.newTitle.trim() }
     ).subscribe({
       next: (todo) => {
         this.todos.unshift(todo);
@@ -82,8 +68,7 @@ export class TodoPanelComponent implements OnInit {
     this.http.put<any>(
       `${environment.apiUrl}/Todo` +
       `/${todo.id}/toggle`,
-      {},
-      { headers: this.getHeaders() }
+      {}
     ).subscribe({
       next: (res) => {
         todo.isCompleted = res.isCompleted;
@@ -93,10 +78,7 @@ export class TodoPanelComponent implements OnInit {
   }
 
   deleteTodo(id: string) {
-    this.http.delete(
-      `${environment.apiUrl}/Todo/${id}`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.delete(`${environment.apiUrl}/Todo/${id}`).subscribe({
       next: () => {
         this.todos =
           this.todos.filter(t => t.id !== id);
@@ -110,10 +92,7 @@ export class TodoPanelComponent implements OnInit {
       this.todos.filter(t => t.isCompleted);
     Promise.all(
       done.map(t =>
-        this.http.delete(
-          `${environment.apiUrl}/Todo/${t.id}`,
-          { headers: this.getHeaders() }
-        ).toPromise()
+        this.http.delete(`${environment.apiUrl}/Todo/${t.id}`).toPromise()
       )
     ).then(() => {
       this.todos =

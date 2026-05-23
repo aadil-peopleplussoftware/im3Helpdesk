@@ -9,7 +9,7 @@ import {
   Router, RouterModule,
   ActivatedRoute
 } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -95,13 +95,6 @@ export class TicketListComponent
     'Low', 'Medium', 'High', 'Critical'
   ];
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadTickets();
   }
@@ -115,10 +108,8 @@ export class TicketListComponent
     this.loading = true;
     this.cdr.markForCheck();
 
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Tickets`,
-      { headers: this.getHeaders() }
-    ).pipe(takeUntil(this.destroy$))
+    this.http.get<any[]>(`${environment.apiUrl}/Tickets`)
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
           this.allTickets = data;
@@ -367,8 +358,7 @@ export class TicketListComponent
           ticketNumber:
             t.ticketNumber?.toString(),
           ticketId: t.id
-        },
-        { headers: this.getHeaders() }
+        }
       ).toPromise()
     );
 
@@ -421,8 +411,7 @@ export class TicketListComponent
         await this.http.post(
           `${environment.apiUrl}/Tickets` +
           `/${ids[0]}/merge`,
-          { duplicateTicketId: dupId },
-          { headers: this.getHeaders() }
+          { duplicateTicketId: dupId }
         ).toPromise();
         successCount++;
       } catch {

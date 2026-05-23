@@ -6,8 +6,7 @@ import {
 import Chart from 'chart.js/auto';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { AuthService } from '../../auth/auth.service';
+import { HttpClient } from '@angular/common/http';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
@@ -23,7 +22,6 @@ export class ReportsComponent
   implements OnInit, AfterViewInit {
 
   private http = inject(HttpClient);
-  private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   @Input() embedded: boolean = false;
   @ViewChild('statusChart')
@@ -42,13 +40,6 @@ export class ReportsComponent
   dateRange = '30';
   charts: Chart[] = [];
 
-  private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Authorization':
-        `Bearer ${this.authService.getToken()}`
-    });
-  }
-
   ngOnInit() {
     this.loadStats();
     this.loadDashStats();
@@ -58,10 +49,7 @@ export class ReportsComponent
 
   loadStats() {
     this.loading = true;
-    this.http.get<any>(
-      `${environment.apiUrl}/Dashboard/widgets`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Dashboard/widgets`).subscribe({
       next: (data) => {
         this.stats = data;
         this.loading = false;
@@ -73,10 +61,7 @@ export class ReportsComponent
   }
 
   loadDashStats() {
-    this.http.get<any>(
-      `${environment.apiUrl}/Dashboard/stats`,
-      { headers: this.getHeaders() }
-    ).subscribe({
+    this.http.get<any>(`${environment.apiUrl}/Dashboard/stats`).subscribe({
       next: (data) => {
         this.dashStats = data;
         this.cdr.detectChanges();

@@ -7,9 +7,8 @@ import {
   Validators
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
-import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -23,7 +22,6 @@ export class OnboardingWizardComponent {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private toastr = inject(ToastrService);
-  private authService = inject(AuthService);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
 
@@ -107,8 +105,7 @@ export class OnboardingWizardComponent {
 
     this.http.put(
       `${environment.apiUrl}/Organizations/current`,
-      payload,
-      { headers: this.getHeaders() }
+      payload
     ).subscribe({
       next: () => {
         this.loading = false;
@@ -125,12 +122,6 @@ export class OnboardingWizardComponent {
           this.toastr.error(err.error?.message || 'Setup failed')
         );
       }
-    });
-  }
-
-  private getHeaders() {
-    return new HttpHeaders({
-      Authorization: `Bearer ${this.authService.getToken()}`
     });
   }
 }
