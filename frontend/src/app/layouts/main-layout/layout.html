@@ -302,11 +302,27 @@
                 class="avatar-img"/>
               <span *ngIf="!userPhotoUrl">{{ getInitials(userName) }}</span>
             </div>
+            <span class="profile-incomplete-dot" *ngIf="profileCompletion < 100"
+              title="Profile {{ profileCompletion }}% complete — click to finish setup"></span>
           </div>
           <div class="profile-dropdown" *ngIf="showProfileDropdown" (click)="$event.stopPropagation()">
             <div class="profile-header">
               <div class="profile-name">{{ userName }}</div>
               <div class="profile-email">{{ userEmail }}</div>
+            </div>
+
+            <div class="profile-completion-banner" *ngIf="profileCompletion < 100" (click)="goToProfileSettings()">
+              <div class="pcb-top">
+                <span class="pcb-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                  Complete your profile
+                </span>
+                <span class="pcb-pct">{{ profileCompletion }}%</span>
+              </div>
+              <div class="pcb-track">
+                <div class="pcb-fill" [style.width.%]="profileCompletion"></div>
+              </div>
+              <p class="pcb-hint">{{ 100 - profileCompletion }}% remaining — tap to finish setup</p>
             </div>
             <div class="profile-link-item" (click)="goToMainSettings()">
               <span class="profile-link-icon">

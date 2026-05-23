@@ -109,6 +109,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
   kbUnreadArticles: any[] = [];
   showKbDropdown   = false;
 
+  profileCompletion = 100;
+
   // ──────────────────────────────────────────────
   // Todo
   // ──────────────────────────────────────────────
@@ -245,6 +247,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   // Profile
   // ──────────────────────────────────────────────
+  private readonly COMPLETION_FIELDS = [
+    'fullName', 'email', 'phoneNumber', 'department', 'location',
+    'designation', 'dateOfBirth', 'dateOfJoining', 'gender', 'photoUrl'
+  ];
+
   loadProfile() {
     this.http.get<any>(`${environment.apiUrl}/Profile`).subscribe({
       next: (data) => {
@@ -257,6 +264,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
           this.userEmail = data.email;
           localStorage.setItem('im3_email', data.email);
         }
+        const filled = this.COMPLETION_FIELDS.filter(f => {
+          const v = data[f];
+          return typeof v === 'string' ? v.trim().length > 0 : Boolean(v);
+        }).length;
+        this.profileCompletion = Math.round((filled / this.COMPLETION_FIELDS.length) * 100);
         this.cdr.detectChanges();
       }
     });
