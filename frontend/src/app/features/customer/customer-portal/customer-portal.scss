@@ -9,16 +9,16 @@
   h1 {
     font-size: 22px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     margin-bottom: 4px;
   }
 
-  p { font-size: 13px; color: var(--text-muted, #999); }
+  p { font-size: 13px; color: var(--text-muted, var(--ui-color-text-faint)); }
 }
 
 .new-btn {
   padding: 9px 18px;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--ui-color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -31,7 +31,7 @@
 .create-card {
   background: var(--bg-card, white);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   padding: 24px;
   margin-bottom: 20px;
 
@@ -39,7 +39,7 @@
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 20px;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
   }
 }
 
@@ -52,20 +52,20 @@
   label {
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-secondary, #555);
+    color: var(--text-secondary, var(--ui-color-text-secondary));
   }
 
   input, textarea, select {
     padding: 9px 12px;
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color, var(--ui-color-border));
     border-radius: 8px;
     font-size: 13px;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     background: var(--bg-card, white);
     outline: none;
     font-family: inherit;
 
-    &:focus { border-color: var(--accent, #2563eb); }
+    &:focus { border-color: var(--accent, var(--ui-color-primary)); }
   }
 
   textarea { resize: vertical; }
@@ -77,11 +77,11 @@
   gap: 14px;
 }
 
-.req { color: #ef4444; }
+.req { color: var(--ui-color-danger); }
 
 .error-msg {
   font-size: 11px;
-  color: #ef4444;
+  color: var(--ui-color-danger);
 }
 
 .form-actions {
@@ -94,16 +94,16 @@
 .cancel-btn {
   padding: 9px 16px;
   background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 }
 
 .submit-btn {
   padding: 9px 20px;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--ui-color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -123,20 +123,20 @@
 .spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--border-color, #e0e0e0);
-  border-top-color: var(--accent, #2563eb);
+  border: 3px solid var(--border-color, var(--ui-color-border));
+  border-top-color: var(--accent, var(--ui-color-primary));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 .empty-state {
   text-align: center;
   padding: 80px;
   background: var(--bg-card, white);
   border-radius: 12px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -147,11 +147,11 @@
   h3 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     margin: 0;
   }
 
-  p { font-size: 14px; color: var(--text-muted, #999); margin: 0; }
+  p { font-size: 14px; color: var(--text-muted, var(--ui-color-text-faint)); margin: 0; }
 }
 
 .tickets-list {
@@ -162,7 +162,7 @@
 
 .ticket-card {
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 16px;
   cursor: pointer;
@@ -181,8 +181,8 @@
 .ticket-num {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted, #9ca3af);
-  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-muted, var(--ui-color-text-faint));
+  background: var(--bg-secondary, var(--ui-color-bg-subtle));
   padding: 2px 8px;
   border-radius: 6px;
 }
@@ -197,7 +197,7 @@
 .ticket-title {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   margin-bottom: 8px;
 }
 
@@ -205,5 +205,5 @@
   display: flex;
   gap: 14px;
   font-size: 12px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }

@@ -46,30 +46,50 @@ export class DashboardTrendComponent implements OnChanges, AfterViewInit {
           {
             label: 'Created',
             data: created,
-            borderColor: '#1976d2',
-            backgroundColor: 'rgba(25,118,210,0.1)',
-            tension: 0.4,
+            borderColor: '#2563eb', /* High-contrast Royal Blue link color */
+            backgroundColor: 'rgba(37, 99, 235, 0.04)',
+            tension: 0.35,
             fill: true,
-            pointRadius: 4
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2
           },
           {
             label: 'Resolved',
             data: resolved,
-            borderColor: '#4caf50',
-            backgroundColor: 'rgba(76,175,80,0.1)',
-            tension: 0.4,
+            borderColor: '#10b981', /* Premium clean SaaS Emerald green accent */
+            backgroundColor: 'rgba(16, 185, 129, 0.03)',
+            tension: 0.35,
             fill: true,
-            pointRadius: 4
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2
           }
         ]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'top' }
+          legend: { 
+            position: 'top',
+            labels: {
+              boxWidth: 12,
+              font: { family: '-apple-system, sans-serif', size: 12 },
+              color: '#475569'
+            }
+          }
         },
         scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8', font: { size: 11 } }
+          },
+          y: { 
+            beginAtZero: true, 
+            ticks: { stepSize: 1, color: '#94a3b8', font: { size: 11 } },
+            grid: { color: '#f1f5f9' }
+          }
         }
       }
     });

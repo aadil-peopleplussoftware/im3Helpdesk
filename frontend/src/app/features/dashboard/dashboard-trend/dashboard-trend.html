@@ -1,4 +1,14 @@
-<div class="trend-card" *ngIf="widgetData">
-  <h3>Last 7 Days Trend</h3>
-  <canvas #trendChart></canvas>
+<div class="trend-card-workspace" *ngIf="widgetData">
+  <div class="card-header-block">
+    <div class="header-title-wrap">
+      <h3>Last 7 Days Trend</h3>
+      <p class="subtitle">Operational synchronization metrics for created vs closed actions.</p>
+    </div>
+    <div class="legend-indicator-pill">
+      <span class="dot primary"></span> Sync Mode Active
+    </div>
+  </div>
+  <div class="chart-canvas-area">
+    <canvas #trendChart></canvas>
+  </div>
 </div>

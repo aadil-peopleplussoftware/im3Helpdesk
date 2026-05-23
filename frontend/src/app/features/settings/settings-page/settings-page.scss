@@ -1,195 +1,227 @@
+/* ═══════════════════════════════════════
+   SETTINGS PAGE — Matched to Login/Layout Design
+═══════════════════════════════════════ */
+
+$accent:      var(--ui-color-primary);
+$accent-bg:   rgba(37, 99, 235, 0.06);
+$slate-900:   var(--ui-color-text-primary);
+$slate-700:   var(--ui-color-text-secondary);
+$slate-600:   var(--ui-color-text-secondary);
+$slate-500:   var(--ui-color-text-muted);
+$slate-400:   var(--ui-color-text-faint);
+$slate-300:   var(--ui-color-border);
+$slate-200:   var(--ui-color-border);
+$slate-100:   var(--ui-color-border-soft);
+$slate-50:    var(--ui-color-bg-page);
+$white:       var(--ui-color-bg-surface);
+$red:         var(--ui-color-danger);
+$red-bg:      var(--ui-color-danger-bg);
 
 .settings-wrapper {
   display: flex;
   height: 100%;
-  background: var(--bg-primary, #f5f5f5);
+  background: $slate-50;
+  font-family: var(--ui-font-family);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ── Settings Sidebar ── */
 .settings-sidebar {
-  width: 250px;
-  background: var(--bg-card, #fff);
-  border-right: 1px solid var(--border-color, #e8e8e8);
+  width: 240px;
+  min-width: 240px;
+  background: $white;
+  border-right: 1px solid $slate-200;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100%;
 }
 
 .sidebar-header {
-  padding: 32px 0 18px 0;
-  text-align: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid $slate-100;
 }
+
 .sidebar-title {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 700;
-  color: var(--accent, #2563eb);
+  color: $slate-900;
+  letter-spacing: -0.3px;
 }
+
 .sidebar-menu {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 8px;
+  padding: 12px 10px;
 }
+
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 18px;
+  gap: 10px;
+  padding: 10px 14px;
   border: none;
   background: none;
   border-radius: 8px;
-  font-size: 15px;
-  color: var(--text-secondary, #555);
+  font-size: 13.5px;
+  color: $slate-600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  margin-bottom: 2px;
-}
-.sidebar-item.active,
-.sidebar-item:hover {
-  background: var(--accent-bg, #f0f6ff);
-  color: var(--accent, #2563eb);
-}
-.sidebar-icon {
-  font-size: 18px;
-  width: 28px;
-  text-align: center;
-}
-.sidebar-label {
-  flex: 1;
+  font-family: inherit;
   text-align: left;
+
+  &.active, &:hover {
+    background: $accent-bg;
+    color: $accent;
+
+    .sidebar-icon { color: $accent; }
+  }
 }
 
+.sidebar-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-label { flex: 1; }
+
+/* ── Settings Main ── */
 .settings-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .settings-header {
-  padding: 32px 32px 12px 32px;
-  border-bottom: 1px solid var(--border-color, #e8e8e8);
-  background: var(--bg-card, #fff);
-}
-.settings-header h1 {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary, #333);
-  margin-bottom: 4px;
-}
-.settings-header p {
-  font-size: 14px;
-  color: var(--text-muted, #999);
+  padding: 28px 32px 16px;
+  border-bottom: 1px solid $slate-200;
+  background: $white;
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    color: $slate-900;
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    font-size: 13px;
+    color: $slate-400;
+  }
 }
 
 .settings-content {
   flex: 1;
-  padding: 32px;
+  padding: 28px 32px;
   overflow-y: auto;
-  background: var(--bg-primary, #f5f5f5);
+  background: $slate-50;
 }
 
-.settings-content {
-  flex: 1;
-  padding: 28px;
-  overflow-y: auto;
-  background: var(--bg-primary, #f5f5f5);
-}
-
-/* Settings Pane */
+/* ── Settings Pane ── */
 .settings-pane {
-  background: var(--bg-card, white);
-  border-radius: 12px;
+  background: $white;
+  border-radius: 10px;
   padding: 28px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  border: 1px solid $slate-200;
 
   h2 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary, #333);
+    font-size: 16px;
+    font-weight: 700;
+    color: $slate-900;
+    letter-spacing: -0.3px;
     margin-bottom: 4px;
   }
 }
 
 .pane-desc {
   font-size: 13px;
-  color: var(--text-muted, #999);
+  color: $slate-400;
   margin-bottom: 24px;
 }
 
 .pane-section { margin-bottom: 4px; }
 
 .pane-section h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary, #333);
-  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: $slate-500;
+  margin-bottom: 14px;
   margin-top: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .pane-divider {
   height: 1px;
-  background: var(--border-color, #f0f0f0);
+  background: $slate-100;
   margin: 20px 0;
 }
 
-/* Themes */
+/* ── Themes Grid ── */
 .themes-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+
+  @media (max-width: 900px) { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 600px) { grid-template-columns: repeat(3, 1fr); }
 }
 
 .theme-card {
   cursor: pointer;
   text-align: center;
-  padding: 12px;
+  padding: 8px;
   border: 2px solid transparent;
-  border-radius: 12px;
+  border-radius: 10px;
   transition: all 0.15s;
 
-  &.active {
-    border-color: var(--accent, #2563eb);
-  }
-
-  &:hover { border-color: var(--border-color, #e0e0e0); }
+  &.active { border-color: $accent; }
+  &:hover:not(.active) { border-color: $slate-200; }
 }
 
 .theme-preview {
   width: 100%;
-  height: 72px;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  height: 60px;
+  border-radius: 6px;
+  margin-bottom: 6px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: 6px;
+  padding: 5px;
 }
 
 .theme-check {
-  width: 20px;
-  height: 20px;
-  background: white;
+  width: 18px;
+  height: 18px;
+  background: $white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent, #2563eb);
-  font-size: 12px;
-  font-weight: 700;
+  color: $accent;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .theme-name {
-  font-size: 13px;
-  color: var(--text-secondary, #555);
+  font-size: 12px;
+  font-weight: 500;
+  color: $slate-500;
 }
 
-/* Toggle */
+/* ── Toggle Row ── */
 .toggle-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 14px 0;
-  border-bottom: 1px solid var(--border-color, #f5f5f5);
+  border-bottom: 1px solid $slate-100;
 
   &:last-of-type { border-bottom: none; }
 }
@@ -197,22 +229,22 @@
 .toggle-left { flex: 1; }
 
 .toggle-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary, #333);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $slate-900;
 }
 
 .toggle-desc {
   font-size: 12px;
-  color: var(--text-muted, #999);
+  color: $slate-400;
   margin-top: 2px;
 }
 
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
   flex-shrink: 0;
   margin-left: 16px;
 
@@ -222,85 +254,84 @@
 .toggle-slider {
   position: absolute;
   inset: 0;
-  background: var(--border-color, #d0d0d0);
-  border-radius: 12px;
+  background: $slate-300;
+  border-radius: 99px;
   cursor: pointer;
   transition: background 0.2s;
 
   &::before {
     content: '';
     position: absolute;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: white;
+    background: $white;
     top: 3px;
     left: 3px;
     transition: transform 0.2s;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-
-  input:checked + & {
-    background: var(--accent, #2563eb);
-  }
-
-  input:checked + &::before {
-    transform: translateX(20px);
-  }
 }
 
+input:checked ~ .toggle-slider {
+  background: $accent;
+}
+
+input:checked ~ .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* ── Language Select ── */
 .lang-select {
   padding: 8px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid $slate-200;
   border-radius: 8px;
   font-size: 13px;
-  color: var(--text-primary, #333);
-  background: var(--bg-card, white);
+  color: $slate-900;
+  background: $white;
   outline: none;
-  min-width: 150px;
+  min-width: 160px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+
+  &:focus { border-color: $accent; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
 }
 
+/* ── Save Button ── */
 .pane-save-btn {
-  margin-top: 12px;
+  margin-top: 14px;
   padding: 9px 20px;
-  background: var(--accent, #2563eb);
-  color: white;
+  background: $slate-900;
+  color: $white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.15s;
+
+  &:hover { background: var(--ui-color-text-secondary); }
 }
 
-.danger-section h3 { color: #ef4444; }
+/* ── Danger Zone ── */
+.danger-section h3 {
+  color: $red !important;
+  text-transform: none;
+  font-size: 13.5px;
+}
 
 .danger-btn {
-  padding: 9px 16px;
-  background: #fee2e2;
-  color: #dc2626;
-  border: none;
+  padding: 8px 16px;
+  background: $red-bg;
+  color: $red;
+  border: 1px solid var(--ui-color-danger-bg);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-}
-.themes-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-top: 8px;
-}
-// ✅ CHANGE: 4 columns → 5 columns taaki 10 themes fit hon
-.themes-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-  margin-top: 8px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.15s;
 
-  @media (max-width: 900px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  &:hover { background: var(--ui-color-danger-bg); border-color: $red; }
 }

@@ -9,11 +9,11 @@
   h2 {
     font-size: 20px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     margin-bottom: 4px;
   }
 
-  p { font-size: 13px; color: var(--text-muted, #999); }
+  p { font-size: 13px; color: var(--text-muted, var(--ui-color-text-faint)); }
 }
 
 .audit-controls {
@@ -24,17 +24,17 @@
 
 .type-filter {
   padding: 7px 12px;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   font-size: 13px;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   background: var(--bg-card, white);
   outline: none;
 }
 
 .total-count {
   font-size: 13px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
 .loading-center {
@@ -46,24 +46,24 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--border-color, #e0e0e0);
-  border-top-color: var(--accent, #2563eb);
+  border: 3px solid var(--border-color, var(--ui-color-border));
+  border-top-color: var(--accent, var(--ui-color-primary));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+// moved to styles/_mixins.scss
 
 .empty-state {
   text-align: center;
   padding: 48px;
-  color: var(--text-muted, #bbb);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
 .audit-list {
   background: var(--bg-card, white);
   border-radius: 10px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   overflow: hidden;
 }
 
@@ -72,11 +72,11 @@
   align-items: center;
   gap: 14px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  border-bottom: 1px solid var(--border-color, var(--ui-color-border));
   transition: background 0.1s;
 
   &:last-child { border-bottom: none; }
-  &:hover { background: var(--hover-bg, #fafafa); }
+  &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
 }
 
 .audit-av {
@@ -96,7 +96,7 @@
 .audit-desc {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   margin-bottom: 4px;
 }
 
@@ -105,11 +105,11 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
-.audit-user { color: var(--text-secondary, #555); font-weight: 500; }
-.audit-dot { color: var(--border-color, #ccc); }
+.audit-user { color: var(--text-secondary, var(--ui-color-text-secondary)); font-weight: 500; }
+.audit-dot { color: var(--border-color, var(--ui-color-border)); }
 
 .audit-action-badge {
   padding: 3px 10px;
@@ -126,16 +126,16 @@
   gap: 16px;
   padding: 16px;
   font-size: 13px;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary, var(--ui-color-text-secondary));
 
   button {
     background: none;
-    border: 1px solid var(--border-color, #e0e0e0);
+    border: 1px solid var(--border-color, var(--ui-color-border));
     padding: 6px 14px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
-    color: var(--text-secondary, #666);
+    color: var(--text-secondary, var(--ui-color-text-muted));
 
     &:disabled { opacity: 0.4; cursor: not-allowed; }
   }

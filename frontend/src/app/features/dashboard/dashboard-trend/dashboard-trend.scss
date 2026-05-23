@@ -1,14 +1,71 @@
-.trend-card {
-  background: white;
-  border-radius: 12px;
+/* ═══════════════════════════════════════
+   PREMIUM SAAS ALIGNED TREND LAYOUT
+═══════════════════════════════════════ */
+.trend-card-workspace {
+  background: var(--ui-color-bg-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
   margin-bottom: 24px;
+  transition: box-shadow 0.2s ease;
+  width: 100%;             /* ✅ Force fill width */
+  box-sizing: border-box;  /* ✅ Include padding inside layout calculations */
+  overflow: hidden;        /* ✅ Prevent visual leaks */
 
-  h3 {
-    color: #333;
-    margin-bottom: 16px;
-    font-size: 15px;
-    font-weight: 500;
+  &:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  }
+
+  .card-header-block {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  .header-title-wrap {
+    h3 {
+      color: var(--ui-color-text-primary);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin: 0 0 4px 0;
+    }
+    
+    .subtitle {
+      color: var(--ui-color-text-muted);
+      font-size: 12.5px;
+      margin: 0;
+    }
+  }
+
+  .legend-indicator-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--ui-color-bg-page);
+    border: 1px solid var(--ui-color-border);
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ui-color-text-secondary);
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      
+      &.primary { background: var(--ui-color-primary); }
+    }
+  }
+
+  /* ✅ FIXED: Bound canvas with strict relative constraints to support immediate responsive rendering */
+  .chart-canvas-area {
+    position: relative;
+    width: 100%;
+    height: 300px; /* Locked standard size layout grid mapping */
+    margin-top: 8px;
   }
 }

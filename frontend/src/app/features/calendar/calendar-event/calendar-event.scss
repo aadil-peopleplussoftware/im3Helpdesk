@@ -96,7 +96,7 @@ $radius-sm: 8px;
     letter-spacing: .06em;
     margin-bottom: 8px;
 
-    &.overdue-label { color: #ef4444; }
+    &.overdue-label { color: var(--ui-color-danger); }
   }
 }
 
@@ -111,7 +111,7 @@ $radius-sm: 8px;
 
   &:hover { background: var(--hover-bg); }
 
-  &.overdue .ri-time { color: #ef4444; }
+  &.overdue .ri-time { color: var(--ui-color-danger); }
 
   .ri-dot {
     width: 8px; height: 8px;
@@ -140,7 +140,7 @@ $radius-sm: 8px;
     font-size: 11px;
     color: var(--text-primary)-2;
     flex-shrink: 0;
-    &:hover { background: var(--hover-bg); color: #22c55e; border-color: #22c55e; }
+    &:hover { background: var(--hover-bg); color: var(--ui-color-success); border-color: var(--ui-color-success); }
   }
 }
 
@@ -675,9 +675,9 @@ $radius-sm: 8px;
   font-size: 12px;
   color: var(--text-primary)-2;
   display: flex; align-items: center; justify-content: center;
-  &:hover { background: var(--hover-bg); color: #22c55e; border-color: #22c55e; }
-  &.delete:hover { background: var(--hover-bg); color: #ef4444; border-color: #ef4444; }
-  &.info:hover { background: var(--hover-bg); color: #3b82f6; border-color: #3b82f6; }
+  &:hover { background: var(--hover-bg); color: var(--ui-color-success); border-color: var(--ui-color-success); }
+  &.delete:hover { background: var(--hover-bg); color: var(--ui-color-danger); border-color: var(--ui-color-danger); }
+  &.info:hover { background: var(--hover-bg); color: var(--ui-color-primary); border-color: var(--ui-color-primary); }
 }
 
 // ══ AGENDA VIEW ═════════════════════════════════════
@@ -819,10 +819,10 @@ $radius-sm: 8px;
   display: flex; align-items: center; justify-content: center;
   transition: all .1s;
 
-  &:hover { background: var(--hover-bg); color: #22c55e; border-color: #22c55e; }
-  &.done { background: var(--hover-bg); color: #22c55e; border-color: #22c55e; }
-  &.delete:hover { background: var(--hover-bg); color: #ef4444; border-color: #ef4444; }
-  &.info:hover { background: var(--hover-bg); color: #3b82f6; border-color: #3b82f6; }
+  &:hover { background: var(--hover-bg); color: var(--ui-color-success); border-color: var(--ui-color-success); }
+  &.done { background: var(--hover-bg); color: var(--ui-color-success); border-color: var(--ui-color-success); }
+  &.delete:hover { background: var(--hover-bg); color: var(--ui-color-danger); border-color: var(--ui-color-danger); }
+  &.info:hover { background: var(--hover-bg); color: var(--ui-color-primary); border-color: var(--ui-color-primary); }
 }
 
 .line-through { text-decoration: line-through; }
@@ -893,7 +893,7 @@ $radius-sm: 8px;
     font-weight: 500;
     color: var(--text-primary)-2;
   }
-  .req { color: #ef4444; }
+  .req { color: var(--ui-color-danger); }
 
   &.half { flex: 1; }
 }
@@ -976,7 +976,7 @@ $radius-sm: 8px;
   .em-delete {
     background: none;
     border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    color: #ef4444;
+    color: var(--ui-color-danger);
     border-radius: $radius-sm;
     padding: 8px 14px;
     font-size: 14px;
@@ -1083,7 +1083,7 @@ $radius-sm: 8px;
 }
 
 // ── Ticket color helpers (theme-aware) ───────────────
-// These replace hardcoded #f59e0b (amber) ticket colors
+// These replace hardcoded var(--ui-color-warning) (amber) ticket colors
 .ticket-dot {
   background: var(--accent) !important;
 }
@@ -1138,7 +1138,7 @@ $radius-sm: 8px;
     line-height: 1;
     padding: 0;
     margin-left: 2px;
-    &:hover { color: #ef4444; }
+    &:hover { color: var(--ui-color-danger); }
   }
 }
 

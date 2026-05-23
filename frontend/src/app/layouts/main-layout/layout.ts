@@ -34,8 +34,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
   public showProfileDropdown = false;
   public keyboardShortcutsEnabled = true;
 
-
-
   // Profile Dropdown Logic
   public toggleProfileDropdown(event: MouseEvent) {
     event.stopPropagation();
@@ -48,7 +46,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     }
   }
 
-    public goToMainSettings() {
+  public goToMainSettings() {
     this.showProfileDropdown = false;
     this.router.navigate(['/settings']);
   }

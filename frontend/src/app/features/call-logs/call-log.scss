@@ -1,11 +1,11 @@
 :host {
-  --accent:  #2563eb;
-  --missed:  #ef4444;
-  --border:  #e8ecf0;
-  --white:   #ffffff;
-  --text:    #1a1f36;
-  --sub:     #6b7280;
-  --muted:   #9ca3af;
+  --accent:  var(--ui-color-primary);
+  --missed:  var(--ui-color-danger);
+  --border:  var(--ui-color-border);
+  --white:   var(--ui-color-bg-surface);
+  --text:    var(--ui-color-text-primary);
+  --sub:     var(--ui-color-text-muted);
+  --muted:   var(--ui-color-text-faint);
 }
 
 .call-log-panel {
@@ -64,7 +64,7 @@
 .cl-filter-btn {
   position: relative;
   padding: 7px 14px;
-  background: #f3f4f6;
+  background: var(--ui-color-bg-subtle);
   border: 1px solid var(--border);
   border-radius: 20px;
   cursor: pointer;
@@ -80,7 +80,7 @@
   margin-bottom: 12px;
 
   &:hover {
-    background: #e5e7eb;
+    background: var(--ui-color-border);
     color: var(--text);
   }
 
@@ -112,7 +112,7 @@
   flex-shrink: 0;
   margin-bottom: 12px;
   font-family: monospace;
-  &:hover { background: #f5f5f5; }
+  &:hover { background: var(--ui-color-bg-subtle); }
 }
 
 /* ── Loading ── */
@@ -136,9 +136,7 @@
   flex-shrink: 0;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+// moved to styles/_mixins.scss
 
 /* ── Empty ── */
 .cl-empty {
@@ -165,7 +163,7 @@
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #e0e0e0 transparent;
+  scrollbar-color: var(--ui-color-border) transparent;
 }
 
 /* ── Call item ── */
@@ -175,12 +173,12 @@
   gap: 12px;
   padding: 10px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--ui-color-bg-subtle);
   transition: background 0.1s;
   min-height: 60px;
 
   &:last-child { border-bottom: none; }
-  &:hover, &.hovered { background: #f5f7fa; }
+  &:hover, &.hovered { background: var(--ui-color-bg-subtle); }
 }
 
 /* ── Avatar ── */
@@ -293,7 +291,7 @@
   justify-content: center;
   letter-spacing: 1px;
   font-family: monospace;
-  &:hover { background: #f0f0f0; }
+  &:hover { background: var(--ui-color-border); }
 }
 
 .cl-call-btn {

@@ -1,41 +1,55 @@
 <div class="auth-layout">
   <div class="auth-left">
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
-      <span class="brand-name">iM3HelpDesk</span>
-    </div>
-    <div class="hero-content">
-      <h1>START YOUR<br>
-        <span class="highlight">FREE TRIAL</span> TODAY.
-      </h1>
-      <p>Set up your helpdesk in minutes. No credit card required.</p>
-      <div class="feature-list">
-        <div class="feature-item">✓ 30-day free trial</div>
-        <div class="feature-item">✓ Unlimited tickets</div>
-        <div class="feature-item">✓ Email support</div>
-        <div class="feature-item">✓ Team collaboration</div>
+    <div class="left-header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <span class="brand-name">iM3HelpDesk</span>
       </div>
     </div>
-    <div class="badges">
-      <span class="badge-item">⊕ Enterprise Grade</span>
-      <span class="badge-item">⊕ Global Infrastructure</span>
+    
+    <div class="hero-center">
+      <div class="status-pill">
+        <span class="pulse-dot"></span> Sandbox Ready
+      </div>
+      <h1>Start your <span class="highlight">free trial</span> today.</h1>
+      <p>Set up your workspace helpdesk engine in minutes. Fully-featured 30-day sandbox environment, no payment method required.</p>
+      
+      <div class="feature-list">
+        <div class="feature-item"><span class="check-icon">✓</span> 30-day trial instance</div>
+        <div class="feature-item"><span class="check-icon">✓</span> Multi-channel high-velocity routing</div>
+        <div class="feature-item"><span class="check-icon">✓</span> Global team space collaboration</div>
+      </div>
+    </div>
+
+    <div class="left-footer">
+      <div class="meta-row">
+        <span>Enterprise Portal v2.4</span>
+        <span class="separator">/</span>
+        <span>Infrastructure Active</span>
+      </div>
     </div>
   </div>
 
   <div class="auth-right">
-    <div class="auth-form-wrap">
-      <a routerLink="/login" class="back-link">← Back to login</a>
-      <h2>Create your account</h2>
-      <p class="auth-subtitle">Start your 30-day free trial. No credit card required.</p>
+    <div class="auth-card-workspace">
+      <button routerLink="/login" class="back-btn" type="button">
+        <span class="back-arrow">←</span> Back to workspace login
+      </button>
+
+      <div class="workspace-header">
+        <h2>Create instance</h2>
+        <p class="auth-subtitle">Provision a dedicated ticket support infrastructure for your team.</p>
+      </div>
 
       <div class="success-state" *ngIf="success">
-        <div class="success-circle">✓</div>
-        <h3>Account Created!</h3>
-        <p>Please check your email to verify your account.</p>
-        <a routerLink="/login" class="submit-btn"
-          style="display:block;text-align:center;text-decoration:none;margin-top:16px">
-          Go to Login
-        </a>
+        <div class="success-circle">
+          <span class="check-mark">✓</span>
+        </div>
+        <h3>Account Created</h3>
+        <p>A verification handshake protocol has been sent to your inbox. Please authorize your email to deploy the workspace.</p>
+        <button routerLink="/login" class="submit-btn" style="margin-top:20px;">
+          <span class="btn-text">Proceed to Sign In</span>
+        </button>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!success">
@@ -45,81 +59,74 @@
             <label>Full Name</label>
             <div class="input-wrap">
               <span class="input-icon">👤</span>
-              <input type="text" formControlName="fullName"
-                placeholder="John Doe"/>
+              <input type="text" formControlName="fullName" placeholder="John Doe" autocomplete="name"/>
             </div>
           </div>
           <div class="form-group">
-            <label>Company Name</label>
+            <label>Company Identity</label>
             <div class="input-wrap">
               <span class="input-icon">🏢</span>
-              <input type="text" formControlName="companyName"
-                placeholder="Acme Inc"/>
+              <input type="text" formControlName="companyName" placeholder="Acme Corporation"/>
             </div>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Work Email</label>
+          <label>Work Email Address</label>
           <div class="input-wrap">
             <span class="input-icon">✉</span>
-            <input type="email" formControlName="email"
-              placeholder="name@company.com"/>
+            <input type="email" formControlName="email" placeholder="name@company.com" autocomplete="email"/>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Phone Number</label>
+          <label>Contact Phone Number</label>
           <div class="input-wrap">
             <span class="input-icon">📱</span>
-            <input type="tel" formControlName="phoneNumber"
-              placeholder="+91 9999999999"/>
+            <input type="tel" formControlName="phoneNumber" placeholder="+91 9999999999" autocomplete="tel"/>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label>Password</label>
+            <label>Secure Password</label>
             <div class="input-wrap">
               <span class="input-icon">🔒</span>
-              <input type="password" formControlName="password"
-                placeholder="••••••••"/>
+              <input type="password" formControlName="password" placeholder="••••••••" autocomplete="new-password"/>
             </div>
           </div>
           <div class="form-group">
             <label>Confirm Password</label>
             <div class="input-wrap">
               <span class="input-icon">🔒</span>
-              <input type="password" formControlName="confirmPassword"
-                placeholder="••••••••"/>
+              <input type="password" formControlName="confirmPassword" placeholder="••••••••" autocomplete="new-password"/>
             </div>
-            <span class="field-error"
-              *ngIf="form.get('confirmPassword')?.hasError('mismatch')
-                && form.get('confirmPassword')?.touched">
-              Passwords do not match
+            <span class="field-error" *ngIf="form.get('confirmPassword')?.hasError('mismatch') && form.get('confirmPassword')?.touched">
+              Security signatures do not match.
             </span>
           </div>
         </div>
 
         <button type="submit" class="submit-btn" [disabled]="loading">
-          <span *ngIf="!loading">Create Account →</span>
-          <span *ngIf="loading">Creating...</span>
+          <span *ngIf="!loading" class="btn-text">Deploy Account <span class="arrow">→</span></span>
+          <span *ngIf="loading" class="btn-loading">
+            <span class="spinner"></span> Deploying infrastructure...
+          </span>
         </button>
 
+        <div class="divider"><span>already registered</span></div>
+
         <div class="alt-links">
-          <span>Already have an account?</span>
-          <a routerLink="/login" class="create-link">Sign in</a>
-          <span>|</span>
-          <a routerLink="/register-customer" class="create-link">
-            Customer Signup
-          </a>
+          <a routerLink="/login" class="create-link">Sign In to Space</a>
+          <span class="bullet-sep">|</span>
+          <a routerLink="/register-customer" class="create-link">Customer Portal Signup</a>
         </div>
       </form>
 
       <div class="footer-links">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Contact</a>
+        <a href="#">Privacy Standard</a>
+        <span class="bullet">•</span>
+        <a href="#">Terms of Use</a>
       </div>
     </div>
   </div>

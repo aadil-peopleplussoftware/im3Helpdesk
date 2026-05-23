@@ -17,13 +17,13 @@
   h1 {
     font-size: 22px;
     font-weight: 600;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
   }
 }
 
 .seats-badge {
-  background: var(--accent-light, #eff6ff);
-  color: var(--accent, #2563eb);
+  background: var(--accent-light, var(--ui-color-primary-soft));
+  color: var(--accent, var(--ui-color-primary));
   padding: 3px 10px;
   border-radius: 12px;
   font-size: 13px;
@@ -41,7 +41,7 @@
   align-items: center;
   gap: 8px;
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   padding: 7px 12px;
   width: 220px;
@@ -53,7 +53,7 @@
   border: none;
   outline: none;
   font-size: 13px;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
   background: transparent;
   width: 100%;
 }
@@ -61,16 +61,16 @@
 .export-btn {
   padding: 8px 14px;
   background: var(--bg-card, white);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 }
 
 .new-btn {
   padding: 8px 16px;
-  background: var(--accent, #2563eb);
+  background: var(--accent, var(--ui-color-primary));
   color: white;
   border: none;
   border-radius: 8px;
@@ -83,7 +83,7 @@
 .agent-tabs {
   display: flex;
   border-bottom: 1px solid
-    var(--border-color, #e8e8e8);
+    var(--border-color, var(--ui-color-border));
   margin-bottom: 20px;
 }
 
@@ -94,30 +94,30 @@
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: -1px;
 
   &.active {
-    color: var(--accent, #2563eb);
-    border-bottom-color: var(--accent, #2563eb);
+    color: var(--accent, var(--ui-color-primary));
+    border-bottom-color: var(--accent, var(--ui-color-primary));
     font-weight: 500;
   }
 }
 
 .tab-count {
-  background: var(--accent-light, #eff6ff);
-  color: var(--accent, #2563eb);
+  background: var(--accent-light, var(--ui-color-primary-soft));
+  color: var(--accent, var(--ui-color-primary));
   padding: 1px 7px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
 
   &.inactive {
-    background: #fee2e2;
-    color: #dc2626;
+    background: var(--ui-color-danger-bg);
+    color: var(--ui-color-danger);
   }
 }
 
@@ -125,7 +125,7 @@
 .agents-table-wrap {
   background: var(--bg-card, white);
   border-radius: 10px;
-  border: 1px solid var(--border-color, #e8e8e8);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   overflow: hidden;
 }
 
@@ -138,26 +138,26 @@
     text-align: left;
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-muted, #9ca3af);
+    color: var(--text-muted, var(--ui-color-text-faint));
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    background: var(--bg-secondary, #fafafa);
+    background: var(--bg-secondary, var(--ui-color-bg-subtle));
     border-bottom: 1px solid
-      var(--border-color, #e8e8e8);
+      var(--border-color, var(--ui-color-border));
   }
 
   td {
     padding: 14px 16px;
     font-size: 13px;
-    color: var(--text-primary, #333);
+    color: var(--text-primary, var(--ui-color-text-primary));
     border-bottom: 1px solid
-      var(--border-color, #f0f0f0);
+      var(--border-color, var(--ui-color-border));
   }
 
   .agent-row {
     transition: background 0.1s;
     &:hover td {
-      background: var(--hover-bg, #fafafa);
+      background: var(--hover-bg, var(--ui-color-bg-subtle));
     }
     &:last-child td { border-bottom: none; }
   }
@@ -191,12 +191,12 @@
 .ag-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text-primary, var(--ui-color-text-primary));
 }
 
 .ag-email {
   font-size: 12px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
 .role-badge {
@@ -206,27 +206,27 @@
   font-weight: 500;
 
   &.role-companyadmin {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: var(--ui-color-primary-soft);
+    color: var(--ui-color-primary-hover);
   }
   &.role-agent {
-    background: #dcfce7;
-    color: #15803d;
+    background: var(--ui-color-success-bg);
+    color: var(--ui-color-success);
   }
   &.role-superadmin {
-    background: #ede9fe;
-    color: #6d28d9;
+    background: var(--ui-color-primary-soft);
+    color: var(--ui-color-primary-hover);
   }
 }
 
 .group-text {
   font-size: 13px;
-  color: var(--text-secondary, #555);
+  color: var(--text-secondary, var(--ui-color-text-secondary));
 }
 
 .lastseen {
   font-size: 12px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
 }
 
 .action-btns {
@@ -237,37 +237,37 @@
 .edit-btn {
   padding: 4px 10px;
   background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 
-  &:hover { background: var(--hover-bg, #f5f5f5); }
+  &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
 }
 
 .del-btn {
   padding: 4px 10px;
   background: none;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--ui-color-danger-bg);
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  color: #ef4444;
+  color: var(--ui-color-danger);
 
-  &:hover { background: #fee2e2; }
+  &:hover { background: var(--ui-color-danger-bg); }
 }
 
 .deact-btn {
   padding: 4px 10px;
   background: none;
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--ui-color-text-muted));
 
-  &:hover { background: var(--hover-bg, #f5f5f5); }
+  &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
 }
 /* ✅ Group badges */
 .group-badges {
@@ -278,22 +278,22 @@
 
 .group-badge {
   padding: 2px 8px;
-  background: #f0f9ff;
-  color: #0369a1;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
-  border: 1px solid #bae6fd;
+  border: 1px solid var(--ui-color-primary-soft);
 }
 
 .group-dash {
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, var(--ui-color-text-faint));
   font-size: 14px;
 }
 
 /* ✅ Activate button (green) */
 .activate-btn {
-  border-color: #bbf7d0 !important;
-  color: #15803d !important;
-  &:hover { background: #dcfce7 !important; }
+  border-color: var(--ui-color-success-bg) !important;
+  color: var(--ui-color-success) !important;
+  &:hover { background: var(--ui-color-success-bg) !important; }
 }
