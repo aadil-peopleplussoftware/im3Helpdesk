@@ -3,9 +3,9 @@
    ═══════════════════════════════════════════ */
 
 .create-page {
-  max-width: 640px;
+  max-width: 680px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 28px 20px;
 }
 
 /* ── Header ── */
@@ -37,9 +37,9 @@
 
 /* ── Card ── */
 .create-card {
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 24px;
 }
 
@@ -59,16 +59,17 @@
 /* Upload area */
 .upload-area {
   display: block;
-  border: 2px dashed var(--border-color, var(--ui-color-border));
-  border-radius: 12px;
-  padding: 32px;
+  border: 1px dashed var(--border-color, var(--ui-color-border));
+  border-radius: 8px;
+  padding: 28px;
   text-align: center;
   cursor: pointer;
+  background: var(--ui-color-bg-page);
   transition: border-color 0.15s, background 0.15s;
 
   &:hover {
     border-color: var(--accent, var(--ui-color-primary));
-    background: var(--accent-light, var(--ui-color-primary-soft));
+    background: var(--ui-color-primary-soft);
   }
 }
 
@@ -177,18 +178,18 @@
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary, var(--ui-color-text-primary));
-  background: var(--bg-secondary, var(--ui-color-bg-subtle));
+  background: var(--ui-color-bg-page);
   outline: none;
   transition: border-color 0.15s, background 0.15s;
   box-sizing: border-box;
 
   &:focus {
     border-color: var(--accent, var(--ui-color-primary));
-    background: var(--bg-card, white);
-    box-shadow: 0 0 0 3px var(--accent-light, var(--ui-color-primary-soft));
+    background: var(--ui-color-bg-surface);
+    box-shadow: 0 0 0 3px var(--ui-color-primary-soft);
   }
 }
 

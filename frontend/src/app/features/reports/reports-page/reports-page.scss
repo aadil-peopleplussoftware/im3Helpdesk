@@ -34,13 +34,13 @@
   border-radius: 8px;
   font-size: 13px;
   color: var(--text-primary, var(--ui-color-text-primary));
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   outline: none;
 }
 
 .export-btn {
   padding: 7px 14px;
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
@@ -82,7 +82,7 @@
 }
 
 .stat-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 14px 16px;
@@ -117,7 +117,7 @@
 }
 
 .chart-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 12px;
   padding: 16px;

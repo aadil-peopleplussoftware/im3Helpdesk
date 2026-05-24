@@ -14,7 +14,7 @@
 .sidebar {
   width: 220px;
   min-width: 220px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-right: 1px solid var(--ui-color-border);
   display: flex;
   flex-direction: column;
@@ -140,7 +140,7 @@
 // ═══════════════════════════════════
 .topbar {
   height: 56px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-bottom: 1px solid var(--ui-color-border);
   display: flex;
   align-items: center;
@@ -258,7 +258,7 @@
 // Ticket Info Card
 // ═══════════════════════════════════
 .ticket-info-card {
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-radius: 12px;
   border: 1px solid var(--ui-color-border);
   padding: 22px 24px;
@@ -339,7 +339,7 @@
 // Conversation Card
 // ═══════════════════════════════════
 .conversation-card {
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-radius: 12px;
   border: 1px solid var(--ui-color-border);
   display: flex;
@@ -492,7 +492,7 @@
 
     &:focus {
       border-color: var(--ui-color-warning);
-      background: white;
+      background: var(--ui-color-bg-surface);
     }
 
     &::placeholder { color: var(--ui-color-text-faint); }

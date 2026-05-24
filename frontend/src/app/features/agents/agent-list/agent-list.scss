@@ -40,7 +40,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   padding: 7px 12px;
@@ -60,7 +60,7 @@
 
 .export-btn {
   padding: 8px 14px;
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   cursor: pointer;
@@ -123,8 +123,8 @@
 
 /* Table */
 .agents-table-wrap {
-  background: var(--bg-card, white);
-  border-radius: 10px;
+  background: var(--ui-color-bg-surface);
+  border-radius: 8px;
   border: 1px solid var(--border-color, var(--ui-color-border));
   overflow: hidden;
 }

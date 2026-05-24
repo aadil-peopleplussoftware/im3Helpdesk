@@ -212,7 +212,7 @@
   right: -2px;
   width: 18px;
   height: 18px;
-  background: white;
+  background: var(--white);
   border-radius: 50%;
   border: 1px solid var(--border);
   display: flex;
@@ -299,7 +299,7 @@
   align-items: center;
   gap: 5px;
   padding: 6px 14px;
-  background: white;
+  background: var(--white);
   border: 1px solid var(--border);
   border-radius: 20px;
   cursor: pointer;

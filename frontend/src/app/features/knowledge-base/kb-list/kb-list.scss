@@ -16,11 +16,11 @@
    LEFT SIDEBAR
 ════════════════════════════════════ */
 .users-sidebar {
-  width: 230px;
+  width: 220px;
   flex-shrink: 0;
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   position: sticky;
   top: 20px;
@@ -259,9 +259,9 @@
 .empty-state {
   text-align: center;
   padding: 60px 40px;
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
 
   .empty-icon { font-size: 48px; margin-bottom: 12px; }
   h3 { font-size: 16px; color: var(--text-muted, var(--ui-color-text-faint)); margin-bottom: 16px; }
@@ -276,13 +276,13 @@
 
 /* ── Post Card ── */
 .post-card {
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
-  transition: box-shadow 0.15s;
+  transition: border-color 0.15s;
 
-  &:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+  &:hover { border-color: var(--ui-color-border); }
 }
 
 /* Post Header */

@@ -171,10 +171,10 @@
    Theme Variants
    ========================= */
 body.theme-dark {
-  --ui-color-primary: #90caf9;
-  --ui-color-primary-hover: #64b5f6;
-  --ui-color-primary-soft: rgba(144, 202, 249, 0.12);
-  --ui-color-primary-soft-strong: rgba(144, 202, 249, 0.2);
+  --ui-color-primary: #64b5f6;
+  --ui-color-primary-hover: #42a5f5;
+  --ui-color-primary-soft: rgba(100, 181, 246, 0.14);
+  --ui-color-primary-soft-strong: rgba(100, 181, 246, 0.22);
 
   --ui-color-bg-page: #121212;
   --ui-color-bg-surface: #1e1e1e;
@@ -194,10 +194,10 @@ body.theme-dark {
 }
 
 [data-theme="dark"] {
-  --ui-color-primary: #90caf9;
-  --ui-color-primary-hover: #64b5f6;
-  --ui-color-primary-soft: rgba(144, 202, 249, 0.12);
-  --ui-color-primary-soft-strong: rgba(144, 202, 249, 0.2);
+  --ui-color-primary: #64b5f6;
+  --ui-color-primary-hover: #42a5f5;
+  --ui-color-primary-soft: rgba(100, 181, 246, 0.14);
+  --ui-color-primary-soft-strong: rgba(100, 181, 246, 0.22);
 
   --ui-color-bg-page: #121212;
   --ui-color-bg-surface: #1e1e1e;

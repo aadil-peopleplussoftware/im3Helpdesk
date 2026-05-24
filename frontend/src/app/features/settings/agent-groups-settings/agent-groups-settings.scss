@@ -229,7 +229,7 @@
   color: white;
   flex-shrink: 0;
   transition: all 0.15s;
-  background: white;
+  background: var(--ui-color-bg-surface);
 
   &.checked {
     background: var(--accent, var(--ui-color-warning));

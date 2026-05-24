@@ -40,9 +40,9 @@
 
 /* ── Full Card ── */
 .full-card {
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -371,9 +371,9 @@
 
 /* ── Comments Card ── */
 .comments-card {
-  background: var(--bg-card, white);
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
 }
 
@@ -423,8 +423,8 @@
 
 .comment-body {
   flex: 1;
-  background: var(--bg-secondary, var(--ui-color-bg-subtle));
-  border-radius: 12px;
+  background: var(--ui-color-bg-subtle);
+  border-radius: 8px;
   padding: 10px 14px;
 }
 

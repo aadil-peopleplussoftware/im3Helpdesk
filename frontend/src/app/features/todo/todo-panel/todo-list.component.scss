@@ -61,12 +61,11 @@
 
 /* ── Add Card ── */
 .tl-add-card {
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
 }
 
 .tl-add-row {
@@ -105,7 +104,7 @@
   border-radius: 8px;
   font-size: 12px;
   color: var(--text-primary, var(--ui-color-text-primary));
-  background: white;
+  background: var(--ui-color-bg-surface);
   cursor: pointer;
   outline: none;
   &:focus { border-color: var(--accent, var(--ui-color-primary)); }
@@ -138,10 +137,10 @@
 .tl-filter-tabs {
   display: flex;
   gap: 4px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 8px;
+  padding: 3px;
 }
 
 .tl-ftab {
@@ -196,7 +195,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   padding: 7px 12px;
@@ -219,7 +218,7 @@
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   overflow: hidden;
-  background: white;
+  background: var(--ui-color-bg-surface);
 }
 
 .tl-pf-btn {
@@ -257,7 +256,7 @@
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   overflow: hidden;
-  background: white;
+  background: var(--ui-color-bg-surface);
 }
 
 .tl-sort-btn {
@@ -302,8 +301,8 @@
 .tl-empty {
   text-align: center;
   padding: 60px 24px;
-  background: white;
-  border-radius: 12px;
+  background: var(--ui-color-bg-surface);
+  border-radius: 8px;
   border: 1px dashed var(--border-color, var(--ui-color-border));
 
   .tl-empty-icon { font-size: 48px; margin-bottom: 12px; }
@@ -331,10 +330,10 @@
 
 /* ── Todo Item ── */
 .tl-item {
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--border-color, var(--ui-color-border));
-  border-radius: 10px;
-  border-left-width: 4px;
+  border-radius: 8px;
+  border-left-width: 3px;
   transition: box-shadow 0.15s, border-color 0.15s,
     opacity 0.15s;
   position: relative;
@@ -342,19 +341,16 @@
 
   &[data-priority="high"] {
     border-left-color: var(--ui-color-danger);
-    background: var(--ui-color-danger-bg-soft);
   }
   &[data-priority="medium"] {
     border-left-color: var(--ui-color-warning);
-    background: var(--ui-color-warning-bg);
   }
   &[data-priority="low"] {
     border-left-color: var(--ui-color-success);
-    background: var(--ui-color-success-bg);
   }
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    background: var(--ui-color-bg-subtle);
     .tl-actions      { opacity: 1; }
     .tl-drag-handle  { opacity: 1; }
   }
@@ -373,7 +369,7 @@
   }
 
   &.tl-expanded {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border-color: var(--ui-color-primary);
   }
 }
 
@@ -573,7 +569,7 @@
   transition: background 0.1s;
 
   &:hover {
-    background: white;
+    background: var(--ui-color-bg-subtle);
     .tl-sub-del { opacity: 1; }
   }
 
@@ -624,7 +620,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px dashed var(--border-color, var(--ui-color-border));
   border-radius: 6px;
 }

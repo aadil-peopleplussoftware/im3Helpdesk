@@ -8,8 +8,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--ui-color-text-primary);
-  color: white;
+  background: var(--ui-color-bg-surface);
+  color: var(--ui-color-text-primary);
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 24px;
@@ -21,24 +22,26 @@
 
     .trial-icon {
       font-size: 20px;
-      background: rgba(255,255,255,0.1);
+      background: var(--ui-color-primary-soft);
       padding: 8px;
       border-radius: 8px;
     }
 
     strong { display: block; font-size: 15px; }
-    p { margin: 2px 0 0; font-size: 13px; color: rgba(255,255,255,0.6); }
+    p { margin: 2px 0 0; font-size: 13px; color: var(--ui-color-text-secondary); }
   }
 }
 
 .upgrade-btn {
-  background: white;
-  color: var(--ui-color-text-primary);
+  background: var(--ui-color-primary-hover);
+  color: var(--ui-color-bg-surface);
   border: none;
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
+
+  &:hover { background: var(--ui-color-primary); }
 }
 
 /* ===== WELCOME ===== */
@@ -64,10 +67,11 @@
 }
 
 .stat-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: none;
   cursor: pointer;
   transition: transform 0.15s;
 
@@ -126,10 +130,11 @@
 }
 
 .sec-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 16px 20px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: none;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -159,10 +164,11 @@
 }
 
 .chart-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: none;
 
   h3 {
     font-size: 15px;
@@ -174,11 +180,12 @@
 
 /* ===== QUICK ACTIONS ===== */
 .quick-section {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: none;
 
   h3 {
     font-size: 15px;
@@ -215,10 +222,11 @@
 
 /* ===== RECENT TICKETS ===== */
 .recent-section {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
+  border: 1px solid var(--ui-color-border);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.06));
+  box-shadow: none;
   margin-bottom: 24px;
 }
 

@@ -10,6 +10,19 @@
   background: var(--ui-color-bg-page); /* Premium clean background alignment */
   font-family: var(--ui-font-family);
   -webkit-font-smoothing: antialiased;
+
+  --bg-primary: var(--ui-color-bg-page);
+  --bg-secondary: var(--ui-color-bg-surface);
+  --bg-card: var(--ui-color-bg-surface);
+  --text-primary: var(--ui-color-text-primary);
+  --text-secondary: var(--ui-color-text-secondary);
+  --text-muted: var(--ui-color-text-faint);
+  --border-color: var(--ui-color-border);
+  --accent: var(--ui-color-primary);
+  --accent-light: var(--ui-color-primary-soft);
+  --hover-bg: var(--ui-color-bg-hover);
+  --toolbar-bg: var(--ui-color-primary);
+  --shadow: var(--ui-shadow-sm);
 }
 
 /* ── SIDEBAR CONTAINER ENGINE ── */
@@ -18,7 +31,7 @@
   min-width: 250px;
   height: 100vh;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--ui-color-bg-surface);
+  background: var(--ui-color-bg-subtle);
   border-right: 1px solid var(--ui-color-border);
   display: flex;
   flex-direction: column;
@@ -32,7 +45,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--ui-color-border-soft);
+  border-bottom: 1px solid var(--ui-color-border);
   flex-shrink: 0;
 
   .logo-icon {
@@ -89,7 +102,7 @@
   text-decoration: none;
 
   &:hover {
-    background: var(--ui-color-border-soft);
+    background: var(--ui-color-bg-hover);
     color: var(--ui-color-text-primary);
 
     .nav-icon svg {
@@ -98,7 +111,7 @@
   }
 
   &.active {
-    background: rgba(37, 99, 235, 0.06);
+    background: rgba(37, 99, 235, 0.1);
     color: var(--ui-color-primary);
     font-weight: 600;
 
@@ -143,7 +156,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid var(--ui-color-border-soft);
+  border-top: 1px solid var(--ui-color-border);
   cursor: pointer;
   color: var(--ui-color-text-muted);
   font-size: 13.5px;
@@ -152,7 +165,7 @@
   flex-shrink: 0;
 
   &:hover {
-    background: var(--ui-color-bg-page);
+    background: var(--ui-color-bg-hover);
     color: var(--ui-color-text-primary);
     
     .nav-icon-toggle svg { color: var(--ui-color-text-primary); }

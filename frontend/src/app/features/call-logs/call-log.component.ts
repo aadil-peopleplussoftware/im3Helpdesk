@@ -138,13 +138,17 @@ type LogFilter =
   `,
   styles: [`
     :host {
-      --accent: #2563eb;
-      --missed: #ef4444;
-      --border: #e8ecf0;
-      --white:  #ffffff;
-      --text:   #1a1f36;
-      --sub:    #6b7280;
-      --muted:  #9ca3af;
+      --accent: var(--ui-color-primary);
+      --accent-hover: var(--ui-color-primary-hover);
+      --missed: var(--ui-color-danger);
+      --border: var(--ui-color-border);
+      --white: var(--ui-color-bg-surface);
+      --bg: var(--ui-color-bg-page);
+      --subtle: var(--ui-color-bg-subtle);
+      --hover: var(--ui-color-bg-hover);
+      --text: var(--ui-color-text-primary);
+      --sub: var(--ui-color-text-secondary);
+      --muted: var(--ui-color-text-muted);
     }
     .call-log-panel {
       display: flex;
@@ -196,7 +200,7 @@ type LogFilter =
     .cl-filter-btn {
       position: relative;
       padding: 6px 10px;
-      background: #f3f4f6;
+      background: var(--subtle);
       border: 1px solid var(--border);
       border-radius: 20px;
       cursor: pointer;
@@ -213,7 +217,7 @@ type LogFilter =
       flex-shrink: 0;
     }
     .cl-filter-btn:hover {
-      background: #e5e7eb;
+      background: var(--hover);
       color: var(--text);
     }
     .cl-filter-btn.active {
@@ -242,7 +246,7 @@ type LogFilter =
       margin-bottom: 12px;
       font-family: monospace;
     }
-    .cl-sort-btn:hover { background: #f5f5f5; }
+    .cl-sort-btn:hover { background: var(--hover); }
     .cl-loading {
       display: flex;
       align-items: center;
@@ -286,7 +290,7 @@ type LogFilter =
       flex: 1;
       overflow-y: auto;
       scrollbar-width: thin;
-      scrollbar-color: #e0e0e0 transparent;
+      scrollbar-color: var(--border) transparent;
     }
     .cl-item {
       display: flex;
@@ -294,13 +298,13 @@ type LogFilter =
       gap: 12px;
       padding: 10px 16px;
       cursor: pointer;
-      border-bottom: 1px solid #f5f5f5;
+      border-bottom: 1px solid var(--border);
       transition: background 0.1s;
       min-height: 60px;
     }
     .cl-item:last-child { border-bottom: none; }
     .cl-item:hover,
-    .cl-item.hovered { background: #f5f7fa; }
+    .cl-item.hovered { background: var(--hover); }
     .cl-av-wrap {
       position: relative;
       flex-shrink: 0;
@@ -328,7 +332,7 @@ type LogFilter =
       right: -2px;
       width: 18px;
       height: 18px;
-      background: white;
+      background: var(--white);
       border-radius: 50%;
       border: 1px solid var(--border);
       display: flex;
@@ -403,13 +407,13 @@ type LogFilter =
       letter-spacing: 1px;
       font-family: monospace;
     }
-    .cl-act-btn:hover { background: #f0f0f0; }
+    .cl-act-btn:hover { background: var(--hover); }
     .cl-call-btn {
       display: flex;
       align-items: center;
       gap: 5px;
       padding: 6px 14px;
-      background: white;
+      background: var(--white);
       border: 1px solid var(--border);
       border-radius: 20px;
       cursor: pointer;
@@ -419,12 +423,12 @@ type LogFilter =
       font-family: inherit;
       white-space: nowrap;
       transition: all 0.15s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      box-shadow: none;
     }
     .cl-call-btn:hover {
-      background: var(--accent);
+      background: var(--accent-hover);
       color: white;
-      border-color: var(--accent);
+      border-color: var(--accent-hover);
     }
   `]
 })

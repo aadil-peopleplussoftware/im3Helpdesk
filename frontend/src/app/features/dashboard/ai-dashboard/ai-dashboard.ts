@@ -167,9 +167,16 @@ export class AIDashboardComponent
         scales: {
           y: {
             beginAtZero: true,
-            grid: { color: getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#e8ecf0' },
+            grid: {
+              color: getComputedStyle(document.body)
+                .getPropertyValue('--ui-color-border')
+                .trim() || '#e8ecf0'
+            },
             ticks: {
               font: { size: 11 },
+              color: getComputedStyle(document.body)
+                .getPropertyValue('--ui-color-text-muted')
+                .trim() || '#64748b',
               stepSize: 1
             }
           },
@@ -177,6 +184,9 @@ export class AIDashboardComponent
             grid: { display: false },
             ticks: {
               font: { size: 10 },
+              color: getComputedStyle(document.body)
+                .getPropertyValue('--ui-color-text-muted')
+                .trim() || '#64748b',
               maxRotation: 0,
               autoSkip: true,
               maxTicksLimit: 12

@@ -3,24 +3,36 @@
 ════════════════════════════════════════ */
 
 :host {
-  /* ── Mapped to global theme vars from styles.scss ── */
-  --ai-bg:       var(--bg-primary);
-  --ai-card:     var(--bg-secondary);
-  --ai-border:   var(--border-color);
-  --ai-text:     var(--text-primary);
-  --ai-sub:      var(--text-secondary);
-  --ai-muted:    var(--text-muted);
-  --ai-accent:   var(--accent);
-  --ai-accent-l: var(--accent-light);
+  --ai-bg:       var(--ui-color-bg-page);
+  --ai-card:     var(--ui-color-bg-surface);
+  --ai-border:   var(--ui-color-border);
+  --ai-text:     var(--ui-color-text-primary);
+  --ai-sub:      var(--ui-color-text-secondary);
+  --ai-muted:    var(--ui-color-text-muted);
+  --ai-accent:   var(--ui-color-primary);
+  --ai-accent-l: var(--ui-color-primary-soft);
   /* Status colors stay fixed (semantic meaning) */
   --ai-green:    var(--ui-color-success);
-  --ai-green-l:  var(--ui-color-success-bg);
+  --ai-green-l:  var(--ui-color-bg-subtle);
+  --ai-green-l:  color-mix(in srgb, var(--ai-green) 14%, var(--ai-card));
   --ai-yellow:   var(--ui-color-warning);
-  --ai-yellow-l: var(--ui-color-warning-bg);
+  --ai-yellow-l: var(--ui-color-bg-subtle);
+  --ai-yellow-l: color-mix(in srgb, var(--ai-yellow) 14%, var(--ai-card));
   --ai-red:      var(--ui-color-danger);
-  --ai-red-l:    var(--ui-color-danger-bg);
+  --ai-red-l:    var(--ui-color-bg-subtle);
+  --ai-red-l:    color-mix(in srgb, var(--ai-red) 14%, var(--ai-card));
   --ai-purple:   var(--ui-color-primary-hover);
-  --ai-purple-l: var(--ui-color-bg-soft-rose);
+  --ai-purple-l: var(--ui-color-bg-subtle);
+  --ai-purple-l: color-mix(in srgb, var(--ui-color-primary) 12%, var(--ai-card));
+
+  --ai-green-b:  var(--ai-border);
+  --ai-green-b:  color-mix(in srgb, var(--ai-green) 35%, var(--ai-border));
+  --ai-yellow-b: var(--ai-border);
+  --ai-yellow-b: color-mix(in srgb, var(--ai-yellow) 35%, var(--ai-border));
+  --ai-red-b:    var(--ai-border);
+  --ai-red-b:    color-mix(in srgb, var(--ai-red) 35%, var(--ai-border));
+  --ai-accent-b: var(--ai-border);
+  --ai-accent-b: color-mix(in srgb, var(--ai-accent) 35%, var(--ai-border));
   --ai-radius:   12px;
   --shadow:      var(--shadow, var(--shadow));
 }
@@ -46,20 +58,18 @@
 }
 
 .ai-hd-icon {
-  font-size: 36px;
-  filter: drop-shadow(
-    0 2px 8px rgba(37,99,235,0.3));
+  font-size: 28px;
 }
 
 .ai-header h1 {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--ai-text);
   margin: 0 0 2px;
 }
 
 .ai-header p {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ai-muted);
   margin: 0;
 }
@@ -70,8 +80,8 @@
   gap: 4px;
   background: var(--ai-card);
   border: 1px solid var(--ai-border);
-  border-radius: var(--ai-radius);
-  padding: 6px;
+  border-radius: 8px;
+  padding: 4px;
   margin-bottom: 20px;
   width: fit-content;
 }
@@ -79,11 +89,11 @@
 .ai-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
+  gap: 5px;
+  padding: 7px 14px;
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   color: var(--ai-sub);
@@ -98,11 +108,11 @@
   }
 
   &.active {
-    background: var(--ai-accent);
-    color: white;
+    background: var(--ui-color-primary-hover);
+    color: var(--ui-color-bg-surface);
   }
 
-  .tab-ic { font-size: 15px; }
+  .tab-ic { font-size: 14px; }
 }
 
 .tab-badge {
@@ -394,11 +404,7 @@
   border: 1px solid var(--ai-border);
   border-left: 4px solid var(--ai-border);
   border-radius: var(--ai-radius);
-  transition: box-shadow 0.15s;
-
-  &:hover {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-  }
+  transition: border-color 0.15s, background 0.15s;
 
   &.ins-pos {
     border-left-color: var(--ai-green);
@@ -494,7 +500,7 @@
   }
 
   &.apc-top {
-    background: var(--ui-color-warning-bg);
+    background: var(--ai-yellow-l);
     font-weight: 600;
   }
 }
@@ -526,9 +532,9 @@
 ════════════════════════════════════════ */
 
 .merge-success {
-  background: var(--ui-color-success-bg);
+  background: var(--ai-green-l);
   color: var(--ui-color-success);
-  border: 1px solid var(--ui-color-success-bg);
+  border: 1px solid var(--ai-green-b);
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 14px;
@@ -617,12 +623,12 @@
   font-size: 11px;
   padding: 2px 10px;
   border-radius: 10px;
-  background: var(--ui-color-warning-bg);
+  background: var(--ai-yellow-l);
   color: var(--ui-color-warning);
   font-weight: 600;
 
   &.high {
-    background: var(--ui-color-danger-bg);
+    background: var(--ai-red-l);
     color: var(--ui-color-danger);
   }
 }
@@ -643,7 +649,7 @@
   &:last-child { border-bottom: none; }
 
   &.dg-original {
-    background: var(--ui-color-success-bg);
+    background: var(--ai-green-l);
   }
 }
 
@@ -655,7 +661,7 @@
 }
 
 .dg-orig-badge {
-  background: var(--ui-color-success-bg);
+  background: var(--ai-green-l);
   color: var(--ui-color-success);
   padding: 2px 8px;
   border-radius: 6px;
@@ -665,7 +671,7 @@
 }
 
 .dg-dup-badge {
-  background: var(--ui-color-danger-bg);
+  background: var(--ai-red-l);
   color: var(--ui-color-danger);
   padding: 2px 8px;
   border-radius: 6px;
@@ -724,8 +730,8 @@
 
 .dg-merge-btn {
   padding: 8px 18px;
-  background: var(--ai-accent);
-  color: white;
+  background: var(--ui-color-primary-hover);
+  color: var(--ui-color-bg-surface);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -764,14 +770,14 @@
   font-size: 13px;
 
   &.orig {
-    background: var(--ui-color-success-bg);
-    border: 1px solid var(--ui-color-success-bg);
+    background: var(--ai-green-l);
+    border: 1px solid var(--ai-green-b);
     color: var(--ui-color-success);
     span:first-child { font-weight: 600; }
   }
   &.dup {
-    background: var(--ui-color-danger-bg);
-    border: 1px solid var(--ui-color-danger-bg);
+    background: var(--ai-red-l);
+    border: 1px solid var(--ai-red-b);
     color: var(--ui-color-danger);
     span:first-child { font-weight: 600; }
   }
@@ -797,7 +803,7 @@
 }
 
 .modal-box {
-  background: white;
+  background: var(--ui-color-bg-surface);
   border-radius: var(--ai-radius);
   width: 480px;
   max-height: 85vh;
@@ -850,9 +856,9 @@
     &:hover { background: var(--ui-color-bg-subtle); }
   }
   &.create {
-    background: var(--ai-accent);
+    background: var(--ui-color-primary-hover);
     border: none;
-    color: white;
+    color: var(--ui-color-bg-surface);
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -1025,8 +1031,8 @@
   align-items: flex-start;
   gap: 12px;
   padding: 14px 22px;
-  background: var(--ui-color-warning-bg);
-  border-bottom: 1px solid var(--ui-color-warning-bg);
+  background: var(--ai-yellow-l);
+  border-bottom: 1px solid var(--ai-yellow-b);
 }
 
 .sr-act-ic { font-size: 20px; flex-shrink: 0; }
@@ -1065,7 +1071,7 @@
 }
 
 .sent-bad {
-  background: var(--ui-color-danger-bg);
+  background: var(--ai-red-l);
   color: var(--ui-color-danger);
 }
 .sent-good {
@@ -1078,15 +1084,15 @@
 }
 
 /* Status chips */
-.st-open { background: var(--ui-color-success-bg); color: var(--ui-color-success); }
-.st-prog { background: var(--ui-color-warning-bg); color: var(--ui-color-warning); }
+.st-open { background: var(--ai-green-l); color: var(--ui-color-success); }
+.st-prog { background: var(--ai-yellow-l); color: var(--ui-color-warning); }
 .st-pend { background: var(--ui-color-primary-soft); color: var(--ui-color-primary-hover); }
 .st-res { background: var(--ai-purple-l); color: var(--ui-color-primary-hover); }
 .st-closed { background: var(--ui-color-bg-subtle); color: var(--ai-sub); }
 
 /* Priority chips */
-.pr-crit { background: var(--ui-color-danger-bg); color: var(--ui-color-danger); }
-.pr-high { background: var(--ui-color-warning-bg); color: var(--ui-color-warning); }
+.pr-crit { background: var(--ai-red-l); color: var(--ui-color-danger); }
+.pr-high { background: var(--ai-yellow-l); color: var(--ui-color-warning); }
 .pr-med { background: var(--ui-color-primary-soft); color: var(--ui-color-primary-hover); }
 .pr-low { background: var(--ai-green-l); color: var(--ui-color-success); }
 
@@ -1145,8 +1151,8 @@
   width: calc(100% - 44px);
   margin: 14px 22px;
   padding: 11px;
-  background: var(--ai-accent);
-  color: white;
+  background: var(--ui-color-primary-hover);
+  color: var(--ui-color-bg-surface);
   border: none;
   border-radius: 9px;
   cursor: pointer;

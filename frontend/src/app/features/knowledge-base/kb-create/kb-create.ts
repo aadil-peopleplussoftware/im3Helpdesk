@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import { ToastrService } from 'ngx-toastr';
 import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
+import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -24,7 +25,8 @@ import { environment } from '../../../../environments/environment';
     CommonModule, ReactiveFormsModule, RouterModule,
     MatButtonModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatSlideToggleModule,
-    MatProgressSpinnerModule, MatCardModule
+    MatProgressSpinnerModule, MatCardModule,
+    LayoutComponent
   ],
   templateUrl: './kb-create.html',
   styleUrls: ['./kb-create.scss']

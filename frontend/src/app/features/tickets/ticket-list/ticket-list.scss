@@ -50,7 +50,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 8px;
   padding: 7px 12px;
@@ -78,7 +78,7 @@
 
 .lb {
   padding: 7px 10px;
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: none;
   cursor: pointer;
   font-size: 14px;
@@ -149,10 +149,10 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: none;
   z-index: 100;
   min-width: 160px;
   padding: 8px 0;
@@ -178,7 +178,7 @@
 
 /* Filters Panel */
 .filters-panel {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 16px;
@@ -285,7 +285,7 @@
 }
 
 .ticket-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 16px;
@@ -293,7 +293,7 @@
   transition: box-shadow 0.15s, transform 0.1s;
 
   &:hover {
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    box-shadow: none;
     transform: translateY(-1px);
   }
 }
@@ -484,7 +484,7 @@
 }
 
 .grid-card {
-  background: var(--bg-card, white);
+  background: var(--bg-card, var(--ui-color-bg-surface));
   border: 1px solid var(--border-color, var(--ui-color-border));
   border-radius: 10px;
   padding: 16px;
@@ -492,7 +492,7 @@
   transition: box-shadow 0.15s, transform 0.1s;
 
   &:hover {
-    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    box-shadow: none;
     transform: translateY(-2px);
   }
 }
@@ -585,7 +585,7 @@
 .bulk-master-hint {
   font-size: 12px;
   color: var(--ui-color-primary-hover);
-  background: white;
+  background: var(--ui-color-bg-surface);
   border: 1px solid var(--ui-color-primary-soft);
   border-radius: 6px;
   padding: 3px 10px;
