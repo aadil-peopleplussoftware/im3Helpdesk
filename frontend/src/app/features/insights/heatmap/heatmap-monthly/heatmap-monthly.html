@@ -1,0 +1,42 @@
+<div class="monthly">
+  <div class="title">Monthly Calendar Heatmap</div>
+  <div class="sub">{{ monthLabel }} — total {{ totalMonth }} tickets</div>
+
+  <div class="calendar-wrap">
+    <div class="dow">
+      <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+    </div>
+
+    <div class="weeks">
+      <div class="week" *ngFor="let w of weeks">
+        <div
+          class="cell"
+          *ngFor="let c of w"
+          [class.empty]="!c.date"
+          [class.selected]="c.ymd && c.ymd === selectedYmd"
+          [style.background]="c.date ? getCellColor(c.count, maxCount) : 'transparent'"
+          [attr.title]="c.date ? (c.ymd + ' — ' + c.count + ' tickets') : ''"
+          (click)="selectDay(c)">
+          <div class="num" *ngIf="c.date">{{ c.date.getDate() }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="day-list" *ngIf="selectedYmd">
+    <div class="dl-title">Tickets on {{ selectedYmd }}</div>
+
+    <div class="dl-loading" *ngIf="loadingTickets">Loading tickets…</div>
+
+    <div class="dl-empty" *ngIf="!loadingTickets && dayTickets.length === 0">
+      No tickets found for this date.
+    </div>
+
+    <div class="dl-items" *ngIf="!loadingTickets && dayTickets.length > 0">
+      <div class="dl-item" *ngFor="let t of dayTickets" (click)="goToTicket(t.id)">
+        <div class="t-title">#TN{{ t.ticketNumber }} — {{ t.title }}</div>
+        <div class="t-meta">{{ t.status }} • {{ t.priority }}</div>
+      </div>
+    </div>
+  </div>
+</div>

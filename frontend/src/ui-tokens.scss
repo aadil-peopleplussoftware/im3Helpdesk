@@ -93,6 +93,7 @@
      Semantic Colors (Default Theme)
      ========================= */
   --ui-color-primary: #2563eb;
+  --ui-color-primary-rgb: 37, 99, 235;
   --ui-color-primary-hover: #1d4ed8;
   --ui-color-primary-soft: rgba(37, 99, 235, 0.06);
   --ui-color-primary-soft-strong: rgba(37, 99, 235, 0.1);
@@ -172,6 +173,7 @@
    ========================= */
 body.theme-dark {
   --ui-color-primary: #64b5f6;
+  --ui-color-primary-rgb: 100, 181, 246;
   --ui-color-primary-hover: #42a5f5;
   --ui-color-primary-soft: rgba(100, 181, 246, 0.14);
   --ui-color-primary-soft-strong: rgba(100, 181, 246, 0.22);

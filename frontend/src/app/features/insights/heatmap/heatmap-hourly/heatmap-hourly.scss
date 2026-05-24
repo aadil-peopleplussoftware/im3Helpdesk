@@ -1,0 +1,91 @@
+.hm-block {
+  padding: 6px 2px 14px;
+}
+
+.hm-title {
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+
+.hm-sub {
+  margin-top: 6px;
+  color: var(--ui-color-text-secondary);
+  font-size: 12px;
+}
+
+.hm-grid-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.hm-grid {
+  display: grid;
+  grid-template-columns: 120px repeat(var(--cols), 32px);
+  grid-auto-rows: 28px;
+  gap: 6px;
+  min-width: 980px;
+}
+
+.hm-corner {
+  position: sticky;
+  left: 0;
+  background: var(--ui-color-bg-surface);
+  z-index: 1;
+}
+
+.hm-hour {
+  font-size: 11px;
+  color: var(--ui-color-text-faint);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2px;
+}
+
+.hm-day {
+  position: sticky;
+  left: 0;
+  background: var(--ui-color-bg-surface);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--ui-color-text-secondary);
+}
+
+.hm-cell {
+  border: 1px solid var(--ui-color-border);
+  border-radius: 6px;
+  cursor: default;
+  transition: transform 0.08s ease, border-color 0.08s ease;
+
+  &:hover {
+    transform: scale(1.04);
+    border-color: var(--ui-color-primary);
+  }
+}
+
+.hm-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sw {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--ui-color-border);
+}

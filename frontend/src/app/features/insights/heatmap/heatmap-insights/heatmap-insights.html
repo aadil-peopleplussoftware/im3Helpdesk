@@ -1,0 +1,35 @@
+<div class="insights">
+  <div class="cards">
+    <div class="card">
+      <div class="k">📈 Peak Day</div>
+      <div class="v">{{ insights.peakDayLabel }}</div>
+      <div class="s">{{ insights.peakDayAvgPerWeekLabel }}</div>
+    </div>
+
+    <div class="card">
+      <div class="k">🕙 Peak Hour</div>
+      <div class="v">{{ insights.peakHourLabel }}</div>
+      <div class="s">{{ insights.peakHourOccursPctLabel }}</div>
+    </div>
+
+    <div class="card">
+      <div class="k">📊 Avg/Day</div>
+      <div class="v">{{ insights.avgPerDayLabel }}</div>
+      <div class="s">{{ insights.avgPerDayCompareLabel }}</div>
+    </div>
+
+    <div class="card">
+      <div class="k">🔥 Busiest Week</div>
+      <div class="v">{{ insights.busiestWeekLabel || '-' }}</div>
+      <div class="s">{{ insights.busiestWeekTotalLabel }}</div>
+    </div>
+  </div>
+
+  <div class="staffing">
+    <div class="st-title">💡 Staffing Recommendation</div>
+    <div class="st-sub">Based on your ticket patterns:</div>
+    <ul>
+      <li *ngFor="let b of insights.staffingBullets">• {{ b }}</li>
+    </ul>
+  </div>
+</div>

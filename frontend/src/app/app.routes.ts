@@ -183,6 +183,12 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'insights/heatmap',
+    loadComponent: () =>
+      import('./features/insights/heatmap/heatmap').then(m => m.HeatmapComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'settings/templates',
     loadComponent: () =>
       import('./features/settings/ticket-templates/ticket-templates').then(m => m.TicketTemplatesComponent),

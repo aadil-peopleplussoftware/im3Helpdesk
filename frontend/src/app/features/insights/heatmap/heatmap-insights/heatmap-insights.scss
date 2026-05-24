@@ -1,0 +1,77 @@
+.insights {
+  margin-top: 16px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  border: 1px solid var(--ui-color-border);
+  border-radius: 14px;
+  background: var(--ui-color-bg-surface);
+  padding: 12px;
+
+  .k {
+    color: var(--ui-color-text-secondary);
+    font-weight: 900;
+    font-size: 12px;
+  }
+
+  .v {
+    margin-top: 8px;
+    font-weight: 900;
+    font-size: 14px;
+    color: var(--ui-color-text-primary);
+  }
+
+  .s {
+    margin-top: 6px;
+    color: var(--ui-color-text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+  }
+}
+
+.staffing {
+  margin-top: 12px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 14px;
+  background: var(--ui-color-bg-subtle);
+  padding: 14px;
+
+  .st-title {
+    font-weight: 900;
+    font-size: 13px;
+  }
+
+  .st-sub {
+    margin-top: 6px;
+    color: var(--ui-color-text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  ul {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+  }
+
+  li {
+    margin: 8px 0;
+    color: var(--ui-color-text-primary);
+    font-weight: 800;
+    font-size: 12.5px;
+  }
+}

@@ -1,0 +1,115 @@
+<app-layout>
+  <div class="heatmap-page">
+
+    <div class="page-header">
+      <div class="title-wrap">
+        <h1>Ticket Heatmap Analytics</h1>
+        <p>Understand peak days, peak hours, and ticket volume patterns.</p>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn" (click)="exportPng()" [disabled]="exporting || loading">
+          Export PNG
+        </button>
+        <button class="btn btn-primary" (click)="exportPdf()" [disabled]="exporting || loading">
+          Export PDF
+        </button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <div class="filter">
+          <label>📅 Date Range</label>
+          <select [(ngModel)]="dateRange" (ngModelChange)="onDateRangeChange()">
+            <option *ngFor="let o of dateRangeOptions" [value]="o">{{ o }}</option>
+          </select>
+        </div>
+
+        <div class="filter" *ngIf="dateRange === 'Custom'">
+          <label>From</label>
+          <input type="date" [(ngModel)]="startDate" (change)="onCustomDatesChange()" />
+        </div>
+        <div class="filter" *ngIf="dateRange === 'Custom'">
+          <label>To</label>
+          <input type="date" [(ngModel)]="endDate" (change)="onCustomDatesChange()" />
+        </div>
+
+        <div class="filter">
+          <label>🏷️ Priority</label>
+          <select [(ngModel)]="priority" (ngModelChange)="onOtherFilterChange()">
+            <option *ngFor="let o of priorityOptions" [value]="o">{{ o }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label>👤 Agent</label>
+          <select [(ngModel)]="agentId" (ngModelChange)="onOtherFilterChange()">
+            <option value="All">All</option>
+            <option *ngFor="let a of agents" [value]="a.id">{{ a.fullName }}</option>
+          </select>
+        </div>
+
+        <div class="filter">
+          <label>📂 Type</label>
+          <select [(ngModel)]="type" (ngModelChange)="onOtherFilterChange()">
+            <option *ngFor="let o of typeOptions" [value]="o">{{ o }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="quick">
+        <span class="quick-label">Quick filters:</span>
+        <button class="chip" (click)="applyQuick('Today')">Today</button>
+        <button class="chip" (click)="applyQuick('This Week')">This Week</button>
+        <button class="chip" (click)="applyQuick('This Month')">This Month</button>
+        <button class="chip" (click)="applyQuick('Last 3 Months')">Last 3 Months</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTab === 'hourly'" (click)="setTab('hourly')">📊 Hour × Day</button>
+      <button class="tab" [class.active]="activeTab === 'daily'" (click)="setTab('daily')">📅 Daily Bars</button>
+      <button class="tab" [class.active]="activeTab === 'monthly'" (click)="setTab('monthly')">🗓️ Monthly Calendar</button>
+    </div>
+
+    <div class="content" #exportArea>
+      <div class="loading" *ngIf="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading heatmap data…</div>
+      </div>
+
+      <ng-container *ngIf="!loading">
+        <app-heatmap-hourly
+          *ngIf="activeTab === 'hourly'"
+          [data]="hourly"
+          [startDate]="startDate"
+          [endDate]="endDate">
+        </app-heatmap-hourly>
+
+        <app-heatmap-daily
+          *ngIf="activeTab === 'daily'"
+          [data]="daily"
+          [hourly]="hourly">
+        </app-heatmap-daily>
+
+        <app-heatmap-monthly
+          *ngIf="activeTab === 'monthly'"
+          [data]="monthly"
+          [maxCount]="monthlyMaxCount"
+          [totalMonth]="monthlyTotal"
+          [month]="startDate"
+          [priority]="priority"
+          [agentId]="agentId"
+          [type]="type">
+        </app-heatmap-monthly>
+
+        <app-heatmap-insights
+          *ngIf="insights"
+          [insights]="insights">
+        </app-heatmap-insights>
+      </ng-container>
+    </div>
+
+  </div>
+</app-layout>

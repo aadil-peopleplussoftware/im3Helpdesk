@@ -1,0 +1,52 @@
+<div class="hm-block">
+  <div class="hm-title">Day of Week × Hour of Day</div>
+  <div class="hm-sub">GitHub contribution graph style — hover any cell for details.</div>
+
+  <div class="hm-grid-wrap">
+    <div class="hm-grid" [style.--cols]="hours.length">
+
+      <div class="hm-corner"></div>
+      <div class="hm-hour" *ngFor="let h of hours">{{ hourLabel(h) }}</div>
+
+      <ng-container *ngFor="let d of days">
+        <div class="hm-day">{{ d.name }}</div>
+        <ng-container *ngFor="let h of hours">
+          <div
+            class="hm-cell"
+            [style.background]="getCellColor(getCount(d.n, h), getMaxCount())"
+            [attr.title]="tooltip(d.name, h, getCount(d.n, h))">
+          </div>
+        </ng-container>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <div class="hm-legend">
+    <div class="legend-item">
+      <span class="sw" [style.background]="'var(--ui-color-bg-subtle)'"
+        title="0 tickets"></span>
+      <span class="lbl">0</span>
+    </div>
+    <div class="legend-item">
+      <span class="sw" [style.background]="'rgba(var(--ui-color-primary-rgb), 0.25)'"
+        title="1-2"></span>
+      <span class="lbl">1–2</span>
+    </div>
+    <div class="legend-item">
+      <span class="sw" [style.background]="'rgba(var(--ui-color-primary-rgb), 0.50)'"
+        title="3-5"></span>
+      <span class="lbl">3–5</span>
+    </div>
+    <div class="legend-item">
+      <span class="sw" [style.background]="'rgba(var(--ui-color-primary-rgb), 0.75)'"
+        title="6-9"></span>
+      <span class="lbl">6–9</span>
+    </div>
+    <div class="legend-item">
+      <span class="sw" [style.background]="'var(--ui-color-primary)'"
+        title="10+"></span>
+      <span class="lbl">10+</span>
+    </div>
+  </div>
+</div>

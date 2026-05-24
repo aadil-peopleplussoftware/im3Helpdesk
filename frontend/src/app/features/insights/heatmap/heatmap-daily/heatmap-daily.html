@@ -1,0 +1,45 @@
+<div class="daily-wrap">
+  <div class="left">
+    <div class="title">Daily Bar Heatmap</div>
+    <div class="sub">Shows ticket volume per day for the selected range.</div>
+
+    <div class="rows">
+      <div class="row" *ngFor="let d of data">
+        <div class="label">
+          <div class="day">{{ d.dayName }}</div>
+          <div class="date">{{ d.date }}</div>
+        </div>
+
+        <div class="bar" [attr.title]="d.dayName + ' ' + d.date + ' — ' + d.count + ' tickets'">
+          <div
+            class="fill"
+            [style.width]="getBarWidth(d.count, getMax())"
+            [style.background]="getBarColor(d.count)">
+          </div>
+        </div>
+
+        <div class="count" [class.busiest]="busiest?.date === d.date">
+          {{ d.count }}
+          <span class="tag" *ngIf="busiest?.date === d.date">busiest</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="insight-card">
+      <div class="ic-title">📈 Busiest Day</div>
+      <div class="ic-value">{{ busiest?.dayName || '-' }} ({{ busiest?.count ?? 0 }} tickets)</div>
+    </div>
+
+    <div class="insight-card">
+      <div class="ic-title">🕙 Peak Hour</div>
+      <div class="ic-value">{{ getPeakHourRange() }}</div>
+    </div>
+
+    <div class="insight-card">
+      <div class="ic-title">📉 Quietest</div>
+      <div class="ic-value">{{ quietest?.dayName || '-' }} ({{ quietest?.count ?? 0 }} tickets)</div>
+    </div>
+  </div>
+</div>
