@@ -18,6 +18,7 @@ import { environment } from '../../../../environments/environment';
 export class TodoPanelComponent implements OnInit {
 
   @Output() close = new EventEmitter<void>();
+  @Output() changed = new EventEmitter<number>();
 
   private http = inject(HttpClient);
   public router = inject(Router);
@@ -44,6 +45,7 @@ export class TodoPanelComponent implements OnInit {
     this.http.get<any[]>(`${environment.apiUrl}/Todo`).subscribe({
       next: (data) => {
         this.todos = data;
+        this.changed.emit(this.pendingCount);
         this.cdr.detectChanges();
       }
     });
@@ -59,6 +61,7 @@ export class TodoPanelComponent implements OnInit {
       next: (todo) => {
         this.todos.unshift(todo);
         this.newTitle = '';
+        this.changed.emit(this.pendingCount);
         this.cdr.detectChanges();
       }
     });
@@ -72,6 +75,7 @@ export class TodoPanelComponent implements OnInit {
     ).subscribe({
       next: (res) => {
         todo.isCompleted = res.isCompleted;
+        this.changed.emit(this.pendingCount);
         this.cdr.detectChanges();
       }
     });
@@ -82,6 +86,7 @@ export class TodoPanelComponent implements OnInit {
       next: () => {
         this.todos =
           this.todos.filter(t => t.id !== id);
+        this.changed.emit(this.pendingCount);
         this.cdr.detectChanges();
       }
     });
@@ -97,6 +102,7 @@ export class TodoPanelComponent implements OnInit {
     ).then(() => {
       this.todos =
         this.todos.filter(t => !t.isCompleted);
+      this.changed.emit(this.pendingCount);
       this.cdr.detectChanges();
     });
   }

@@ -57,6 +57,51 @@ public class TicketsController : ControllerBase
     return $"{bytes / 1048576} MB";
   }
 
+  [HttpGet("my-status-counts")]
+  public async Task<IActionResult> GetMyStatusCounts()
+  {
+    var userId = GetUserId();
+    if (userId == Guid.Empty) return Unauthorized();
+
+    var roleClaim = User.FindFirst(
+        "http://schemas.microsoft.com/ws/2008/06/" +
+        "identity/claims/role")?.Value
+        ?? User.FindFirst("role")?.Value;
+
+    var query = _context.Tickets
+        .AsNoTracking()
+        .AsQueryable();
+
+    if (string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase))
+      query = query.Where(t => t.CreatedByUserId == userId);
+    else
+      query = query.Where(t => t.AssignedToUserId == userId);
+
+    var grouped = await query
+        .GroupBy(t => t.Status)
+        .Select(g => new { status = g.Key, count = g.Count() })
+        .ToListAsync();
+
+    int Get(TicketStatus s) => grouped.FirstOrDefault(x => x.status == s)?.count ?? 0;
+
+    var open = Get(TicketStatus.Open);
+    var inProgress = Get(TicketStatus.InProgress);
+    var resolved = Get(TicketStatus.Resolved);
+    var closed = Get(TicketStatus.Closed);
+
+    var pending = Get(TicketStatus.Pending);
+
+    return Ok(new
+    {
+      open,
+      inProgress,
+      pending,
+      resolved,
+      closed,
+      total = open + inProgress + pending + resolved + closed
+    });
+  }
+
   [HttpGet]
   public async Task<IActionResult> GetAll()
   {

@@ -25,6 +25,16 @@
   --shadow: var(--ui-shadow-sm);
 }
 
+/* Avoid layout "jump" on route navigation:
+   transitions should only run when user toggles collapse,
+   not when layout is recreated on page change. */
+.app-shell:not(.anim-ready) {
+  .sidebar,
+  .main-area {
+    transition: none !important;
+  }
+}
+
 /* ── SIDEBAR CONTAINER ENGINE ── */
 .sidebar {
   width: 250px;
@@ -414,6 +424,7 @@
   color: var(--ui-color-bg-surface); font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; overflow: hidden;
+  box-shadow: 0 0 0 2px var(--ui-color-bg-surface), 0 0 0 3px var(--ui-color-primary);
 
   .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 }
@@ -579,4 +590,26 @@
   .hamburger { display: block; }
   .topbar { padding: 0 16px; }
   .topbar-search { max-width: 180px; }
+}
+
+.my-ticket-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg-subtle);
+  color: var(--ui-color-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 10px;
+
+  .mts-label { color: var(--ui-color-text-muted); font-weight: 900; }
+  .mts-item { color: var(--ui-color-text-primary); }
+  .mts-dot { color: var(--ui-color-text-faint); }
+
+  @media (max-width: 920px) {
+    .mts-dot, .mts-item { display: none; }
+  }
 }

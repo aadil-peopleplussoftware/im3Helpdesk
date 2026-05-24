@@ -75,6 +75,35 @@ public class TodoController : ControllerBase
     return Ok(todos);
   }
 
+  [HttpGet("unread-count")]
+  public async Task<IActionResult> GetUnreadCount()
+  {
+    var userId = GetUserId();
+    if (userId == Guid.Empty)
+      return Unauthorized();
+
+    var orgId = _tenant.OrganizationId;
+    if (!orgId.HasValue)
+    {
+      if (_tenant.IsSuperAdmin)
+        return Ok(new { count = 0 });
+
+      return Unauthorized(new
+      {
+        message = "Organization context is missing"
+      });
+    }
+
+    var count = await _context.TodoItems
+        .AsNoTracking()
+        .CountAsync(t =>
+            t.UserId == userId &&
+            t.OrganizationId == orgId.Value &&
+            !t.IsCompleted);
+
+    return Ok(new { count });
+  }
+
   [HttpPost]
   public async Task<IActionResult> Create(
       [FromBody] CreateTodoDto dto)

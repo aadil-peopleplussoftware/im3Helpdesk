@@ -254,13 +254,10 @@ loadTicket() {
           this.selectedAgentId = data.assignedTo.id;
         if (data.agentGroup?.id)
           this.selectedGroupId = data.agentGroup.id;
-
-        this.cdr.detectChanges(); // ← YE ADD KARO
         this.loadViewers();
       },
       error: (err) => {
         this.loading = false;
-        this.cdr.detectChanges(); // ← YE BHI
         if (err.status === 404)
           this.router.navigate(['/tickets']);
       }

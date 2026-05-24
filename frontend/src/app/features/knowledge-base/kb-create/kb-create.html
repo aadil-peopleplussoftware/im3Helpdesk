@@ -15,142 +15,153 @@
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
-      <!-- ── Media Upload Area ── -->
-      <div class="media-section">
-        <label class="media-label">📷 Photo / Video (optional)</label>
+      <div class="create-form-grid">
 
-        <!-- Preview -->
-        <div class="media-preview"
-          *ngIf="mediaPreview">
+        <!-- Left Column -->
+        <div class="create-col create-col-left">
 
-          <!-- Image Preview -->
-          <img *ngIf="mediaType === 'image'"
-            [src]="mediaPreview"
-            alt="Preview"
-            class="preview-img"/>
+          <!-- ── Media Upload Area ── -->
+          <div class="media-section">
+            <label class="media-label">📷 Photo / Video (optional)</label>
 
-          <!-- Video Preview -->
-          <video *ngIf="mediaType === 'video'"
-            [src]="mediaPreview"
-            class="preview-video"
-            controls>
-          </video>
+            <!-- Preview -->
+            <div class="media-preview"
+              *ngIf="mediaPreview">
 
-          <!-- Uploading Spinner -->
-          <div class="uploading-overlay" *ngIf="uploadingMedia">
-            <div class="upload-spinner"></div>
-            <span>Uploading...</span>
+              <!-- Image Preview -->
+              <img *ngIf="mediaType === 'image'"
+                [src]="mediaPreview"
+                alt="Preview"
+                class="preview-img"/>
+
+              <!-- Video Preview -->
+              <video *ngIf="mediaType === 'video'"
+                [src]="mediaPreview"
+                class="preview-video"
+                controls>
+              </video>
+
+              <!-- Uploading Spinner -->
+              <div class="uploading-overlay" *ngIf="uploadingMedia">
+                <div class="upload-spinner"></div>
+                <span>Uploading...</span>
+              </div>
+
+              <!-- Remove Button -->
+              <button type="button" class="remove-media-btn"
+                *ngIf="!uploadingMedia"
+                (click)="removeMedia()">
+                ✕ Remove
+              </button>
+            </div>
+
+            <!-- Upload Button -->
+            <label class="upload-area"
+              *ngIf="!mediaPreview"
+              [class.dragover]="false">
+              <input type="file"
+                accept="image/*,video/*"
+                style="display:none"
+                (change)="onFileSelected($event)"/>
+              <div class="upload-placeholder">
+                <span class="upload-icon">🖼</span>
+                <span class="upload-text">
+                  Click to add photo or video
+                </span>
+                <span class="upload-hint">
+                  JPG, PNG, GIF, MP4, MOV — Max 50MB
+                </span>
+              </div>
+            </label>
           </div>
 
-          <!-- Remove Button -->
-          <button type="button" class="remove-media-btn"
-            *ngIf="!uploadingMedia"
-            (click)="removeMedia()">
-            ✕ Remove
-          </button>
+          <!-- ── Title ── -->
+          <div class="field-wrap">
+            <label class="field-label">Title *</label>
+            <input class="field-input"
+              formControlName="title"
+              placeholder="What's this post about?"/>
+            <span class="field-error"
+              *ngIf="form.get('title')?.touched &&
+                     form.get('title')?.hasError('required')">
+              Title is required
+            </span>
+          </div>
+
+          <!-- ── Category ── -->
+          <div class="field-wrap">
+            <label class="field-label">Category *</label>
+            <select class="field-select" formControlName="category">
+              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <!-- ── Tags ── -->
+          <div class="field-wrap">
+            <label class="field-label">Tags
+              <span class="field-hint">(comma separated)</span>
+            </label>
+            <input class="field-input"
+              formControlName="tags"
+              placeholder="e.g. login, reset, password"/>
+          </div>
         </div>
 
-        <!-- Upload Button -->
-        <label class="upload-area"
-          *ngIf="!mediaPreview"
-          [class.dragover]="false">
-          <input type="file"
-            accept="image/*,video/*"
-            style="display:none"
-            (change)="onFileSelected($event)"/>
-          <div class="upload-placeholder">
-            <span class="upload-icon">🖼</span>
-            <span class="upload-text">
-              Click to add photo or video
-            </span>
-            <span class="upload-hint">
-              JPG, PNG, GIF, MP4, MOV — Max 50MB
+        <!-- Right Column -->
+        <div class="create-col create-col-right">
+          <!-- ── Content ── -->
+          <div class="field-wrap">
+            <label class="field-label">Content *</label>
+            <textarea class="field-textarea field-textarea-content"
+              formControlName="content"
+              rows="10"
+              placeholder="Share your knowledge, tips, or updates...">
+            </textarea>
+            <span class="field-error"
+              *ngIf="form.get('content')?.touched &&
+                     form.get('content')?.hasError('required')">
+              Content is required
             </span>
           </div>
-        </label>
-      </div>
 
-      <!-- ── Title ── -->
-      <div class="field-wrap">
-        <label class="field-label">Title *</label>
-        <input class="field-input"
-          formControlName="title"
-          placeholder="What's this post about?"/>
-        <span class="field-error"
-          *ngIf="form.get('title')?.touched &&
-                 form.get('title')?.hasError('required')">
-          Title is required
-        </span>
-      </div>
-
-      <!-- ── Category ── -->
-      <div class="field-wrap">
-        <label class="field-label">Category *</label>
-        <select class="field-select" formControlName="category">
-          <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
-        </select>
-      </div>
-
-      <!-- ── Tags ── -->
-      <div class="field-wrap">
-        <label class="field-label">Tags
-          <span class="field-hint">(comma separated)</span>
-        </label>
-        <input class="field-input"
-          formControlName="tags"
-          placeholder="e.g. login, reset, password"/>
-      </div>
-
-      <!-- ── Content ── -->
-      <div class="field-wrap">
-        <label class="field-label">Content *</label>
-        <textarea class="field-textarea"
-          formControlName="content"
-          rows="8"
-          placeholder="Share your knowledge, tips, or updates...">
-        </textarea>
-        <span class="field-error"
-          *ngIf="form.get('content')?.touched &&
-                 form.get('content')?.hasError('required')">
-          Content is required
-        </span>
-      </div>
-
-      <!-- ── Published Toggle ── -->
-      <div class="toggle-row">
-        <label class="toggle-label">
-          <div class="toggle-switch"
-            [class.on]="form.get('isPublished')?.value"
-            (click)="form.get('isPublished')?.setValue(
-              !form.get('isPublished')?.value)">
-            <div class="toggle-knob"></div>
+          <!-- ── Published Toggle ── -->
+          <div class="toggle-row">
+            <label class="toggle-label">
+              <div class="toggle-switch"
+                [class.on]="form.get('isPublished')?.value"
+                (click)="form.get('isPublished')?.setValue(
+                  !form.get('isPublished')?.value)">
+                <div class="toggle-knob"></div>
+              </div>
+              <span>
+                {{
+                  form.get('isPublished')?.value
+                    ? '✅ Published — visible to everyone'
+                    : '📝 Draft — only you can see it'
+                }}
+              </span>
+            </label>
           </div>
-          <span>
-            {{
-              form.get('isPublished')?.value
-                ? '✅ Published — visible to everyone'
-                : '📝 Draft — only you can see it'
-            }}
-          </span>
-        </label>
-      </div>
 
-      <!-- ── Buttons ── -->
-      <div class="form-actions">
-        <button type="button" class="cancel-btn"
-          (click)="router.navigate(['/kb'])">
-          Cancel
-        </button>
-        <button type="submit" class="submit-btn"
-          [disabled]="loading || uploadingMedia">
-          <div class="btn-spinner"
-            *ngIf="loading || uploadingMedia"></div>
-          <span *ngIf="!loading && !uploadingMedia">
-            {{ isEdit ? '💾 Update Post' : '🚀 Publish Post' }}
-          </span>
-          <span *ngIf="uploadingMedia">Uploading media...</span>
-          <span *ngIf="loading && !uploadingMedia">Saving...</span>
-        </button>
+          <!-- ── Buttons ── -->
+          <div class="form-actions">
+            <button type="button" class="cancel-btn"
+              (click)="router.navigate(['/kb'])">
+              Cancel
+            </button>
+            <button type="submit" class="submit-btn"
+              [disabled]="loading || uploadingMedia">
+              <div class="btn-spinner"
+                *ngIf="loading || uploadingMedia"></div>
+              <span *ngIf="!loading && !uploadingMedia">
+                {{ isEdit ? '💾 Update Post' : '🚀 Publish Post' }}
+              </span>
+              <span *ngIf="uploadingMedia">Uploading media...</span>
+              <span *ngIf="loading && !uploadingMedia">Saving...</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
     </form>

@@ -1,6 +1,6 @@
 // (cleaned up: file now starts with imports only)
 import {
-  Component, OnInit, OnDestroy,
+  Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -33,6 +33,10 @@ import { GlobalCallPopupComponent } from '../../shared/components/global-call-po
 export class LayoutComponent implements OnInit, OnDestroy {
   public showProfileDropdown = false;
   public keyboardShortcutsEnabled = true;
+
+  // Prevent layout shift animation on route navigation.
+  // We only enable transitions after the first render.
+  public animationsReady = false;
 
   // Profile Dropdown Logic
   public toggleProfileDropdown(event: MouseEvent) {
@@ -109,22 +113,71 @@ export class LayoutComponent implements OnInit, OnDestroy {
   kbUnreadArticles: any[] = [];
   showKbDropdown   = false;
 
+  myTicketCounts = {
+    open: 0,
+    inProgress: 0,
+    pending: 0,
+    resolved: 0,
+    closed: 0,
+    total: 0
+  };
+
   profileCompletion = 100;
 
   // ──────────────────────────────────────────────
   // Todo
   // ──────────────────────────────────────────────
   loadTodoCount() {
-    this.http.get<any[]>(
-      `${environment.apiUrl}/Todo`
+    this.http.get<any>(
+      `${environment.apiUrl}/Todo/unread-count`
     ).subscribe({
       next: (data) => {
-        this.todos     = data;
-        this.todoCount = data.filter(t => !t.isCompleted).length;
+        this.todoCount = data?.count ?? 0;
         this.cdr.detectChanges();
       },
       error: () => {}
     });
+  }
+
+  onTodoCountChanged(count: number) {
+    this.todoCount = Number.isFinite(count as any)
+      ? Number(count)
+      : this.todoCount;
+    this.cdr.detectChanges();
+  }
+
+  loadMyTicketCounts() {
+    this.http.get<any>(
+      `${environment.apiUrl}/Tickets/my-status-counts`
+    ).subscribe({
+      next: (data) => {
+        this.myTicketCounts = {
+          open: data?.open ?? 0,
+          inProgress: data?.inProgress ?? 0,
+          pending: data?.pending ?? 0,
+          resolved: data?.resolved ?? 0,
+          closed: data?.closed ?? 0,
+          total: data?.total ?? 0
+        };
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
+  }
+
+  refreshHeaderCounts() {
+    if (this.isSuperAdmin) return;
+
+    // Topbar modules exist only for internal users.
+    if (!this.isCustomer) {
+      this.loadUnreadCount();
+      this.loadTodoCount();
+      this.loadKbUnread();
+      this.loadMissedCallCount();
+    }
+
+    // Ticket counts are useful for both internal users and customers.
+    this.loadMyTicketCounts();
   }
 
   toggleSidebarCollapse() {
@@ -134,6 +187,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   toggleTodoPanel() {
     this.showTodoPanel = !this.showTodoPanel;
+    // Keep badge fresh when opening.
     if (this.showTodoPanel) this.loadTodoCount();
     this.cdr.detectChanges();
   }
@@ -228,14 +282,19 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     this.loadProfile();
     this.loadNotifications();
-    this.startNotifPolling();
-    this.loadTodoCount();
-    this.loadKbUnread();
-    this.loadMissedCallCount();
+    this.refreshHeaderCounts();
 
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadTodoCount());
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadKbUnread());
-    interval(60000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadMissedCallCount());
+    // Live counters (near real-time) without full page reload.
+    interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
+  }
+
+  ngAfterViewInit() {
+    // Enable transitions after initial paint to avoid
+    // "jump then settle" effect during navigation.
+    setTimeout(() => {
+      this.animationsReady = true;
+      this.cdr.detectChanges();
+    }, 0);
   }
 
   ngOnDestroy() {
@@ -295,7 +354,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   startNotifPolling() {
-    interval(30000).pipe(takeUntil(this.destroy$)).subscribe(() => this.loadUnreadCount());
+    // Replaced by refreshHeaderCounts polling.
   }
 
   toggleNotifDropdown() {
