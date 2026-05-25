@@ -7,8 +7,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subject, interval } from 'rxjs';
+import {
+  Subject, interval, of
+} from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap
+} from 'rxjs/operators';
 import { AuthService } from '../../features/auth/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
 import { ChatService } from '../../core/services/chat.service';
@@ -86,7 +94,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private globalCallSvc  = inject(GlobalCallNotificationService);
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
 
-  isSidebarCollapsed = localStorage.getItem('im3_sidebar_collapsed') === 'true';
+  isSidebarCollapsed = (() => {
+    const saved = localStorage.getItem('im3_sidebar_collapsed');
+    // Freshdesk-style compact sidebar by default (only when user has never chosen).
+    if (saved === null) return true;
+    return saved === 'true';
+  })();
   chatUnreadCount    = 0;
   missedCallCount    = 0;
   userName           = '';
@@ -102,8 +115,33 @@ export class LayoutComponent implements OnInit, OnDestroy {
   unreadCount          = 0;
   showNotifDropdown    = false;
 
-  searchQuery   = '';
-  searchResults: any[] = [];
+  // ──────────────────────────────────────────────
+  // Global Search (Topbar)
+  // ──────────────────────────────────────────────
+  searchQuery = '';
+  searchPanelOpen = false;
+  searchLoading = false;
+
+  searchTab: 'all' | 'tickets' | 'contacts' | 'users' | 'solutions' = 'all';
+
+  private search$ = new Subject<string>();
+  private searchData: any = null;
+  private flatSearchResults: Array<{
+    type: 'ticket' | 'contact' | 'user' | 'article';
+    id: string;
+    title: string;
+    subtitle?: string;
+    meta?: string;
+  }> = [];
+
+  recentSearches: string[] = [];
+  recentViewed: Array<{
+    type: 'ticket' | 'contact' | 'user' | 'article';
+    id: string;
+    title: string;
+    subtitle?: string;
+    meta?: string;
+  }> = [];
 
   todoCount     = 0;
   showTodoPanel = false;
@@ -391,6 +429,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.loadNotifications();
     this.refreshHeaderCounts();
 
+    this.loadSearchRecents();
+    this.initSearchPipeline();
+
     // Live counters (near real-time) without full page reload.
     interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
   }
@@ -502,27 +543,194 @@ export class LayoutComponent implements OnInit, OnDestroy {
   // ──────────────────────────────────────────────
   // Search
   // ──────────────────────────────────────────────
-  onSearch() {
-    if (!this.searchQuery.trim()) { this.searchResults = []; this.cdr.detectChanges(); return; }
-    this.http.get<any>(`${environment.apiUrl}/Search?q=${this.searchQuery}`).subscribe({
-      next: (data) => {
-        this.searchResults = [
-          ...(data.tickets  || []).map((t: any) => ({ ...t, type: 'ticket', title: `#TN${t.ticketNumber} ${t.title}` })),
-          ...(data.agents   || []).map((a: any) => ({ ...a, type: 'agent' })),
-          ...(data.articles || []).map((k: any) => ({ ...k, type: 'kb' }))
-        ].slice(0, 8);
+  private initSearchPipeline() {
+    this.search$
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((raw) => {
+          const q = (raw || '').trim();
+          if (q.length < 2) {
+            this.searchLoading = false;
+            this.searchData = null;
+            this.flatSearchResults = [];
+            this.cdr.detectChanges();
+            return of(null);
+          }
+
+          this.searchLoading = true;
+          this.cdr.detectChanges();
+          const url = `${environment.apiUrl}/Search?q=${encodeURIComponent(q)}`;
+          return this.http.get<any>(url).pipe(
+            catchError(() => of(null))
+          );
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((data) => {
+        this.searchLoading = false;
+        this.searchData = data;
+        this.flatSearchResults = this.flattenSearchData(data);
         this.cdr.detectChanges();
-      },
-      error: () => { this.searchResults = []; }
-    });
+      });
   }
 
-  goToResult(r: any) {
-    this.searchQuery = ''; this.searchResults = [];
-    if (r.type === 'ticket')     this.router.navigate(['/tickets', r.id]);
-    else if (r.type === 'agent') this.router.navigate(['/agents']);
-    else if (r.type === 'kb')    this.router.navigate(['/kb', r.id]);
+  onSearchQueryChange() {
+    if (!this.searchPanelOpen) this.openSearchPanel();
+    this.search$.next(this.searchQuery);
+  }
+
+  openSearchPanel() {
+    this.searchPanelOpen = true;
+    setTimeout(() => {
+      window.addEventListener('click', this.closeSearchPanel, { once: true });
+      window.addEventListener('keydown', this.handleSearchEsc, { once: true });
+    });
     this.cdr.detectChanges();
+  }
+
+  closeSearchPanel = () => {
+    this.searchPanelOpen = false;
+    this.searchLoading = false;
+    this.cdr.detectChanges();
+    window.removeEventListener('keydown', this.handleSearchEsc, { capture: true } as any);
+  };
+
+  handleSearchEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') this.closeSearchPanel();
+  };
+
+  setSearchTab(tab: 'all' | 'tickets' | 'contacts' | 'users' | 'solutions') {
+    this.searchTab = tab;
+    this.cdr.detectChanges();
+  }
+
+  get filteredSearchResults() {
+    const q = (this.searchQuery || '').trim();
+    if (!q) return [];
+
+    if (this.searchTab === 'all') return this.flatSearchResults;
+    if (this.searchTab === 'tickets') return this.flatSearchResults.filter(r => r.type === 'ticket');
+    if (this.searchTab === 'contacts') return this.flatSearchResults.filter(r => r.type === 'contact');
+    if (this.searchTab === 'users') return this.flatSearchResults.filter(r => r.type === 'user');
+    return this.flatSearchResults.filter(r => r.type === 'article');
+  }
+
+  private flattenSearchData(data: any) {
+    if (!data) return [];
+
+    const tickets = (data.tickets || []).map((t: any) => ({
+      type: 'ticket' as const,
+      id: t.id,
+      title: t.ticketNumber ? `${t.ticketNumber} ${t.title}` : t.title,
+      subtitle: t.status,
+      meta: undefined
+    }));
+
+    const contacts = (data.contacts || []).map((c: any) => ({
+      type: 'contact' as const,
+      id: c.id,
+      title: c.name,
+      subtitle: c.company ? `${c.company} • ${c.email}` : c.email
+    }));
+
+    const users = (data.users || []).map((u: any) => ({
+      type: 'user' as const,
+      id: u.id,
+      title: u.name,
+      subtitle: u.email,
+      meta: u.role
+    }));
+
+    const articles = (data.articles || []).map((a: any) => ({
+      type: 'article' as const,
+      id: a.id,
+      title: a.title,
+      subtitle: a.category
+    }));
+
+    return [...tickets, ...contacts, ...users, ...articles].slice(0, 12);
+  }
+
+  applyRecentSearch(term: string) {
+    this.searchQuery = term;
+    this.onSearchQueryChange();
+    this.cdr.detectChanges();
+  }
+
+  clearRecentSearches() {
+    this.recentSearches = [];
+    localStorage.removeItem('im3_recent_searches');
+    this.cdr.detectChanges();
+  }
+
+  clearRecentViewed() {
+    this.recentViewed = [];
+    localStorage.removeItem('im3_recent_viewed');
+    this.cdr.detectChanges();
+  }
+
+  private loadSearchRecents() {
+    try {
+      const rs = localStorage.getItem('im3_recent_searches');
+      const rv = localStorage.getItem('im3_recent_viewed');
+      this.recentSearches = rs ? JSON.parse(rs) : [];
+      this.recentViewed = rv ? JSON.parse(rv) : [];
+    } catch {
+      this.recentSearches = [];
+      this.recentViewed = [];
+    }
+  }
+
+  private pushRecentSearch(term: string) {
+    const t = (term || '').trim();
+    if (!t) return;
+    const next = [t, ...this.recentSearches.filter(x => x !== t)].slice(0, 6);
+    this.recentSearches = next;
+    localStorage.setItem('im3_recent_searches', JSON.stringify(next));
+  }
+
+  private pushRecentViewed(item: any) {
+    if (!item?.id || !item?.type) return;
+    const key = `${item.type}:${item.id}`;
+    const next = [item, ...this.recentViewed.filter(x => `${x.type}:${x.id}` !== key)].slice(0, 6);
+    this.recentViewed = next;
+    localStorage.setItem('im3_recent_viewed', JSON.stringify(next));
+  }
+
+  goToGlobalResult(r: any) {
+    const q = (this.searchQuery || '').trim();
+    if (q) this.pushRecentSearch(q);
+    this.pushRecentViewed(r);
+
+    this.searchQuery = '';
+    this.searchData = null;
+    this.flatSearchResults = [];
+    this.searchPanelOpen = false;
+    this.cdr.detectChanges();
+
+    if (r.type === 'ticket') {
+      this.router.navigate(['/tickets', r.id]);
+      return;
+    }
+    if (r.type === 'contact') {
+      this.router.navigate(['/contacts'], { queryParams: { contactId: r.id } });
+      return;
+    }
+    if (r.type === 'user') {
+      this.router.navigate(['/agents'], { queryParams: { q: r.title } });
+      return;
+    }
+    if (r.type === 'article') {
+      this.router.navigate(['/kb', r.id]);
+    }
+  }
+
+  goToRecentViewed(r: any) {
+    this.searchQuery = '';
+    this.searchPanelOpen = false;
+    this.cdr.detectChanges();
+    this.goToGlobalResult(r);
   }
 
   // ──────────────────────────────────────────────

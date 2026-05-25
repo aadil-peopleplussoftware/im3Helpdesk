@@ -228,7 +228,7 @@
     <div class="topbar">
       <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 
-      <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer">
+      <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer" (click)="$event.stopPropagation()">
         <span class="ts-icon" data-im3-icon-color="primary">
           <span class="icon-emoji">🔍</span>
           <span class="icon-fa"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -236,17 +236,83 @@
         </span>
         <input class="ts-input"
           [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearch()"
-          [placeholder]="tr.t('search') + ' tickets, agents, workspace engine...'"/>
-        <div class="search-dropdown" *ngIf="searchResults.length > 0">
-          <div class="sr-item" *ngFor="let r of searchResults" (click)="goToResult(r)">
-            <span class="sr-icon">
-              <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
-              <ng-container *ngIf="r.type === 'agent'">👤</ng-container>
-              <ng-container *ngIf="r.type === 'kb'">📚</ng-container>
-            </span>
-            <span class="sr-text">{{ r.title }}</span>
+          (ngModelChange)="onSearchQueryChange()"
+          (focus)="openSearchPanel()"
+          autocomplete="off"
+          placeholder="Search Tickets, Contacts, Users, Solutions"/>
+
+        <div class="search-dropdown" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
+
+          <div class="sd-top">
+            <button type="button" class="sd-tab" [class.active]="searchTab==='all'" (click)="setSearchTab('all')">All</button>
+            <button type="button" class="sd-tab" [class.active]="searchTab==='tickets'" (click)="setSearchTab('tickets')">Tickets</button>
+            <button type="button" class="sd-tab" [class.active]="searchTab==='contacts'" (click)="setSearchTab('contacts')">Contacts</button>
+            <button type="button" class="sd-tab" [class.active]="searchTab==='users'" (click)="setSearchTab('users')">Users</button>
+            <button type="button" class="sd-tab" [class.active]="searchTab==='solutions'" (click)="setSearchTab('solutions')">Solutions</button>
           </div>
+
+          <!-- Empty state: show recents -->
+          <ng-container *ngIf="!searchQuery.trim()">
+            <div class="sd-section">
+              <div class="sd-sec-head">
+                <span>Recently searched</span>
+                <button type="button" class="sd-clear" *ngIf="recentSearches.length > 0" (click)="clearRecentSearches()">Clear</button>
+              </div>
+              <div class="sd-list">
+                <button type="button" class="sd-row" *ngFor="let s of recentSearches" (click)="applyRecentSearch(s)">
+                  <span class="sd-row-icon">🔎</span>
+                  <span class="sd-row-text">{{ s }}</span>
+                </button>
+                <div class="sd-empty" *ngIf="recentSearches.length === 0">No recent searches</div>
+              </div>
+            </div>
+
+            <div class="sd-divider"></div>
+
+            <div class="sd-section">
+              <div class="sd-sec-head">
+                <span>Recently viewed</span>
+                <button type="button" class="sd-clear" *ngIf="recentViewed.length > 0" (click)="clearRecentViewed()">Clear</button>
+              </div>
+              <div class="sd-list">
+                <button type="button" class="sd-item" *ngFor="let r of recentViewed" (click)="goToGlobalResult(r)">
+                  <span class="sd-icon">
+                    <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
+                    <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
+                    <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
+                    <ng-container *ngIf="r.type === 'article'">📚</ng-container>
+                  </span>
+                  <span class="sd-main">
+                    <span class="sd-title">{{ r.title }}</span>
+                    <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
+                  </span>
+                  <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
+                </button>
+                <div class="sd-empty" *ngIf="recentViewed.length === 0">No recently viewed items</div>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Query state: show results -->
+          <ng-container *ngIf="searchQuery.trim()">
+            <div class="sd-loading" *ngIf="searchLoading">Searching...</div>
+            <div class="sd-empty" *ngIf="!searchLoading && filteredSearchResults.length === 0">No results found</div>
+
+            <button type="button" class="sd-item" *ngFor="let r of filteredSearchResults" (click)="goToGlobalResult(r)">
+              <span class="sd-icon">
+                <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
+                <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
+                <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
+                <ng-container *ngIf="r.type === 'article'">📚</ng-container>
+              </span>
+              <span class="sd-main">
+                <span class="sd-title">{{ r.title }}</span>
+                <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
+              </span>
+              <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
+            </button>
+          </ng-container>
+
         </div>
       </div>
 
@@ -456,7 +522,9 @@
     </div>
 
     <div class="page-content">
-      <ng-content></ng-content>
+      <div class="content-surface">
+        <ng-content></ng-content>
+      </div>
     </div>
 
   </div>

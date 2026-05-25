@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
@@ -26,6 +26,7 @@ export class AgentsComponent implements OnInit {
   private agentService = inject(AgentService);
   private authService = inject(AuthService);
   public router = inject(Router);
+  private route = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
   readonly baseUrl = environment.baseUrl;
@@ -45,6 +46,10 @@ export class AgentsComponent implements OnInit {
     const role = this.authService.getUserRole();
     this.isAdmin = ['CompanyAdmin', 'Agent'].includes(role);
     this.isCompanyAdmin = role === 'CompanyAdmin';
+
+    const q = this.route.snapshot.queryParamMap.get('q');
+    if (q) this.searchQuery = q;
+
     this.loadAgents();
   }
 

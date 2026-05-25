@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
@@ -17,6 +17,7 @@ import { environment } from '../../../../environments/environment';
 export class ContactsPageComponent implements OnInit {
   private http = inject(HttpClient);
   public router = inject(Router);
+  private route = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
 
@@ -33,7 +34,12 @@ export class ContactsPageComponent implements OnInit {
   companyContacts: any[] = [];
   coActiveTab = 'contacts';
 
+  private pendingContactId: string | null = null;
+  private pendingQuery: string | null = null;
+
   ngOnInit() {
+    this.pendingContactId = this.route.snapshot.queryParamMap.get('contactId');
+    this.pendingQuery = this.route.snapshot.queryParamMap.get('q');
     this.loadContacts();
     this.loadCompanies();
   }
@@ -44,6 +50,20 @@ export class ContactsPageComponent implements OnInit {
       next: (data) => {
         this.contacts = data;
         this.buildFilteredContacts(data);
+
+        if (this.pendingQuery) {
+          this.searchQuery = this.pendingQuery;
+          this.search();
+        }
+
+        if (this.pendingContactId) {
+          const found = this.contacts.find(c => c.id === this.pendingContactId);
+          if (found) {
+            this.activeView = 'contacts';
+            this.selectedContact = found;
+          }
+        }
+
         this.loading = false;
         this.cdr.detectChanges();
       },
