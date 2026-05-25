@@ -153,6 +153,8 @@ export class TicketListComponent
         this.filters.search.toLowerCase();
       result = result.filter(t =>
         t.title?.toLowerCase().includes(q) ||
+        t.assignedTo?.toLowerCase().includes(q) ||
+        t.createdBy?.toLowerCase().includes(q) ||
         t.tags?.toLowerCase().includes(q) ||
         t.category?.toLowerCase().includes(q) ||
         `tn${t.ticketNumber}`.includes(q) ||

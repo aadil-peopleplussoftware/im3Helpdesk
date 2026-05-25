@@ -30,33 +30,95 @@ public class SearchController : ControllerBase
     if (!_tenant.OrganizationId.HasValue)
       return Forbid();
 
-    if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+    var orgId = _tenant.OrganizationId.Value;
+
+    var query = (q ?? string.Empty).Trim();
+    var ql = query.ToLower();
+
+    if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
       return Ok(new
       {
         tickets = new List<object>(),
+        contacts = new List<object>(),
+        users = new List<object>(),
         agents = new List<object>(),
         articles = new List<object>()
       });
 
+    var digits = new string(query.Where(char.IsDigit).ToArray());
+    var hasTicketNo = int.TryParse(digits, out var ticketNo);
+    var hasTicketId = Guid.TryParse(query, out var ticketId);
+
     var tickets = await _context.Tickets
+        .AsNoTracking()
         .Include(t => t.CreatedBy)
-        .Where(t => t.Title.Contains(q) ||
-            t.Description.Contains(q) ||
-            t.Category.Contains(q))
+        .Include(t => t.AssignedTo)
+        .Where(t => t.OrganizationId == orgId)
+        .Where(t =>
+            t.Title.ToLower().Contains(ql) ||
+            t.Description.ToLower().Contains(ql) ||
+            t.Category.ToLower().Contains(ql) ||
+            t.Tags.ToLower().Contains(ql) ||
+            (t.CreatedBy != null &&
+              (t.CreatedBy.FullName.ToLower().Contains(ql) ||
+               t.CreatedBy.Email.ToLower().Contains(ql))) ||
+            (t.AssignedTo != null &&
+              (t.AssignedTo.FullName.ToLower().Contains(ql) ||
+               t.AssignedTo.Email.ToLower().Contains(ql))) ||
+            (hasTicketNo && t.TicketNumber == ticketNo) ||
+            (hasTicketId && t.Id == ticketId))
         .Take(5)
         .Select(t => new
         {
           t.Id,
           t.Title,
+          t.TicketNumber,
           Status = t.Status.ToString(),
           Type = "ticket"
         })
         .ToListAsync();
 
+    var contacts = await _context.Contacts
+        .AsNoTracking()
+        .Where(c => c.OrganizationId == orgId &&
+          (c.FullName.ToLower().Contains(ql) ||
+           c.Email.ToLower().Contains(ql) ||
+           (c.Company != null && c.Company.ToLower().Contains(ql))))
+        .Take(5)
+        .Select(c => new
+        {
+          c.Id,
+          Name = c.FullName,
+          c.Email,
+          c.Company,
+          Type = "contact"
+        })
+        .ToListAsync();
+
+    // Users = all org users (agents + customers, excluding SuperAdmin)
+    var users = await _context.Users
+        .AsNoTracking()
+        .Where(u =>
+          u.OrganizationId == orgId &&
+          u.Role != UserRole.SuperAdmin &&
+          (u.FullName.ToLower().Contains(ql) ||
+           u.Email.ToLower().Contains(ql)))
+        .Take(5)
+        .Select(u => new
+        {
+          u.Id,
+          Name = u.FullName,
+          u.Email,
+          Role = u.Role.ToString(),
+          Type = "user"
+        })
+        .ToListAsync();
+
     var agents = await _context.Users
-        .Where(u => (u.FullName.Contains(q) ||
-            u.Email.Contains(q)) &&
-        u.OrganizationId == _tenant.OrganizationId &&
+        .AsNoTracking()
+        .Where(u => (u.FullName.ToLower().Contains(ql) ||
+            u.Email.ToLower().Contains(ql)) &&
+        u.OrganizationId == orgId &&
         (u.Role == UserRole.Agent ||
          u.Role == UserRole.CompanyAdmin))
         .Take(5)
@@ -70,9 +132,11 @@ public class SearchController : ControllerBase
         .ToListAsync();
 
     var articles = await _context.KbArticles
-        .Where(a => a.IsPublished &&
-            (a.Title.Contains(q) ||
-            a.Tags.Contains(q)))
+        .AsNoTracking()
+        .Where(a => a.OrganizationId == orgId && a.IsPublished &&
+            (a.Title.ToLower().Contains(ql) ||
+            a.Tags.ToLower().Contains(ql) ||
+            a.Category.ToLower().Contains(ql)))
         .Take(5)
         .Select(a => new
         {
@@ -83,6 +147,6 @@ public class SearchController : ControllerBase
         })
         .ToListAsync();
 
-    return Ok(new { tickets, agents, articles });
+    return Ok(new { tickets, contacts, users, agents, articles });
   }
 }
