@@ -1,7 +1,9 @@
 // (cleaned up: file now starts with imports only)
 import {
   Component, OnInit, OnDestroy, AfterViewInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject,
+  ViewChild,
+  ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +17,8 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
-  switchMap
+  switchMap,
+  filter
 } from 'rxjs/operators';
 import { AuthService } from '../../features/auth/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
@@ -39,6 +42,8 @@ import { GlobalCallPopupComponent } from '../../shared/components/global-call-po
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  @ViewChild('globalSearchInput')
+  globalSearchInput?: ElementRef<HTMLInputElement>;
   public showProfileDropdown = false;
   public keyboardShortcutsEnabled = true;
 
@@ -123,6 +128,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   searchLoading = false;
 
   searchTab: 'all' | 'tickets' | 'contacts' | 'users' | 'solutions' = 'all';
+
+  activePageTitle = 'Dashboard';
+  activePageKey: 'dashboard' | 'tickets' | 'contacts' | 'chat' | 'todo' | 'kb' | 'agents' | 'notifications' | 'calendar' | 'reports' | 'settings' | 'other' = 'dashboard';
 
   private search$ = new Subject<string>();
   private searchData: any = null;
@@ -432,9 +440,51 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.loadSearchRecents();
     this.initSearchPipeline();
 
+    this.updateActivePageFromUrl(this.router.url);
+    this.router.events
+      .pipe(
+        filter((e: any) => e?.constructor?.name === 'NavigationEnd'),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.updateActivePageFromUrl(this.router.url);
+      });
+
     // Live counters (near real-time) without full page reload.
     interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
   }
+  private updateActivePageFromUrl(url: string) {
+    const clean = (url || '').split('?')[0] || '';
+    const first = clean.split('/').filter(Boolean)[0] || 'dashboard';
+
+    const map: any = {
+      dashboard: { key: 'dashboard', title: 'Dashboard' },
+      tickets: { key: 'tickets', title: 'Tickets' },
+      contacts: { key: 'contacts', title: 'Contacts' },
+      chat: { key: 'chat', title: 'Chat' },
+      todo: { key: 'todo', title: 'To Do' },
+      kb: { key: 'kb', title: 'Solutions' },
+      agents: { key: 'agents', title: 'Team' },
+      notifications: { key: 'notifications', title: 'Notifications' },
+      calendar: { key: 'calendar', title: 'Calendar' },
+      reports: { key: 'reports', title: 'Reports' },
+      settings: { key: 'settings', title: 'Settings' }
+    };
+
+    const m = map[first] || { key: 'other', title: 'Dashboard' };
+    this.activePageKey = m.key;
+    this.activePageTitle = m.title;
+    this.cdr.detectChanges();
+  }
+
+  get isTicketsSection(): boolean {
+    return this.activePageKey === 'tickets';
+  }
+
+  get unresolvedMyCount(): number {
+    return (this.myTicketCounts.open || 0) + (this.myTicketCounts.inProgress || 0) + (this.myTicketCounts.pending || 0);
+  }
+
 
   ngAfterViewInit() {
     // Enable transitions after initial paint to avoid
@@ -587,6 +637,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       window.addEventListener('keydown', this.handleSearchEsc, { once: true });
     });
     this.cdr.detectChanges();
+  }
+
+  toggleSearchPanel(event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    if (this.searchPanelOpen) {
+      this.closeSearchPanel();
+      return;
+    }
+    this.openSearchPanel();
+    setTimeout(() => {
+      try { this.globalSearchInput?.nativeElement?.focus(); } catch {}
+    }, 0);
   }
 
   closeSearchPanel = () => {

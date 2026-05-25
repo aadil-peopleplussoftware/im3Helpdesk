@@ -824,3 +824,101 @@
     border-radius: 50%;
   }
 }
+
+/* Active page label (replaces big search input) */
+.topbar-context {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tc-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc-badge {
+  background: var(--ui-color-bg-surface);
+  border: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* Compact global search trigger beside New Ticket */
+.global-search-anchor {
+  position: relative;
+}
+
+.gs-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg-surface);
+  color: var(--ui-color-text-primary);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover { background: var(--ui-color-bg-subtle); }
+}
+
+.gs-ic { color: var(--ui-color-text-muted); }
+
+/* Popover positioning override */
+.search-dropdown.search-popover {
+  left: auto;
+  right: 0;
+  width: 560px;
+}
+
+.sd-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-color-border-soft);
+  background: var(--ui-color-bg-surface);
+
+  .ts-icon {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    svg { color: var(--ui-color-text-faint); }
+  }
+
+  .ts-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--ui-color-text-primary);
+    width: 100%;
+    &::placeholder { color: var(--ui-color-text-faint); }
+  }
+}
+
+@media (max-width: 980px) {
+  .search-dropdown.search-popover { width: 420px; }
+}
+
+@media (max-width: 768px) {
+  .search-dropdown.search-popover {
+    width: calc(100vw - 32px);
+    right: -8px;
+  }
+  .gs-trigger span { display: none; }
+}
