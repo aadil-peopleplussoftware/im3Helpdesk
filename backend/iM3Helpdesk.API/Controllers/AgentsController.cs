@@ -136,7 +136,7 @@ public class AgentsController : ControllerBase
           agent.Email,
           agent.FullName,
           org?.Name ?? "Your Company",
-          tempPassword);
+          tempPassword,org?.Id);
     }
     catch { }
 

@@ -111,6 +111,7 @@ public class CustomerController : ControllerBase
           t.Id,
           t.Title,
           t.Description,
+          t.FromEmail,
           t.Category,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
@@ -147,6 +148,7 @@ public class CustomerController : ControllerBase
       ticket.Id,
       ticket.Title,
       ticket.Description,
+      ticket.FromEmail,
       ticket.Category,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
@@ -205,6 +207,7 @@ public class CustomerController : ControllerBase
     {
       Title = dto.Title,
       Description = dto.Description,
+      FromEmail = dto.FromEmail,
       Category = dto.Category,
       Priority = parsedPriority,
       OrganizationId = _tenantService.OrganizationId!.Value,
@@ -225,7 +228,8 @@ public class CustomerController : ControllerBase
       {
         await _emailService.SendAsync(
             user.Email, user.FullName,
-            ticket.Title, ticket.Id.ToString());
+            ticket.Title, ticket.Id.ToString(), 
+            _tenantService.OrganizationId);
       }
       catch { }
 
@@ -281,6 +285,7 @@ public class SubmitTicketDto
 {
   public string Title { get; set; } = string.Empty;
   public string Description { get; set; } = string.Empty;
+  public string? FromEmail { get; set; }
   public string Category { get; set; } = "General";
   public string Priority { get; set; } = "Medium";
 }

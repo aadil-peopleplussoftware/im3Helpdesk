@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
+using iM3Helpdesk.API.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -151,10 +152,17 @@ public class InboundEmailController : ControllerBase
     // Find organization by support email
     var org = await _context.Organizations
         .FirstOrDefaultAsync(o =>
-            !string.IsNullOrEmpty(o.SupportEmail) &&
-            (o.SupportEmail.ToLower() == to.ToLower()
-             || to.ToLower().Contains(
-                 o.SupportEmail.ToLower())) &&
+            (
+              (!string.IsNullOrEmpty(o.SupportEmail) &&
+               (o.SupportEmail.ToLower() == to.ToLower() ||
+                to.ToLower().Contains(o.SupportEmail.ToLower()))) ||
+              (!string.IsNullOrEmpty(o.SmtpFromEmail) &&
+               (o.SmtpFromEmail.ToLower() == to.ToLower() ||
+                to.ToLower().Contains(o.SmtpFromEmail.ToLower()))) ||
+              (!string.IsNullOrEmpty(o.SmtpUsername) &&
+               (o.SmtpUsername.ToLower() == to.ToLower() ||
+                to.ToLower().Contains(o.SmtpUsername.ToLower())))
+            ) &&
             o.IsActive);
 
     if (org == null)
@@ -197,9 +205,10 @@ public class InboundEmailController : ControllerBase
     }
 
     // Use HTML body if available, else plain text
-    var description = !string.IsNullOrEmpty(htmlBody)
-        ? htmlBody
-        : textBody?.Replace("\n", "<br>") ?? "";
+    // Keep only the newly typed part of inbound email.
+    var description = InboundEmailBodyCleaner.ToCleanHtml(
+      textBody,
+      htmlBody);
 
     // Build tags
     var tags = new List<string> { "email" };
@@ -212,6 +221,7 @@ public class InboundEmailController : ControllerBase
             ? $"Email from {fromName ?? fromEmail}"
             : subject,
       Description = description,
+      FromEmail = fromEmail,
       Category = "General",
       Priority = TicketPriority.Medium,
       Status = TicketStatus.Open,

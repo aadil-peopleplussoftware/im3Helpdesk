@@ -8,6 +8,7 @@ public class Ticket : IMustHaveTenant
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string? FromEmail { get; set; }
     public string Category { get; set; } = string.Empty;
     public TicketStatus Status { get; set; } = TicketStatus.Open;
     public TicketPriority Priority { get; set; } = TicketPriority.Medium;

@@ -335,9 +335,9 @@ public class AuthController : ControllerBase
     {
       await _emailService.SendEmailVerificationAsync(
           user.Email, user.FullName,
-          verificationToken, dto.CompanyName);
+          verificationToken, dto.CompanyName, organization.Id);
       await _emailService.SendWelcomeEmailAsync(
-          user.Email, user.FullName, dto.CompanyName);
+          user.Email, user.FullName, dto.CompanyName, organization.Id);
     }
     catch (Exception ex)
     {
@@ -399,7 +399,7 @@ public class AuthController : ControllerBase
     {
       await _emailService.SendEmailVerificationAsync(
           user.Email, user.FullName,
-          verificationToken, org.Name);
+          verificationToken, org.Name, org.Id);
     }
     catch (Exception ex)
     {
@@ -492,7 +492,8 @@ public class AuthController : ControllerBase
       {
         await _emailService.SendForgotPasswordAsync(
             user.Email, user.FullName,
-            user.EmailVerificationToken);
+            user.EmailVerificationToken,
+            organizationId:user.OrganizationId);
       }
       catch (Exception ex)
       {

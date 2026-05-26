@@ -95,7 +95,8 @@ public class OtpService : IOtpService
       await emailService.SendOtpEmailAsync(
           user.Email,
           user.FullName,
-          otp);
+          otp,
+          user.OrganizationId);
     }
     catch (Exception ex)
     {

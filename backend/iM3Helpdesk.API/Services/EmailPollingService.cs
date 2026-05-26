@@ -333,6 +333,7 @@ public class EmailPollingService : BackgroundService
     {
       Title = subject,
       Description = description,
+      FromEmail = fromEmail,
       Category = "General",
       Priority = TicketPriority.Medium,
       Status = TicketStatus.Open,

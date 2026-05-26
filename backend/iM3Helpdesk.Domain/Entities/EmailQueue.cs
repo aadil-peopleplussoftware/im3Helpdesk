@@ -3,6 +3,7 @@ namespace iM3Helpdesk.Domain.Entities;
 public class EmailQueue
 {
   public Guid Id { get; set; } = Guid.NewGuid();
+  public Guid? OrganizationId { get; set; }
   public string ToEmail { get; set; } = string.Empty;
   public string Subject { get; set; } = string.Empty;
   public string Body { get; set; } = string.Empty;

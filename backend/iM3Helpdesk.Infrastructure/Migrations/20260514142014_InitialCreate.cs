@@ -951,6 +951,34 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                 name: "IX_Users_OrganizationId",
                 table: "Users",
                 column: "OrganizationId");
+
+            migrationBuilder.Sql(@"
+IF NOT EXISTS (
+    SELECT 1
+    FROM [Users]
+    WHERE [Email] = 'Aadil080399@gmail.com'
+)
+BEGIN
+    INSERT INTO [Users] (
+        [Id], [FullName], [Email], [PasswordHash],
+        [PhoneNumber], [IsEmailVerified], [Role],
+        [FailedLoginAttempts],
+        [OrganizationId], [CreatedAt]
+    )
+    VALUES (
+        NEWID(),
+        'Super Admin',
+        'Aadil080399@gmail.com',
+        '$2a$11$VRmeVCZ3iQcMmEa2i3rRpu33SW73kuhzEkm2.yzo.mvsPfTuXN6V6',
+        '9579818081',
+        1,
+        0,
+        0,
+        NULL,
+        GETUTCDATE()
+    );
+END
+");
         }
 
         /// <inheritdoc />

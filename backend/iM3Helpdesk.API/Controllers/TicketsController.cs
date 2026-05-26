@@ -53,6 +53,14 @@ public class TicketsController : ControllerBase
     return id;
   }
 
+  private static string? GetTicketRecipientEmail(Ticket ticket)
+  {
+    if (!string.IsNullOrWhiteSpace(ticket.FromEmail))
+      return ticket.FromEmail.Trim();
+ 
+    return ticket.CreatedBy?.Email;
+  }
+
   private static string FormatSize(long bytes)
   {
     if (bytes < 1024) return $"{bytes} B";
@@ -905,7 +913,8 @@ public class TicketsController : ControllerBase
             $"<strong>#TN{original.TicketNumber}" +
             $"</strong>. " +
             $"Please use that ticket number " +
-            $"for future reference.</p>");
+            $"for future reference.</p>",
+            organizationId: duplicate.OrganizationId);
       }
       catch { /* don't fail on email error */ }
     }
@@ -1032,7 +1041,8 @@ public class TicketsController : ControllerBase
         await _emailService.SendAsync(
             ticket.CreatedBy.Email,
             $"Ticket #{ticket.TicketNumber} Status: {newStatus}",
-            html);
+            html,
+            organizationId: ticket.OrganizationId);
       }
       catch (Exception ex)
       {
@@ -1091,7 +1101,8 @@ public class TicketsController : ControllerBase
             dto.Comment,
             $"#TN{ticket.TicketNumber}",
             agent?.FullName ?? "Support",
-            agent?.Signature ?? "");
+            agent?.Signature ?? "",
+            ticket.OrganizationId);
       }
       catch (Exception ex)
       {
@@ -1166,7 +1177,8 @@ public class TicketsController : ControllerBase
             await _emailService.SendAsync(
                 agent.Email,
                 $"Ticket Assigned: #{ticket.TicketNumber}",
-                html);
+                html,
+                organizationId:ticket.OrganizationId);
           }
           catch (Exception ex)
           {
@@ -1363,7 +1375,8 @@ public class TicketsController : ControllerBase
           dto.ToEmail,
           $"[Forwarded] {ticket.Title}" +
           $" #TN{ticket.TicketNumber}",
-          html);
+          html,
+          organizationId: ticket.OrganizationId);
 
       return Ok(new
       {
