@@ -1,0 +1,196 @@
+<!--
+  Recycle Bin (admin-only). Shows soft-deleted tickets in a grid; the
+  last column opens a popup with full details, plus Restore and
+  Permanent Delete actions.
+-->
+<app-layout>
+  <div class="recycle-bin-wrap">
+
+    <!-- Page header -->
+    <header class="rb-header">
+      <div class="rb-title">
+        <div class="rb-icon"><i class="fa-solid fa-trash-can"></i></div>
+        <div>
+          <h1>Recycle Bin</h1>
+          <p>
+            Deleted tickets are kept here for
+            <strong>{{ retention.value }} {{ retention.unit }}</strong>
+            before they are permanently removed.
+            Change this in
+            <a routerLink="/organization-profile" class="rb-link">Organization Profile → Recycle Bin</a>.
+          </p>
+        </div>
+      </div>
+      <div class="rb-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text"
+               placeholder="Search by number, title, category or email…"
+               [(ngModel)]="search"
+               (ngModelChange)="onSearchChange()"
+               (keydown.enter)="load()" />
+        <button type="button" class="btn-refresh" (click)="load()" [disabled]="loading">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Read-only banner for non-admins -->
+    <div class="readonly-banner" *ngIf="!loading && !isCompanyAdmin">
+      <i class="fa-solid fa-lock"></i>
+      <span>Read-only view. Only the Company Admin can restore or permanently delete tickets.</span>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="!loading && filteredRows.length === 0">
+      <i class="fa-solid fa-trash-can"></i>
+      <h3>Recycle Bin is empty</h3>
+      <p>Deleted tickets will appear here. Nothing to recover right now.</p>
+    </div>
+
+    <!-- Loading -->
+    <div class="rb-loading" *ngIf="loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Loading…
+    </div>
+
+    <!-- Grid -->
+    <div class="rb-grid-wrap" *ngIf="!loading && filteredRows.length > 0">
+      <table class="rb-grid">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Requester</th>
+            <th>Deleted</th>
+            <th>Deleted By</th>
+            <th>Auto-Purge</th>
+            <th class="col-actions">Open</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of filteredRows; trackBy: trackById">
+            <td class="col-num">#{{ r.ticketNumber }}</td>
+            <td class="col-title" [title]="r.title">{{ r.title }}</td>
+            <td>{{ r.category || '—' }}</td>
+            <td><span [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span></td>
+            <td><span [class]="priorityClass(r.priority)">{{ priorityLabel(r.priority) }}</span></td>
+            <td class="col-email" [title]="r.fromEmail || ''">
+              {{ r.fromName || r.fromEmail || '—' }}
+            </td>
+            <td>{{ r.deletedAt | date:'mediumDate' }}</td>
+            <td>{{ r.deletedByName || '—' }}</td>
+            <td class="col-purge" [title]="r.purgeAfter || ''">
+              <ng-container *ngIf="r.purgeAfter; else noPurge">
+                {{ r.purgeAfter | date:'mediumDate' }}
+              </ng-container>
+              <ng-template #noPurge>—</ng-template>
+            </td>
+            <td class="col-actions">
+              <button type="button" class="btn-open" (click)="openDetail(r)" title="Open details">
+                <i class="fa-solid fa-up-right-from-square"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Detail popup / modal -->
+    <div class="rb-modal-backdrop" *ngIf="openId" (click)="closeDetail()">
+      <div class="rb-modal" (click)="$event.stopPropagation()">
+
+        <header class="rb-modal-head">
+          <div>
+            <span class="rb-pill ghost">In Recycle Bin</span>
+            <h2 *ngIf="detail">#{{ detail.ticketNumber }} — {{ detail.title }}</h2>
+            <h2 *ngIf="!detail">Loading ticket…</h2>
+          </div>
+          <button type="button" class="btn-close" (click)="closeDetail()" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </header>
+
+        <div class="rb-modal-body">
+          <div class="loading-detail" *ngIf="loadingDetail">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Loading details…
+          </div>
+
+          <ng-container *ngIf="detail && !loadingDetail">
+            <!-- Meta grid -->
+            <div class="meta-grid">
+              <div><label>Status</label><span [class]="statusClass(detail.status)">{{ statusLabel(detail.status) }}</span></div>
+              <div><label>Priority</label><span [class]="priorityClass(detail.priority)">{{ priorityLabel(detail.priority) }}</span></div>
+              <div><label>Category</label><span>{{ detail.category || '—' }}</span></div>
+              <div><label>Type</label><span>{{ detail.ticketType || '—' }}</span></div>
+              <div><label>Created</label><span>{{ detail.createdAt | date:'medium' }}</span></div>
+              <div><label>Deleted</label><span>{{ detail.deletedAt | date:'medium' }}</span></div>
+              <div><label>Deleted By</label><span>{{ detail.deletedByName || '—' }}</span></div>
+              <div><label>Auto-Purge On</label>
+                <span>{{ detail.purgeAfter ? (detail.purgeAfter | date:'medium') : 'Never' }}</span>
+              </div>
+              <div><label>Requester</label>
+                <span>{{ detail.fromName || detail.fromEmail || detail.createdByName || '—' }}</span>
+              </div>
+              <div><label>Assigned</label><span>{{ detail.assignedToName || '—' }}</span></div>
+              <div><label>SLA</label>
+                <span>
+                  {{ detail.slaStatus || '—' }}
+                  <span class="sla-breach" *ngIf="detail.isSlaBreached">BREACHED</span>
+                </span>
+              </div>
+              <div><label>Time Spent</label><span>{{ detail.timeSpentMinutes }} min</span></div>
+            </div>
+
+            <div class="desc-block" *ngIf="detail.description">
+              <label>Description</label>
+              <div class="desc-body" [innerHTML]="detail.description"></div>
+            </div>
+
+            <div class="tags-block" *ngIf="detail.tags">
+              <label>Tags</label>
+              <div class="tags">
+                <span class="tag" *ngFor="let t of detail.tags.split(',')">{{ t.trim() }}</span>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <footer class="rb-modal-foot" *ngIf="isCompanyAdmin && detail">
+          <ng-container *ngIf="confirmPurgeFor !== detail.id; else confirmRow">
+            <button type="button" class="btn-restore"
+                    [disabled]="acting"
+                    (click)="restore(detail.id)">
+              <i class="fa-solid fa-rotate-left"></i> Restore Ticket
+            </button>
+            <button type="button" class="btn-purge"
+                    [disabled]="acting"
+                    (click)="requestPurge(detail.id)">
+              <i class="fa-solid fa-trash"></i> Permanent Delete
+            </button>
+          </ng-container>
+          <ng-template #confirmRow>
+            <div class="confirm-block">
+              <span class="confirm-msg">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                This will permanently delete the ticket and all its comments. This cannot be undone.
+              </span>
+              <button type="button" class="btn-cancel"
+                      [disabled]="acting"
+                      (click)="cancelPurge()">Cancel</button>
+              <button type="button" class="btn-purge-confirm"
+                      [disabled]="acting"
+                      (click)="purge(detail.id)">
+                <i class="fa-solid fa-skull-crossbones"></i>
+                {{ acting ? 'Deleting…' : 'Yes, delete forever' }}
+              </button>
+            </div>
+          </ng-template>
+        </footer>
+
+      </div>
+    </div>
+
+  </div>
+</app-layout>

@@ -64,7 +64,11 @@ public class OrganizationsController : ControllerBase
       // Auth token is sensitive \u2014 expose only a "set" flag, not the value.
       twilioAuthTokenSet = !string.IsNullOrWhiteSpace(org.TwilioAuthToken),
       org.SlackWebhookUrl,
-      org.TeamsWebhookUrl
+      org.TeamsWebhookUrl,
+      // Recycle bin retention window. Tickets older than this since
+      // their DeletedAt are auto-purged by RecycleBinPurgeWorker.
+      org.RecycleBinRetentionValue,
+      org.RecycleBinRetentionUnit
     });
   }
 
@@ -93,6 +97,19 @@ public class OrganizationsController : ControllerBase
       org.TwilioAccountSid = dto.TwilioAccountSid;
     if (dto.TwilioAuthToken != null)
       org.TwilioAuthToken = dto.TwilioAuthToken;
+    if (dto.RecycleBinRetentionValue.HasValue)
+    {
+      // Clamp to a sensible range: at least 1, at most ~100 years.
+      var raw = dto.RecycleBinRetentionValue.Value;
+      org.RecycleBinRetentionValue = raw < 1 ? 1 : (raw > 36500 ? 36500 : raw);
+    }
+    if (!string.IsNullOrWhiteSpace(dto.RecycleBinRetentionUnit))
+    {
+      var unit = dto.RecycleBinRetentionUnit.Trim().ToLowerInvariant();
+      if (unit == "day" || unit == "days") org.RecycleBinRetentionUnit = "days";
+      else if (unit == "month" || unit == "months") org.RecycleBinRetentionUnit = "months";
+      else if (unit == "year" || unit == "years") org.RecycleBinRetentionUnit = "years";
+    }
     ApplyEmailSettings(org, dto);
     await _context.SaveChangesAsync();
     return Ok(new { message = "Organization updated" });
@@ -247,4 +264,6 @@ public class UpdateOrgDto
   public string? WhatsAppNumber { get; set; }
   public string? TwilioAccountSid { get; set; }
   public string? TwilioAuthToken { get; set; }
+  public int? RecycleBinRetentionValue { get; set; }
+  public string? RecycleBinRetentionUnit { get; set; }
 }

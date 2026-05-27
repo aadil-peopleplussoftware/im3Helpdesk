@@ -51,4 +51,16 @@ public class Ticket : IMustHaveTenant
     public User? AssignedTo { get; set; }
     public Organization? Organization { get; set; }
     public ICollection<TicketComment> Comments { get; set; } = new List<TicketComment>();
+
+    // ── Recycle Bin (soft delete) ────────────────────────────────────────
+    /// <summary>
+    /// When true, this ticket has been moved to the Recycle Bin. It is hidden
+    /// from every regular query by a global EF query filter and is only
+    /// visible through the RecycleBinController (admin-only).
+    /// </summary>
+    public bool IsDeleted { get; set; } = false;
+    /// <summary>UTC moment the ticket was moved to the recycle bin.</summary>
+    public DateTime? DeletedAt { get; set; }
+    /// <summary>User who soft-deleted the ticket. Null if deleted by system / migration.</summary>
+    public Guid? DeletedByUserId { get; set; }
 }

@@ -731,15 +731,34 @@ public class TicketsController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
   public async Task<IActionResult> Delete(Guid id)
   {
+    // Soft delete only: ticket is moved to the Recycle Bin so an admin
+    // can restore it within the org's retention window or purge it
+    // permanently from RecycleBinController.
     var ticket = await _context.Tickets
         .FindAsync(id);
     if (ticket == null) return NotFound();
 
-    _context.Tickets.Remove(ticket);
+    if (ticket.IsDeleted)
+      return Ok(new { message = "Already in recycle bin" });
+
+    ticket.IsDeleted = true;
+    ticket.DeletedAt = DateTime.UtcNow;
+    ticket.DeletedByUserId = GetUserId();
+    ticket.UpdatedAt = DateTime.UtcNow;
+
     await _context.SaveChangesAsync();
-    return Ok(new { message = "Deleted" });
+
+    await _notificationService.CreateActivityAsync(
+        GetUserId(),
+        _tenantService.OrganizationId!.Value,
+        "Deleted",
+        $"Ticket moved to recycle bin: {ticket.Title}",
+        "Ticket", ticket.Id);
+
+    return Ok(new { message = "Moved to recycle bin" });
   }
 
   // ── DETECT DUPLICATES ──────────────────

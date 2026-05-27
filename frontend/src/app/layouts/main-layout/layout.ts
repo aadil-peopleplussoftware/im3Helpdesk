@@ -93,6 +93,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/organization-profile']);
   }
 
+  public goToRecycleBin() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/recycle-bin']);
+  }
+
   public goToCustomerPortal() {
     this.showProfileDropdown = false;
     this.router.navigate(['/customer']);

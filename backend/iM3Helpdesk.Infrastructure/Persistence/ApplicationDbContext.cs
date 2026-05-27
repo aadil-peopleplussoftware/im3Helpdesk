@@ -206,10 +206,16 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.Tags)
           .HasColumnType("nvarchar(max)");
 
+      // Tenant isolation + recycle-bin filter: hide soft-deleted tickets
+      // from every regular query. The RecycleBinController calls
+      // IgnoreQueryFilters() to surface deleted rows.
       e.HasQueryFilter(t =>
-          _isSuperAdmin ||
-          t.OrganizationId ==
-              _currentTenantId);
+          (_isSuperAdmin ||
+           t.OrganizationId ==
+              _currentTenantId)
+          && !t.IsDeleted);
+
+      e.HasIndex(t => t.IsDeleted);
 
       e.HasOne(t => t.CreatedBy)
           .WithMany()

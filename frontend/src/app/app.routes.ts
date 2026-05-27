@@ -142,6 +142,14 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'recycle-bin',
+    loadComponent: () =>
+      import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
+        m => m.RecycleBinPageComponent
+      ),
+    canActivate: [authGuard]
+  },
+  {
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications-page/notifications-page').then(m => m.NotificationsPageComponent),

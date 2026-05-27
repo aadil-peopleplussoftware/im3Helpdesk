@@ -128,7 +128,11 @@ export class OrganizationProfileComponent implements OnInit {
     teamsWebhookUrl: [''],
     whatsAppNumber: [''],
     twilioAccountSid: [''],
-    twilioAuthToken: ['']
+    twilioAuthToken: [''],
+
+    // ── Recycle Bin retention ──
+    recycleBinRetentionValue: [30, [Validators.min(1), Validators.max(36500)]],
+    recycleBinRetentionUnit: ['days']
   });
 
   ngOnInit() {
@@ -197,7 +201,12 @@ export class OrganizationProfileComponent implements OnInit {
               twilioAccountSid: org?.twilioAccountSid ?? '',
               // Token is never returned by the API — keep field blank
               // so saving without typing does not wipe it.
-              twilioAuthToken: ''
+              twilioAuthToken: '',
+              recycleBinRetentionValue:
+                typeof org?.recycleBinRetentionValue === 'number'
+                  ? org.recycleBinRetentionValue
+                  : 30,
+              recycleBinRetentionUnit: org?.recycleBinRetentionUnit || 'days'
             },
             { emitEvent: false }
           );
@@ -265,7 +274,9 @@ export class OrganizationProfileComponent implements OnInit {
       slackWebhookUrl: v.slackWebhookUrl || null,
       teamsWebhookUrl: v.teamsWebhookUrl || null,
       whatsAppNumber: v.whatsAppNumber || null,
-      twilioAccountSid: v.twilioAccountSid || null
+      twilioAccountSid: v.twilioAccountSid || null,
+      recycleBinRetentionValue: v.recycleBinRetentionValue || 30,
+      recycleBinRetentionUnit: v.recycleBinRetentionUnit || 'days'
     };
     // Only include password if the admin typed a new one \u2014 sending blank
     // would wipe the stored credential.

@@ -45,5 +45,20 @@ public class Organization
     public string? TwilioAuthToken { get; set; }
     public string? SlackWebhookUrl { get; set; }
     public string? TeamsWebhookUrl { get; set; }
+
+  // ── Recycle Bin retention ────────────────────────────────────────────
+  /// <summary>
+  /// Numeric portion of the recycle bin retention window. Combined with
+  /// <see cref="RecycleBinRetentionUnit"/> to compute the maximum age a
+  /// soft-deleted ticket is kept before being permanently purged by the
+  /// background purge worker. Default: 30.
+  /// </summary>
+  public int RecycleBinRetentionValue { get; set; } = 30;
+  /// <summary>
+  /// Unit for <see cref="RecycleBinRetentionValue"/>. One of "days",
+  /// "months", or "years". Default: "days".
+  /// </summary>
+  public string RecycleBinRetentionUnit { get; set; } = "days";
+
   public ICollection<User> Users { get; set; } = new List<User>();
 }

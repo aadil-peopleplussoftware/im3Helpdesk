@@ -283,6 +283,40 @@
           </div>
         </div>
 
+        <!-- Recycle Bin -->
+        <div class="section-card" id="section-recycle-bin">
+          <header class="section-head">
+            <div class="sec-icon orange"><i class="fa-solid fa-trash-can"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Recycle Bin</h3>
+              <p class="sec-desc">
+                Deleted tickets are kept here, then permanently removed after the chosen retention window.
+                <a routerLink="/recycle-bin" class="inline-link">Open Recycle Bin →</a>
+              </p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label>RETENTION VALUE</label>
+              <input type="number" formControlName="recycleBinRetentionValue"
+                     min="1" max="36500" [readonly]="!isEditMode" placeholder="30"/>
+            </div>
+            <div class="field">
+              <label>RETENTION UNIT</label>
+              <select formControlName="recycleBinRetentionUnit">
+                <option value="days">Days</option>
+                <option value="months">Months</option>
+                <option value="years">Years</option>
+              </select>
+            </div>
+            <div class="field full">
+              <small class="hint">
+                Tickets in the Recycle Bin older than this since their deletion will be permanently removed by the daily purge worker.
+              </small>
+            </div>
+          </div>
+        </div>
+
         <!-- Bottom save bar -->
         <div class="bottom-save" *ngIf="isEditMode">
           <button type="button" class="btn-cancel" (click)="toggleEditMode()" [disabled]="saving">Cancel</button>
