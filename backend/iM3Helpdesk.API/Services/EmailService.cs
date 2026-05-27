@@ -47,7 +47,8 @@ public interface IEmailService
       IEnumerable<string>? cc = null,
       IEnumerable<string>? bcc = null,
       string? inReplyTo = null,
-      IEnumerable<string>? references = null);
+      IEnumerable<string>? references = null,
+      string? fromDisplayName = null);
  
   // Ticket lifecycle emails
   Task SendTicketCreatedAsync(
@@ -335,7 +336,8 @@ public class EmailService : IEmailService
       IEnumerable<string>? bcc,
       string? inReplyTo,
       IEnumerable<string>? references,
-      string? ticketNumberTag = null)
+      string? ticketNumberTag = null,
+      string? fromDisplayName = null)
   {
     var smtpProfile = await ResolveSmtpProfileAsync(organizationId);
     if (smtpProfile == null)
@@ -343,7 +345,9 @@ public class EmailService : IEmailService
 
     var msg = new MimeMessage();
     msg.From.Add(new MailboxAddress(
-        smtpProfile.FromName,
+        string.IsNullOrWhiteSpace(fromDisplayName)
+            ? smtpProfile.FromName
+            : fromDisplayName,
         smtpProfile.FromEmail));
     msg.To.Add(MailboxAddress.Parse(to));
     AddRecipients(msg.Cc, cc);
@@ -736,7 +740,8 @@ public class EmailService : IEmailService
       IEnumerable<string>? cc = null,
       IEnumerable<string>? bcc = null,
       string? inReplyTo = null,
-      IEnumerable<string>? references = null)
+      IEnumerable<string>? references = null,
+      string? fromDisplayName = null)
   {
     return await SendInternalAsync(
         to,
@@ -748,7 +753,8 @@ public class EmailService : IEmailService
         cc: cc,
         bcc: bcc,
         inReplyTo: inReplyTo,
-        references: references);
+        references: references,
+        fromDisplayName: fromDisplayName);
   }
  
   private static readonly Regex HtmlTagRegex = new(

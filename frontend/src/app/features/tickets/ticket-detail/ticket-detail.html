@@ -1,11 +1,14 @@
 <app-layout>
   <div class="td-page">
 
-    <div class="fd-loading" *ngIf="loading">
+    <!-- Initial spinner shown ONLY on the very first paint (no ticket yet).
+         Background refreshes from polling don’t re-trigger it, so the page
+         feels static / sticky once loaded — no flicker on every 15s tick. -->
+    <div class="fd-loading" *ngIf="loading && !ticket">
       <div class="fd-spinner"></div>
     </div>
 
-    <div class="fd-layout" *ngIf="!loading && ticket">
+    <div class="fd-layout" *ngIf="ticket">
 
       <!-- LEFT MAIN -->
       <div class="fd-main">
@@ -86,6 +89,12 @@
                   <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
                   <span class="ec-to-val ec-cc-val">
                     {{ getTicketCcList().join(', ') }}
+                  </span>
+                </ng-container>
+                <ng-container *ngIf="getTicketBccList().length > 0">
+                  <span class="ec-to-lbl ec-cc-lbl">Bcc:</span>
+                  <span class="ec-to-val ec-cc-val">
+                    {{ getTicketBccList().join(', ') }}
                   </span>
                 </ng-container>
               </div>
@@ -729,12 +738,12 @@
                 </button>
                 <button type="button"
                   class="fdc-send fwd-btn"
-                  [class.is-loading]="updating"
-                  [disabled]="updating"
+                  [class.is-loading]="forwarding"
+                  [disabled]="forwarding"
                   (click)="doForward()">
-                  <span class="btn-spinner" *ngIf="updating"></span>
+                  <span class="btn-spinner" *ngIf="forwarding"></span>
                   <span class="btn-label">
-                    {{ updating ? 'Forwarding…' : '↗ Forward' }}
+                    {{ forwarding ? 'Forwarding…' : '↗ Forward' }}
                   </span>
                 </button>
               </div>
@@ -869,7 +878,49 @@
             </select>
           </div>
 
-          <!-- ✅ SINGLE Update button -->
+          <!-- Custom Fields — rendered inline as ordinary property
+               rows so they feel native to the Properties card.
+               Saved together with the main Update button. -->
+          <ng-container *ngIf="customFields.length > 0">
+            <div class="fds-grp"
+              *ngFor="let f of customFields">
+              <div class="fds-lbl">
+                {{ f.label | uppercase }}
+                <span *ngIf="f.isRequired"
+                  class="req">*</span>
+              </div>
+              <ng-container [ngSwitch]="f.fieldType">
+                <input *ngSwitchCase="'text'"
+                  type="text" class="fds-sel"
+                  [(ngModel)]="customFieldValues[f.id]"/>
+                <input *ngSwitchCase="'number'"
+                  type="number" class="fds-sel"
+                  [(ngModel)]="customFieldValues[f.id]"/>
+                <input *ngSwitchCase="'date'"
+                  type="date" class="fds-sel"
+                  [(ngModel)]="customFieldValues[f.id]"/>
+                <textarea *ngSwitchCase="'textarea'"
+                  class="fds-sel" rows="2"
+                  [(ngModel)]="customFieldValues[f.id]">
+                </textarea>
+                <select *ngSwitchCase="'dropdown'"
+                  class="fds-sel"
+                  [(ngModel)]="customFieldValues[f.id]">
+                  <option value="">Select...</option>
+                  <option
+                    *ngFor="let o of (f.options||'').split(',')"
+                    [value]="o.trim()">
+                    {{ o.trim() }}
+                  </option>
+                </select>
+                <input *ngSwitchDefault
+                  type="text" class="fds-sel"
+                  [(ngModel)]="customFieldValues[f.id]"/>
+              </ng-container>
+            </div>
+          </ng-container>
+
+          <!-- ✅ SINGLE Update button — saves props + tags + custom fields -->
           <button type="button"
             class="fds-update-btn"
             [class.is-loading]="updating"
@@ -879,62 +930,6 @@
             <span class="btn-label">
               {{ updating ? 'Updating…' : 'Update' }}
             </span>
-          </button>
-        </div>
-
-        <!-- Custom Fields -->
-        <div class="fds-card"
-          *ngIf="customFields.length > 0">
-          <div class="fds-card-title">
-            CUSTOM FIELDS
-          </div>
-          <div class="fds-grp"
-            *ngFor="let f of customFields">
-            <div class="fds-lbl">
-              {{ f.label | uppercase }}
-              <span *ngIf="f.isRequired"
-                class="req">*</span>
-            </div>
-            <ng-container [ngSwitch]="f.fieldType">
-              <input *ngSwitchCase="'text'"
-                type="text" class="fds-sel"
-                [(ngModel)]="
-                  customFieldValues[f.id]"/>
-              <input *ngSwitchCase="'number'"
-                type="number" class="fds-sel"
-                [(ngModel)]="
-                  customFieldValues[f.id]"/>
-              <input *ngSwitchCase="'date'"
-                type="date" class="fds-sel"
-                [(ngModel)]="
-                  customFieldValues[f.id]"/>
-              <textarea *ngSwitchCase="'textarea'"
-                class="fds-sel" rows="2"
-                [(ngModel)]="
-                  customFieldValues[f.id]">
-              </textarea>
-              <select *ngSwitchCase="'dropdown'"
-                class="fds-sel"
-                [(ngModel)]="
-                  customFieldValues[f.id]">
-                <option value="">Select...</option>
-                <option
-                  *ngFor="let o of
-                    (f.options||'').split(',')"
-                  [value]="o.trim()">
-                  {{ o.trim() }}
-                </option>
-              </select>
-              <input *ngSwitchDefault
-                type="text" class="fds-sel"
-                [(ngModel)]="
-                  customFieldValues[f.id]"/>
-            </ng-container>
-          </div>
-          <button type="button"
-            class="fds-update-btn secondary"
-            (click)="saveCustomFields()">
-            Save Fields
           </button>
         </div>
 

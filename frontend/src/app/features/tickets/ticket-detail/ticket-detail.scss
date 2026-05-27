@@ -1226,7 +1226,10 @@
     color: var(--fd-sub);
     font-style: normal;
   }
-  .ec-dot { color: var(--fd-muted); }
+  /* Push the timestamp cluster (dot + time) to the right edge of
+     the header row so the layout reads:
+     [ Name  reported via email ]                  [ 6h ago (…) ] */
+  .ec-dot { color: var(--fd-muted); margin-left: auto; }
   .ec-time { color: var(--fd-sub); font-style: italic; }
 }
 .ec-to-row {
@@ -1588,12 +1591,19 @@
   line-height: 1.65;
 }
 
-/* Sender name like the reference (primary tone) */
+/* Sender name — static dark tone (Freshdesk reference).
+   Previously themed primary (green) on hover-able rows; user
+   wants only the *email link* coloured, not the name itself. */
 .ec-name,
 .fr-name {
-  color: var(--ui-color-text-primary);
+  color: var(--fd-text);
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 13px;
+
+  &.is-clickable {
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
 }
 .ec-via,
 .fr-via,
@@ -1601,6 +1611,8 @@
 .fr-time,
 .ec-time {
   color: var(--fd-muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 /* ── Note card — already polished; tighten paddings ── */
@@ -2157,6 +2169,165 @@ textarea:focus-visible,
   justify-content: center;
   .vb-count { font-size: 13px; font-weight: 800; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   Sender / commenter name → primary theme color always
+   (was inheriting body text color; user wants it themed).
+════════════════════════════════════════════════════════════ */
+.ec-name,
+.fr-name {
+  color: var(--ui-color-primary, #029888);
+  font-weight: 700;
+}
+.ec-name.is-clickable:hover,
+.fr-name.is-clickable:hover {
+  color: var(--ui-color-primary-hover, #027a6e);
+  text-decoration: underline;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Sidebar — natural flow, page scroll handles overflow.
+   We deliberately do NOT force an internal scroll viewport
+   because that hid the Update button at the bottom of the
+   Properties card. The grid column stays 290px wide and inner
+   cards box-size correctly; horizontal overflow is guarded
+   by min-width:0 on every flex child.
+════════════════════════════════════════════════════════════ */
+.fd-sidebar {
+  position: static;
+  max-height: none;
+  overflow: visible;
+  min-width: 0;
+}
+.fd-sidebar > * { min-width: 0; max-width: 100%; }
+.fds-card { min-width: 0; }
+
+
+/* Sub-header + divider for the merged Custom-Fields block
+   Lives INSIDE a .fds-card next to .fds-grp rows, so the
+   horizontal inset must match `.fds-grp` (14px) and the
+   typography must echo `.fds-card-title`. */
+.fds-divider {
+  height: 1px;
+  margin: 4px 14px 10px;
+  background: var(--fd-border);
+}
+.fds-subhead {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--fd-muted);
+  text-transform: uppercase;
+  padding: 8px 14px 4px;
+  margin: 0;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONVERSATION CARD — Freshdesk-style polish
+   Reference: clean grey meta-row, blue link-coloured email
+   addresses, smaller body type, static (non-themed) sender
+   names. Applies to inbound email cards, reply cards, note
+   cards and forward cards alike.
+════════════════════════════════════════════════════════════ */
+
+/* Smaller, lighter title icon area — keep emails subtle */
+.ec-card .ec-body,
+.fr-card .fr-body { font-size: 13px; line-height: 1.6; }
+
+/* Inbound card meta-row (To: ... Cc: ...) */
+.ec-to-row {
+  font-size: 12px;
+  color: var(--fd-sub);
+  padding: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+
+  .ec-to-lbl,
+  .ec-cc-lbl {
+    color: var(--fd-muted);
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  /* The actual address(es) — muted gray, not link-blue. Only the
+     sender name above stays in link tone. */
+  .ec-to-val,
+  .ec-cc-val {
+    color: var(--fd-sub);
+    font-weight: 400;
+    word-break: break-word;
+
+    a, .ec-addr {
+      color: inherit;
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+  }
+  .ec-cc-lbl { margin-left: 0; }
+}
+
+/* Reply / Note / Forward recipient meta-row */
+.fr-recipients {
+  font-size: 12px;
+  padding: 6px 16px 0;
+  gap: 2px 14px;
+  color: var(--fd-sub);
+
+  .fr-rec-lbl {
+    color: var(--fd-muted);
+    font-weight: 500;
+    margin-right: 4px;
+  }
+  .fr-rec-val {
+    color: var(--fd-sub);
+    font-weight: 400;
+    word-break: break-word;
+  }
+
+  /* Note flavour keeps amber tones for the label, gray for value */
+  &.is-note-rec {
+    .fr-rec-lbl { color: #a06b00; }
+    .fr-rec-val { color: var(--fd-sub); font-weight: 400; }
+  }
+}
+
+/* Sender name + meta line — link-blue on clickable rows (matches
+   Freshdesk reference). Static dark only when not navigable. */
+.ec-name,
+.fr-name {
+  color: var(--fd-text) !important;
+  font-weight: 600;
+  font-size: 13px;
+
+  &.is-clickable {
+    color: #1d4ed8 !important;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+}
+.ec-via,
+.fr-via,
+.ec-time,
+.fr-time,
+.ec-dot,
+.fr-dot {
+  color: var(--fd-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Card title (subject) — tighter to match the rest of the UI */
+.fd-title { font-size: 16px; font-weight: 700; }
+
+/* Conversation body — normalize sizes so cards don’t feel oversized */
+.ec-body, .fr-body { font-size: 12.5px; line-height: 1.6; }
+.ec-to-row,
+.fr-recipients { font-size: 11.5px; }
+
+
+
 
 
 

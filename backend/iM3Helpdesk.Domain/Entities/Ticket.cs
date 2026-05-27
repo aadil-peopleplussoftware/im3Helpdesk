@@ -18,6 +18,13 @@ public class Ticket : IMustHaveTenant
     /// Our own org support addresses and the ticket sender are excluded.
     /// </summary>
     public string? CcEmails { get; set; }
+    /// <summary>
+    /// Comma-separated Bcc recipients. Inbound mail rarely carries a visible Bcc
+    /// header (MTAs strip it), but agent-side replies that add Bcc recipients are
+    /// merged in here so the ticket retains the full distribution for auditing
+    /// and so subsequent agent replies can pre-fill Bcc if desired.
+    /// </summary>
+    public string? BccEmails { get; set; }
     /// <summary>RFC-5322 Message-Id of the original inbound email — anchor for the reply thread.</summary>
     public string? InboundMessageId { get; set; }
     public string Category { get; set; } = string.Empty;

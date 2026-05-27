@@ -315,8 +315,9 @@ public class EmailPollingService : BackgroundService
         ?? 1000;
     var nameTag = MakeTag(fromName);
 
-    // ── Capture inbound Cc recipients (exclude own org addresses + sender) ──
+    // ── Capture inbound Cc + Bcc recipients (exclude own org addresses + sender) ──
     var inboundCc = ExtractExternalCc(message, fromEmail, org);
+    var inboundBcc = ExtractExternalBcc(message, fromEmail, org);
 
     var ticket = new Ticket
     {
@@ -325,6 +326,7 @@ public class EmailPollingService : BackgroundService
       FromEmail = fromEmail,
       FromName = fromName,
       CcEmails = inboundCc.Count > 0 ? string.Join(",", inboundCc) : null,
+      BccEmails = inboundBcc.Count > 0 ? string.Join(",", inboundBcc) : null,
       InboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty),
       Category = "General",
       Priority = TicketPriority.Medium,
@@ -505,6 +507,25 @@ public class EmailPollingService : BackgroundService
       MimeMessage message,
       string fromEmail,
       Organization org)
+      => ExtractExternalRecipients(message.Cc.Mailboxes, fromEmail, org);
+
+  /// <summary>
+  /// Same as <see cref="ExtractExternalCc"/> but for Bcc. Inbound mail rarely
+  /// carries a visible Bcc header (MTAs strip it before delivery), so this
+  /// is usually empty for inbound polls — it exists for symmetry and for the
+  /// case where our mailbox IS the bcc recipient and the header survives.
+  /// </summary>
+  private List<string> ExtractExternalBcc(
+      MimeMessage message,
+      string fromEmail,
+      Organization org)
+      => ExtractExternalRecipients(message.Bcc.Mailboxes, fromEmail, org);
+
+  /// <summary>Shared filter used by Cc/Bcc extractors.</summary>
+  private List<string> ExtractExternalRecipients(
+      IEnumerable<MimeKit.MailboxAddress> boxes,
+      string fromEmail,
+      Organization org)
   {
     var ownEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     void AddOwn(string? e)
@@ -519,7 +540,7 @@ public class EmailPollingService : BackgroundService
 
     var result = new List<string>();
     var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    foreach (var box in message.Cc.Mailboxes)
+    foreach (var box in boxes)
     {
       var addr = (box.Address ?? string.Empty).Trim();
       if (string.IsNullOrEmpty(addr)) continue;
@@ -571,8 +592,9 @@ public class EmailPollingService : BackgroundService
             .Where(s => !string.IsNullOrWhiteSpace(s)))
         : null;
 
-    // ── Capture this reply's Cc and merge into ticket-level CcEmails ──
+    // ── Capture this reply's Cc + Bcc and merge into ticket-level lists ──
     var replyCc = ExtractExternalCc(message, fromEmail, org);
+    var replyBcc = ExtractExternalBcc(message, fromEmail, org);
 
     var comment = new TicketComment
     {
@@ -586,6 +608,7 @@ public class EmailPollingService : BackgroundService
       EmailMessageId = inboundMsgId,
       Source = "email",
       Cc = replyCc.Count > 0 ? string.Join(",", replyCc) : null,
+      Bcc = replyBcc.Count > 0 ? string.Join(",", replyBcc) : null,
       InReplyTo = string.IsNullOrWhiteSpace(inReplyTo) ? null : inReplyTo,
       References = string.IsNullOrWhiteSpace(references) ? null : references
     };
@@ -603,24 +626,10 @@ public class EmailPollingService : BackgroundService
       if (ticket.Status == TicketStatus.Closed)
         ticket.Status = TicketStatus.Open;
 
-      // Merge any new external Cc recipients onto the ticket
-      // so future agent replies include them by default.
-      if (replyCc.Count > 0)
-      {
-        var existing = (ticket.CcEmails ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(e => e.Trim())
-            .Where(e => e.Length > 0)
-            .ToList();
-        var merged = existing
-            .Concat(replyCc)
-            .Where(e => !string.IsNullOrWhiteSpace(e) &&
-                        !e.Equals(ticket.FromEmail ?? string.Empty,
-                            StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        ticket.CcEmails = merged.Count > 0 ? string.Join(",", merged) : null;
-      }
+      // Merge any new external Cc / Bcc recipients onto the ticket so future
+      // agent replies include them by default.
+      ticket.CcEmails = MergeRecipientList(ticket.CcEmails, replyCc, ticket.FromEmail);
+      ticket.BccEmails = MergeRecipientList(ticket.BccEmails, replyBcc, ticket.FromEmail);
     }
 
     await context.SaveChangesAsync(ct);
@@ -631,6 +640,35 @@ public class EmailPollingService : BackgroundService
     _logger.LogInformation(
         "💬 Reply added to ticket {T} from {E} (user: {U})",
         ticketId, fromEmail, user?.Id.ToString() ?? "none");
+  }
+
+  /// <summary>
+  /// Merge a new list of recipients into a comma-separated existing list,
+  /// deduplicating case-insensitively and excluding the original sender.
+  /// Returns null when the resulting list is empty.
+  /// </summary>
+  private static string? MergeRecipientList(
+      string? existingCsv,
+      List<string> incoming,
+      string? exclude)
+  {
+    if (incoming.Count == 0 && string.IsNullOrWhiteSpace(existingCsv))
+      return existingCsv;
+
+    var existing = (existingCsv ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(e => e.Trim())
+        .Where(e => e.Length > 0);
+
+    var merged = existing
+        .Concat(incoming)
+        .Where(e => !string.IsNullOrWhiteSpace(e) &&
+                    !e.Equals(exclude ?? string.Empty,
+                        StringComparison.OrdinalIgnoreCase))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    return merged.Count > 0 ? string.Join(",", merged) : null;
   }
 
   private static string BuildDescription(MimeMessage message)

@@ -436,6 +436,7 @@ public class TicketsController : ControllerBase
       ticket.FromName,
       ticket.InboundMessageId,
       CcEmails = ticket.CcEmails,
+      BccEmails = ticket.BccEmails,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
       TicketType = ticket.TicketType,
@@ -1460,8 +1461,20 @@ public class TicketsController : ControllerBase
 
     try
     {
+      // Identify the forwarding agent for both the From header
+      // (display name) and a visible attribution line in the body.
+      var agentId = GetUserId();
+      var agent = await _context.Users
+          .Where(u => u.Id == agentId)
+          .Select(u => new { u.FullName, u.Email })
+          .FirstOrDefaultAsync();
+      var agentName = agent?.FullName ?? "Support";
+
       var html = $@"
 <div style='font-family:Arial;max-width:600px'>
+  <p style='color:#374151;font-size:13px;margin:0 0 12px'>
+    Forwarded by <strong>{System.Net.WebUtility.HtmlEncode(agentName)}</strong>
+  </p>
   <p>A support ticket has been forwarded to you:</p>
   <h3>{ticket.Title}</h3>
   <p><strong>Ticket ID:</strong>
@@ -1484,7 +1497,7 @@ public class TicketsController : ControllerBase
       referenceChain.AddRange(commentMsgIds);
       var lastMsgId = referenceChain.LastOrDefault();
 
-      await _emailService.SendForwardAsync(
+      var outboundMsgId = await _emailService.SendForwardAsync(
           dto.ToEmail,
           $"[Forwarded] {ticket.Title}" +
           $" #TN{ticket.TicketNumber}",
@@ -1493,11 +1506,47 @@ public class TicketsController : ControllerBase
           cc: dto.Cc,
           bcc: dto.Bcc,
           inReplyTo: lastMsgId,
-          references: referenceChain);
+          references: referenceChain,
+          fromDisplayName: agentName);
+
+      // ── Persist forward as a visible conversation entry ──
+      var ccCsv = (dto.Cc != null && dto.Cc.Count > 0)
+          ? string.Join(",", dto.Cc
+              .Where(e => !string.IsNullOrWhiteSpace(e))
+              .Select(e => e.Trim()))
+          : null;
+      var bccCsv = (dto.Bcc != null && dto.Bcc.Count > 0)
+          ? string.Join(",", dto.Bcc
+              .Where(e => !string.IsNullOrWhiteSpace(e))
+              .Select(e => e.Trim()))
+          : null;
+
+      var forwardComment = new TicketComment
+      {
+        TicketId = id,
+        UserId = agentId,
+        Comment = dto.Message ?? ticket.Description ?? string.Empty,
+        IsInternal = false,
+        Source = "forward",
+        OrganizationId = ticket.OrganizationId,
+        NotifiedTo = dto.ToEmail,
+        Cc = string.IsNullOrEmpty(ccCsv) ? null : ccCsv,
+        Bcc = string.IsNullOrEmpty(bccCsv) ? null : bccCsv,
+        EmailMessageId = outboundMsgId,
+        InReplyTo = lastMsgId,
+        References = referenceChain.Count > 0
+            ? string.Join(" ", referenceChain) : null
+      };
+      _context.TicketComments.Add(forwardComment);
+
+      ticket.LastActivityAt = DateTime.UtcNow;
+      ticket.UpdatedAt = DateTime.UtcNow;
+      await _context.SaveChangesAsync();
 
       return Ok(new
       {
-        message = "Forwarded successfully"
+        message = "Forwarded successfully",
+        commentId = forwardComment.Id
       });
     }
     catch (Exception ex)

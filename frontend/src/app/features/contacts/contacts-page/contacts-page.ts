@@ -90,7 +90,13 @@ export class ContactsPageComponent implements OnInit {
       if (!q) {
         this.buildFilteredContacts(this.contacts);
       } else {
-        const matches = this.contacts.filter(c => c.fullName.toLowerCase().includes(q) || (c.company && c.company.toLowerCase().includes(q)));
+        // Match by name, email or company so an inbound nav like
+        // `/contacts?q=<email>` from a ticket profile click resolves
+        // the right person instead of returning a blank list.
+        const matches = this.contacts.filter(c =>
+          (c.fullName && c.fullName.toLowerCase().includes(q)) ||
+          (c.email    && c.email.toLowerCase().includes(q)) ||
+          (c.company  && c.company.toLowerCase().includes(q)));
         this.buildFilteredContacts(matches);
       }
     } else {
