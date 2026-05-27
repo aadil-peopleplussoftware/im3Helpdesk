@@ -145,7 +145,10 @@ export class ProfilePageComponent implements OnInit {
   }
 
   goToMailboxOnboarding() {
-    this.router.navigate(['/onboarding']);
+    // Was the legacy onboarding flow; we now jump straight to the
+    // Organization Settings page where SMTP/IMAP can be completed
+    // alongside every other workspace field.
+    this.router.navigate(['/organization-profile']);
   }
 
   loadProfile() {

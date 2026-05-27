@@ -15,8 +15,8 @@ import { ActivatedRoute, Router, RouterModule }
 import { MatProgressSpinnerModule }
   from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
-import { Subject, interval } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, interval, forkJoin, of } from 'rxjs';
+import { takeUntil, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { TicketService } from '../../../core/services/ticket';
 import { AgentService } from '../../../core/services/agent';
@@ -29,6 +29,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
+import { OrgContextService } from '../../../core/services/org-context.service';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -62,6 +63,12 @@ export class TicketDetailComponent
   private sanitizer = inject(DomSanitizer);
   private ticketMasterService = inject(TicketMasterService);
   private topbarCtx = inject(TopbarContextService);
+  private orgContext = inject(OrgContextService);
+
+  /** Project-wide IANA timezone used for all template date formatting. */
+  get tz(): string {
+    return this.orgContext.timezone();
+  }
 
   @ViewChild('replyEditor')
     replyEditorRef!: ElementRef;
@@ -74,6 +81,7 @@ export class TicketDetailComponent
   ticket: any = null;
   loading = true;
   updating = false;
+  forwarding = false;
   agents: any[] = [];
   groups: any[] = [];
   ticketId = '';
@@ -316,6 +324,9 @@ export class TicketDetailComponent
   getTicketCcList(): string[] {
     return this.ticket ? this.splitEmails(this.ticket.ccEmails) : [];
   }
+  getTicketBccList(): string[] {
+    return this.ticket ? this.splitEmails(this.ticket.bccEmails) : [];
+  }
   /**
    * "To:" line for an agent reply / outbound comment — addressed back to the
    * ticket sender. For inbound replies (customer email) we show the org
@@ -323,6 +334,10 @@ export class TicketDetailComponent
    */
   getReplyToList(c: any): string[] {
     if (!c) return [];
+    // Forward → "To" is the external recipient stored in notifiedTo.
+    if (c.source === 'forward') {
+      return this.getNotifiedList(c);
+    }
     // Inbound email from the customer side → goes to our support address.
     if (c.source === 'email' && !c.user?.isAgent) {
       return this.orgSupportEmail ? [this.orgSupportEmail] : [];
@@ -451,14 +466,81 @@ export class TicketDetailComponent
     const role = this.authService.getUserRole();
     this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
 
-    this.loadTicket();
+    // ── Atomic initial load: render the page only after EVERY piece of
+    //    critical data has arrived, so the conversation never "pops in"
+    //    To:/Cc:/viewer/attachment rows after the fact (Freshdesk-style).
+    this.loadInitialBundleAtomic();
+
+    // Non-critical / lazy data — safe to fire-and-forget alongside the bundle.
     this.loadMasterOptions();
-    this.loadAttachments();
     this.loadAgents();
     this.loadGroups();
     this.loadAgentSignature();
-    this.loadTimeline();
     this.loadCustomFieldValues();
+  }
+
+  /**
+   * Fetch ticket + org-info + attachments + timeline + viewers in parallel
+   * and only flip `loading = false` once they all resolve. This eliminates
+   * the visible jitter where To:/Cc: rows appear seconds after the rest.
+   */
+  private loadInitialBundleAtomic(): void {
+    const safe = <T>(src: any, fallback: T) =>
+      src.pipe(catchError(() => of(fallback)));
+
+    const ticket$ = this.ticketService.getById(this.ticketId);
+    const org$ = this.http.get<any>(
+      `${environment.apiUrl}/Organizations/current`);
+    const attachments$ = this.http.get<any[]>(
+      `${environment.apiUrl}/Attachments/ticket/${this.ticketId}`);
+    const timeline$ = this.http.get<any[]>(
+      `${environment.apiUrl}/Tickets/${this.ticketId}/timeline`);
+    const viewers$ = this.http.get<any[]>(
+      `${environment.apiUrl}/Tickets/${this.ticketId}/viewers`);
+
+    forkJoin({
+      ticket: safe(ticket$, null),
+      org: safe(org$, null),
+      attachments: safe(attachments$, [] as any[]),
+      timeline: safe(timeline$, [] as any[]),
+      viewers: safe(viewers$, [] as any[])
+    }).subscribe({
+      next: (bundle: any) => {
+        const { ticket, org, attachments, timeline, viewers } = bundle;
+        if (!ticket) {
+          this.setLoading(false);
+          this.router.navigate(['/tickets']);
+          return;
+        }
+
+        // Hydrate org first so any *ngIf="orgSupportEmail" gates pass
+        // BEFORE the conversation renders on the next change-detection.
+        if (org) {
+          this.orgSupportEmail = org.smtpFromEmail || org.supportEmail || '';
+          this.orgSupportName = org.smtpFromName || org.name || 'iM3 Support';
+        }
+
+        this.ticket = ticket;
+        if (ticket.assignedTo?.id)
+          this.selectedAgentId = ticket.assignedTo.id;
+        if (ticket.agentGroup?.id)
+          this.selectedGroupId = ticket.agentGroup.id;
+
+        this.attachments = attachments || [];
+        this.timeline = timeline || [];
+        this.viewers = viewers || [];
+
+        if (ticket?.ticketNumber)
+          this.topbarCtx.set('#TN' + ticket.ticketNumber);
+
+        this.refreshForwardPrefill();
+        this.prefillReplyCcFromTicket();
+
+        this.setLoading(false);
+        this.recordView();
+      },
+      error: () => this.setLoading(false)
+    });
   }
 
   loadMasterOptions() {
@@ -472,12 +554,9 @@ export class TicketDetailComponent
   }
 
   ngAfterViewInit() {
-    // Run these after first render to avoid NG0100 in dev-mode
-    // (some requests can resolve synchronously via caching/interceptors).
-    setTimeout(() => {
-      this.loadOrgInfo();
-      this.startPolling();
-    }, 0);
+    // Atomic bundle already hydrated orgInfo; just kick off the
+    // background refresh loop here so the very first render is clean.
+    setTimeout(() => this.startPolling(), 0);
   }
 
   ngOnDestroy() {
@@ -1168,6 +1247,20 @@ updateAllProps() {
       .toPromise()
   ];
 
+  // Custom fields are now folded into the same Update action —
+  // no more standalone "Save Fields" button.
+  if (this.customFields.length > 0) {
+    const cfValues = Object.entries(this.customFieldValues)
+      .filter(([, v]) => v !== undefined && v !== '' && v !== null)
+      .map(([k, v]) => ({ customFieldId: k, value: String(v) }));
+    calls.push(
+      this.http.post(
+        `${environment.apiUrl}/CustomFields/ticket/${this.ticketId}/values`,
+        cfValues
+      ).toPromise()
+    );
+  }
+
   Promise.all(calls).then(() => {
     setTimeout(() => { this.updating = false; }, 0);
     this.showToast('success', 'Updated successfully!');
@@ -1190,8 +1283,8 @@ updateAllProps() {
       return;
     }
 
-    if (this.updating) return;
-    this.updating = true;
+    if (this.updating || this.forwarding) return;
+    this.forwarding = true;
 
     // Forward via API email
     this.http.post(
@@ -1216,14 +1309,14 @@ updateAllProps() {
         if (this.forwardEditorRef?.nativeElement)
           this.forwardEditorRef.nativeElement
             .innerHTML = '';
-        this.updating = false;
+        this.forwarding = false;
         this.showToast('success',
           'Forwarded successfully!');
         this.loadTicket();
         this.loadTimeline();
       },
       error: (err) => {
-        this.updating = false;
+        this.forwarding = false;
         this.showToast('error',
           err.error?.message || 'Forward failed');
       }

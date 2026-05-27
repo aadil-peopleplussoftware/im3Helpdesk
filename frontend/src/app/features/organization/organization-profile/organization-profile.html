@@ -1,0 +1,297 @@
+<app-layout>
+  <div class="org-page">
+
+    <!-- ============ Header ============ -->
+    <div class="org-header">
+      <div class="org-header-text">
+        <h1>Organization Settings</h1>
+        <p class="page-subtitle">
+          Manage your workspace branding, mail server, polling, timezone and
+          integrations. Changes apply to every user in your organization.
+        </p>
+      </div>
+      <div class="header-actions" *ngIf="!loading">
+        <button type="button" class="btn-cancel" *ngIf="isEditMode" (click)="toggleEditMode()" [disabled]="saving">
+          Cancel
+        </button>
+        <button type="button" class="btn-edit" *ngIf="!isEditMode && isCompanyAdmin" (click)="toggleEditMode()">
+          <i class="fas fa-pencil-alt"></i> Edit
+        </button>
+        <button type="button" class="btn-save" *ngIf="isEditMode" (click)="saveOrg()" [disabled]="saving">
+          <i class="fas fa-check"></i> {{ saving ? 'Saving…' : 'Save Changes' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading organization…</p>
+    </div>
+
+    <div class="readonly-banner" *ngIf="!loading && !isCompanyAdmin">
+      <i class="fas fa-lock"></i>
+      <span>Read-only view. Only the Company Admin can edit organization settings.</span>
+    </div>
+
+    <!--
+      Same orange "setup incomplete" reminder shown on the Profile page.
+      Clicking it scrolls down to the Outbound (SMTP) section and flips
+      the page into edit mode so the admin can finish wiring email.
+    -->
+    <div class="smtp-setup-banner"
+         *ngIf="!loading && isCompanyAdmin && setupIncomplete"
+         (click)="scrollToSection('section-smtp')">
+      <div class="ssb-left">
+        <div class="ssb-title">Organization profile is incomplete</div>
+        <div class="ssb-sub">
+          Still missing: <strong>{{ missingSetupItems.join(', ') }}</strong>.
+          Finish your workspace setup to enable email-to-ticket and outbound notifications.
+        </div>
+      </div>
+      <div class="ssb-action">Complete now →</div>
+    </div>
+
+    <form [formGroup]="form" *ngIf="!loading" class="org-grid" [class.locked]="!isEditMode">
+
+      <!-- ============ Left column: Identity ============ -->
+      <aside class="col-left">
+        <div class="identity-card">
+          <div class="rainbow-strip"></div>
+
+          <div class="logo-wrap">
+            <div class="logo-frame"
+                 [style.background]="form.get('brandColor')?.value || '#0078d4'">
+              <img *ngIf="logoUrl" [src]="logoUrl" alt="Organization logo"/>
+              <span *ngIf="!logoUrl" class="logo-initial">
+                {{ (form.get('name')?.value || 'O').charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <label class="logo-camera" *ngIf="isEditMode" title="Change logo">
+              <i class="fas fa-camera"></i>
+              <input type="file" hidden accept="image/*" (change)="onLogoSelect($event)"/>
+            </label>
+          </div>
+
+          <h2 class="identity-name">{{ form.get('name')?.value || 'Your Organization' }}</h2>
+          <p class="identity-slug">&#64;{{ form.get('slug')?.value || 'slug' }}</p>
+
+          <div class="status-badge" [class.active]="readonlyInfo.id">
+            <span class="dot"></span> {{ readonlyInfo.id ? 'ACTIVE WORKSPACE' : '—' }}
+          </div>
+
+          <div class="meta-list">
+            <div class="meta-row">
+              <span class="meta-label">Workspace ID</span>
+              <span class="meta-value mono">{{ readonlyInfo.id || '—' }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Created</span>
+              <span class="meta-value">{{ (readonlyInfo.createdAt | date:'mediumDate') || '—' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="readonlyInfo.trialEndsAt">
+              <span class="meta-label">Trial ends</span>
+              <span class="meta-value">{{ readonlyInfo.trialEndsAt | date:'mediumDate' }}</span>
+            </div>
+            <div class="meta-row" *ngIf="readonlyInfo.emailPollingOnboardedAt">
+              <span class="meta-label">Polling since</span>
+              <span class="meta-value">{{ readonlyInfo.emailPollingOnboardedAt | date:'medium' }}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ============ Right column: Sections ============ -->
+      <section class="col-right">
+
+        <!-- Identity & Branding -->
+        <div class="section-card">
+          <header class="section-head">
+            <div class="sec-icon teal"><i class="fas fa-id-badge"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Identity &amp; Branding</h3>
+              <p class="sec-desc">How your workspace looks in the UI and in outbound emails.</p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label>ORGANIZATION NAME *</label>
+              <input type="text" formControlName="name" [readonly]="!isEditMode" placeholder="e.g. Acme Pvt Ltd"/>
+            </div>
+            <div class="field">
+              <label>SLUG <span class="hint">(immutable)</span></label>
+              <input type="text" formControlName="slug" readonly/>
+            </div>
+            <div class="field">
+              <label>BRAND COLOR</label>
+              <div class="color-row">
+                <input type="color" formControlName="brandColor"/>
+                <input type="text" formControlName="brandColor" [readonly]="!isEditMode" class="hex"/>
+              </div>
+            </div>
+            <div class="field">
+              <label>LOGO URL</label>
+              <input type="text" formControlName="logoUrl" [readonly]="!isEditMode" placeholder="/uploads/logos/…"/>
+              <small class="muted" *ngIf="uploadingLogo">Uploading…</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact & Localization -->
+        <div class="section-card">
+          <header class="section-head">
+            <div class="sec-icon orange"><i class="fas fa-headset"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Contact &amp; Localization</h3>
+              <p class="sec-desc">Default support address and the timezone every date in the app is shown in.</p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label>SUPPORT EMAIL</label>
+              <input type="email" formControlName="supportEmail" [readonly]="!isEditMode" placeholder="support@yourdomain.com"/>
+            </div>
+            <div class="field">
+              <label>TIMEZONE</label>
+              <app-timezone-picker
+                formControlName="timezone"
+                placeholder="Select timezone…"></app-timezone-picker>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inbound Email (IMAP + Polling) -->
+        <div class="section-card" id="section-imap">
+          <header class="section-head">
+            <div class="sec-icon blue"><i class="fas fa-inbox"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Inbound Email &amp; Polling</h3>
+              <p class="sec-desc">IMAP credentials and how often we check the mailbox to convert emails into tickets.</p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label>IMAP HOST</label>
+              <input type="text" formControlName="imapHost" [readonly]="!isEditMode" placeholder="imap.yourdomain.com"/>
+            </div>
+            <div class="field">
+              <label>IMAP PORT</label>
+              <input type="number" formControlName="imapPort" [readonly]="!isEditMode"/>
+            </div>
+            <div class="field toggle-field">
+              <label>EMAIL POLLING</label>
+              <label class="switch">
+                <input type="checkbox" formControlName="emailPollingEnabled"/>
+                <span class="slider"></span>
+                <span class="switch-text">{{ form.get('emailPollingEnabled')?.value ? 'Enabled' : 'Disabled' }}</span>
+              </label>
+            </div>
+            <div class="field">
+              <label>POLLING INTERVAL</label>
+              <div class="interval-row">
+                <input type="number" min="1" [(ngModel)]="pollingValue" [ngModelOptions]="{standalone:true}" [readonly]="!isEditMode"/>
+                <select [(ngModel)]="pollingUnit" [ngModelOptions]="{standalone:true}" [disabled]="!isEditMode">
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                </select>
+              </div>
+              <small class="muted">Minimum 5 seconds. Per-org cutoff used so old emails are never imported.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outbound Email (SMTP) -->
+        <div class="section-card" id="section-smtp">
+          <header class="section-head">
+            <div class="sec-icon purple"><i class="fas fa-paper-plane"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Outbound Email (SMTP)</h3>
+              <p class="sec-desc">Credentials used to deliver ticket replies and system notifications.</p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label>SMTP HOST</label>
+              <input type="text" formControlName="smtpHost" [readonly]="!isEditMode" placeholder="smtp.yourdomain.com"/>
+            </div>
+            <div class="field">
+              <label>SMTP PORT</label>
+              <input type="number" formControlName="smtpPort" [readonly]="!isEditMode"/>
+            </div>
+            <div class="field">
+              <label>FROM EMAIL</label>
+              <input type="email" formControlName="smtpFromEmail" [readonly]="!isEditMode" placeholder="noreply@yourdomain.com"/>
+            </div>
+            <div class="field">
+              <label>FROM NAME</label>
+              <input type="text" formControlName="smtpFromName" [readonly]="!isEditMode" placeholder="Support Team"/>
+            </div>
+            <div class="field">
+              <label>SMTP USERNAME</label>
+              <input type="text" formControlName="smtpUsername" [readonly]="!isEditMode" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label>
+                SMTP PASSWORD
+                <span class="badge-set" *ngIf="readonlyInfo.smtpPasswordSet">SET</span>
+                <span class="badge-unset" *ngIf="!readonlyInfo.smtpPasswordSet">NOT SET</span>
+              </label>
+              <input type="password" formControlName="smtpPassword" [readonly]="!isEditMode"
+                     [placeholder]="readonlyInfo.smtpPasswordSet ? '•••••••• (leave blank to keep current)' : 'Enter SMTP password'"
+                     autocomplete="new-password"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Integrations -->
+        <div class="section-card">
+          <header class="section-head">
+            <div class="sec-icon pink"><i class="fas fa-plug"></i></div>
+            <div class="sec-title-wrap">
+              <h3>Integrations</h3>
+              <p class="sec-desc">Connect Slack, Teams, WhatsApp and Twilio to deliver notifications outside email.</p>
+            </div>
+          </header>
+          <div class="form-grid">
+            <div class="field">
+              <label><i class="fab fa-slack"></i> SLACK WEBHOOK URL</label>
+              <input type="text" formControlName="slackWebhookUrl" [readonly]="!isEditMode" placeholder="https://hooks.slack.com/services/…"/>
+            </div>
+            <div class="field">
+              <label><i class="fab fa-microsoft"></i> TEAMS WEBHOOK URL</label>
+              <input type="text" formControlName="teamsWebhookUrl" [readonly]="!isEditMode" placeholder="https://outlook.office.com/webhook/…"/>
+            </div>
+            <div class="field">
+              <label><i class="fab fa-whatsapp"></i> WHATSAPP NUMBER</label>
+              <input type="text" formControlName="whatsAppNumber" [readonly]="!isEditMode" placeholder="+91XXXXXXXXXX"/>
+            </div>
+            <div class="field">
+              <label>TWILIO ACCOUNT SID</label>
+              <input type="text" formControlName="twilioAccountSid" [readonly]="!isEditMode" placeholder="ACxxxxxxxxxxxxxxxx"/>
+            </div>
+            <div class="field full">
+              <label>
+                TWILIO AUTH TOKEN
+                <span class="badge-set" *ngIf="readonlyInfo.twilioAuthTokenSet">SET</span>
+                <span class="badge-unset" *ngIf="!readonlyInfo.twilioAuthTokenSet">NOT SET</span>
+              </label>
+              <input type="password" formControlName="twilioAuthToken" [readonly]="!isEditMode"
+                     [placeholder]="readonlyInfo.twilioAuthTokenSet ? '•••••••• (leave blank to keep current)' : 'Enter Twilio Auth Token'"
+                     autocomplete="off"/>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom save bar -->
+        <div class="bottom-save" *ngIf="isEditMode">
+          <button type="button" class="btn-cancel" (click)="toggleEditMode()" [disabled]="saving">Cancel</button>
+          <button type="button" class="btn-save" (click)="saveOrg()" [disabled]="saving">
+            <i class="fas fa-check"></i> {{ saving ? 'Saving…' : 'Save Changes' }}
+          </button>
+        </div>
+
+      </section>
+    </form>
+  </div>
+</app-layout>

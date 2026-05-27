@@ -18,6 +18,25 @@ public class Organization
     public string? ImapHost { get; set; }
     public int? ImapPort { get; set; }
     public bool EmailPollingEnabled { get; set; }
+    /// <summary>
+    /// UTC timestamp captured when EmailPollingEnabled was first switched on
+    /// (or when SMTP/IMAP was first configured). Inbound emails delivered
+    /// strictly BEFORE this moment are ignored by the polling service so that
+    /// onboarding does not retro-create tickets from historical inbox mail.
+    /// </summary>
+    public DateTime? EmailPollingOnboardedAt { get; set; }
+    /// <summary>
+    /// How often this org's mailbox should be polled, in seconds.
+    /// Minimum enforced at 5s, default 30s. The polling service uses a
+    /// per-org last-polled tracker so each org respects its own cadence.
+    /// </summary>
+    public int EmailPollingIntervalSeconds { get; set; } = 30;
+    /// <summary>
+    /// IANA timezone (e.g. "Asia/Kolkata", "America/New_York") used to
+    /// render dates and times throughout the app for this org. Falls back
+    /// to "Asia/Kolkata" if null.
+    /// </summary>
+    public string? Timezone { get; set; }
     public DateTime TrialEndsAt { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

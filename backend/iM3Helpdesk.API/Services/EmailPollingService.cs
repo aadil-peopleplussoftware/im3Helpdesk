@@ -27,6 +27,15 @@ public class EmailPollingService : BackgroundService
   private readonly ILogger<EmailPollingService> _logger;
   private readonly DateTime _serviceStartTime = DateTime.UtcNow;
 
+  // Per-org last-polled timestamp so each org honours its own
+  // EmailPollingIntervalSeconds cadence.
+  private readonly Dictionary<Guid, DateTime> _lastPolledByOrg = new();
+
+  // Base loop tick: the polling service wakes up this often and decides,
+  // per org, whether enough time has passed since its last poll. Five
+  // seconds gives us sub-minute granularity without busy-waiting.
+  private static readonly TimeSpan BaseTick = TimeSpan.FromSeconds(5);
+
   public EmailPollingService(
       IServiceScopeFactory scopeFactory,
       IConfiguration config,
@@ -59,8 +68,8 @@ public class EmailPollingService : BackgroundService
 
       try
       {
-        // Poll every 30 seconds for near-real-time ticket creation / replies.
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        // Base tick: per-org code decides whether to actually poll.
+        await Task.Delay(BaseTick, stoppingToken);
       }
       catch (OperationCanceledException) { break; }
     }
@@ -97,6 +106,17 @@ public class EmailPollingService : BackgroundService
     foreach (var org in orgs)
     {
       if (ct.IsCancellationRequested) break;
+
+      // Respect per-org polling cadence.
+      var interval = TimeSpan.FromSeconds(
+          Math.Max(5, org.EmailPollingIntervalSeconds));
+      if (_lastPolledByOrg.TryGetValue(org.Id, out var last) &&
+          DateTime.UtcNow - last < interval)
+      {
+        continue;
+      }
+
+      _lastPolledByOrg[org.Id] = DateTime.UtcNow;
       await PollOrgMailboxAsync(org, context, ct);
     }
   }
@@ -119,14 +139,22 @@ public class EmailPollingService : BackgroundService
       var inbox = client.Inbox;
       await inbox.OpenAsync(FolderAccess.ReadWrite, ct);
 
-      var since = _serviceStartTime.AddMinutes(-1);
+      // Use the org's onboarding stamp as the hard cut-off so we never
+      // back-fill tickets from mail that arrived before SMTP/IMAP was
+      // wired up. Fall back to service start time for legacy rows where
+      // the column is still null.
+      var onboardedAt =
+          org.EmailPollingOnboardedAt ?? _serviceStartTime;
+      // Search 1 minute earlier than cutoff to ride out clock skew.
+      var since = onboardedAt.AddMinutes(-1);
       var query = SearchQuery.And(
           SearchQuery.NotSeen,
           SearchQuery.DeliveredAfter(since));
 
       var uids = await inbox.SearchAsync(query, ct);
       _logger.LogInformation(
-          "Org {Org}: {Count} unread email(s)", org.Name, uids.Count);
+          "Org {Org}: {Count} unread email(s) since {Since:u}",
+          org.Name, uids.Count, onboardedAt);
 
       foreach (var uid in uids)
       {
@@ -136,10 +164,11 @@ public class EmailPollingService : BackgroundService
         {
           var msg = await inbox.GetMessageAsync(uid, ct);
 
-          if (msg.Date.UtcDateTime < _serviceStartTime.AddMinutes(-5))
+          // Skip any message strictly older than the onboarding moment.
+          if (msg.Date.UtcDateTime < onboardedAt)
           {
             _logger.LogDebug(
-                "Skipping old email dated {D}", msg.Date);
+                "Skipping pre-onboarding email dated {D}", msg.Date);
             continue;
           }
 
@@ -315,8 +344,9 @@ public class EmailPollingService : BackgroundService
         ?? 1000;
     var nameTag = MakeTag(fromName);
 
-    // ── Capture inbound Cc recipients (exclude own org addresses + sender) ──
+    // ── Capture inbound Cc + Bcc recipients (exclude own org addresses + sender) ──
     var inboundCc = ExtractExternalCc(message, fromEmail, org);
+    var inboundBcc = ExtractExternalBcc(message, fromEmail, org);
 
     var ticket = new Ticket
     {
@@ -325,6 +355,7 @@ public class EmailPollingService : BackgroundService
       FromEmail = fromEmail,
       FromName = fromName,
       CcEmails = inboundCc.Count > 0 ? string.Join(",", inboundCc) : null,
+      BccEmails = inboundBcc.Count > 0 ? string.Join(",", inboundBcc) : null,
       InboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty),
       Category = "General",
       Priority = TicketPriority.Medium,
@@ -505,6 +536,25 @@ public class EmailPollingService : BackgroundService
       MimeMessage message,
       string fromEmail,
       Organization org)
+      => ExtractExternalRecipients(message.Cc.Mailboxes, fromEmail, org);
+
+  /// <summary>
+  /// Same as <see cref="ExtractExternalCc"/> but for Bcc. Inbound mail rarely
+  /// carries a visible Bcc header (MTAs strip it before delivery), so this
+  /// is usually empty for inbound polls — it exists for symmetry and for the
+  /// case where our mailbox IS the bcc recipient and the header survives.
+  /// </summary>
+  private List<string> ExtractExternalBcc(
+      MimeMessage message,
+      string fromEmail,
+      Organization org)
+      => ExtractExternalRecipients(message.Bcc.Mailboxes, fromEmail, org);
+
+  /// <summary>Shared filter used by Cc/Bcc extractors.</summary>
+  private List<string> ExtractExternalRecipients(
+      IEnumerable<MimeKit.MailboxAddress> boxes,
+      string fromEmail,
+      Organization org)
   {
     var ownEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     void AddOwn(string? e)
@@ -519,7 +569,7 @@ public class EmailPollingService : BackgroundService
 
     var result = new List<string>();
     var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    foreach (var box in message.Cc.Mailboxes)
+    foreach (var box in boxes)
     {
       var addr = (box.Address ?? string.Empty).Trim();
       if (string.IsNullOrEmpty(addr)) continue;
@@ -571,8 +621,9 @@ public class EmailPollingService : BackgroundService
             .Where(s => !string.IsNullOrWhiteSpace(s)))
         : null;
 
-    // ── Capture this reply's Cc and merge into ticket-level CcEmails ──
+    // ── Capture this reply's Cc + Bcc and merge into ticket-level lists ──
     var replyCc = ExtractExternalCc(message, fromEmail, org);
+    var replyBcc = ExtractExternalBcc(message, fromEmail, org);
 
     var comment = new TicketComment
     {
@@ -586,6 +637,7 @@ public class EmailPollingService : BackgroundService
       EmailMessageId = inboundMsgId,
       Source = "email",
       Cc = replyCc.Count > 0 ? string.Join(",", replyCc) : null,
+      Bcc = replyBcc.Count > 0 ? string.Join(",", replyBcc) : null,
       InReplyTo = string.IsNullOrWhiteSpace(inReplyTo) ? null : inReplyTo,
       References = string.IsNullOrWhiteSpace(references) ? null : references
     };
@@ -603,24 +655,10 @@ public class EmailPollingService : BackgroundService
       if (ticket.Status == TicketStatus.Closed)
         ticket.Status = TicketStatus.Open;
 
-      // Merge any new external Cc recipients onto the ticket
-      // so future agent replies include them by default.
-      if (replyCc.Count > 0)
-      {
-        var existing = (ticket.CcEmails ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(e => e.Trim())
-            .Where(e => e.Length > 0)
-            .ToList();
-        var merged = existing
-            .Concat(replyCc)
-            .Where(e => !string.IsNullOrWhiteSpace(e) &&
-                        !e.Equals(ticket.FromEmail ?? string.Empty,
-                            StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        ticket.CcEmails = merged.Count > 0 ? string.Join(",", merged) : null;
-      }
+      // Merge any new external Cc / Bcc recipients onto the ticket so future
+      // agent replies include them by default.
+      ticket.CcEmails = MergeRecipientList(ticket.CcEmails, replyCc, ticket.FromEmail);
+      ticket.BccEmails = MergeRecipientList(ticket.BccEmails, replyBcc, ticket.FromEmail);
     }
 
     await context.SaveChangesAsync(ct);
@@ -631,6 +669,35 @@ public class EmailPollingService : BackgroundService
     _logger.LogInformation(
         "💬 Reply added to ticket {T} from {E} (user: {U})",
         ticketId, fromEmail, user?.Id.ToString() ?? "none");
+  }
+
+  /// <summary>
+  /// Merge a new list of recipients into a comma-separated existing list,
+  /// deduplicating case-insensitively and excluding the original sender.
+  /// Returns null when the resulting list is empty.
+  /// </summary>
+  private static string? MergeRecipientList(
+      string? existingCsv,
+      List<string> incoming,
+      string? exclude)
+  {
+    if (incoming.Count == 0 && string.IsNullOrWhiteSpace(existingCsv))
+      return existingCsv;
+
+    var existing = (existingCsv ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(e => e.Trim())
+        .Where(e => e.Length > 0);
+
+    var merged = existing
+        .Concat(incoming)
+        .Where(e => !string.IsNullOrWhiteSpace(e) &&
+                    !e.Equals(exclude ?? string.Empty,
+                        StringComparison.OrdinalIgnoreCase))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    return merged.Count > 0 ? string.Join(",", merged) : null;
   }
 
   private static string BuildDescription(MimeMessage message)

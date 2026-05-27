@@ -23,6 +23,7 @@ import { LayoutComponent }
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
+import { OrgContextService } from '../../../core/services/org-context.service';
 
 
 @Component({
@@ -49,6 +50,10 @@ export class TicketListComponent
   public cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
   private ticketMasterService = inject(TicketMasterService);
+  private orgContext = inject(OrgContextService);
+
+  /** Project-wide IANA timezone (e.g. 'Asia/Kolkata') for date columns. */
+  get tz(): string { return this.orgContext.timezone(); }
   private destroy$ = new Subject<void>();
 
   allTickets: any[] = [];
