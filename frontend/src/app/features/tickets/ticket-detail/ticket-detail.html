@@ -185,7 +185,7 @@
                   {{ timeAgo(c.createdAt) }}
                   ·
                   {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy, hh:mm a':'Asia/Kolkata' }}
+                    | date:'EEE, dd MMM yyyy, hh:mm a':tz }}
                 </span>
               </div>
 
@@ -272,7 +272,7 @@
                   {{ timeAgo(c.createdAt) }}
                   ·
                   {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy, hh:mm a':'Asia/Kolkata' }}
+                    | date:'EEE, dd MMM yyyy, hh:mm a':tz }}
                 </span>
                 <div class="fr-actions"
                   *ngIf="canEditNote(c)">
@@ -785,7 +785,7 @@
               </div>
               <div class="fds-sla-val">
                 {{ ticket.slaDeadline
-                  | date:'EEE, dd MMM, hh:mm a':'Asia/Kolkata' }}
+                  | date:'EEE, dd MMM, hh:mm a':tz }}
               </div>
             </div>
           </div>
@@ -956,7 +956,7 @@
                 </div>
                 <div class="fds-tl-time">
                   {{ t.createdAt
-                    | date:'dd MMM, hh:mm a':'Asia/Kolkata' }}
+                    | date:'dd MMM, hh:mm a':tz }}
                 </div>
               </div>
             </div>

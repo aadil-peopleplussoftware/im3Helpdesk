@@ -27,6 +27,15 @@ public class EmailPollingService : BackgroundService
   private readonly ILogger<EmailPollingService> _logger;
   private readonly DateTime _serviceStartTime = DateTime.UtcNow;
 
+  // Per-org last-polled timestamp so each org honours its own
+  // EmailPollingIntervalSeconds cadence.
+  private readonly Dictionary<Guid, DateTime> _lastPolledByOrg = new();
+
+  // Base loop tick: the polling service wakes up this often and decides,
+  // per org, whether enough time has passed since its last poll. Five
+  // seconds gives us sub-minute granularity without busy-waiting.
+  private static readonly TimeSpan BaseTick = TimeSpan.FromSeconds(5);
+
   public EmailPollingService(
       IServiceScopeFactory scopeFactory,
       IConfiguration config,
@@ -59,8 +68,8 @@ public class EmailPollingService : BackgroundService
 
       try
       {
-        // Poll every 30 seconds for near-real-time ticket creation / replies.
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        // Base tick: per-org code decides whether to actually poll.
+        await Task.Delay(BaseTick, stoppingToken);
       }
       catch (OperationCanceledException) { break; }
     }
@@ -97,6 +106,17 @@ public class EmailPollingService : BackgroundService
     foreach (var org in orgs)
     {
       if (ct.IsCancellationRequested) break;
+
+      // Respect per-org polling cadence.
+      var interval = TimeSpan.FromSeconds(
+          Math.Max(5, org.EmailPollingIntervalSeconds));
+      if (_lastPolledByOrg.TryGetValue(org.Id, out var last) &&
+          DateTime.UtcNow - last < interval)
+      {
+        continue;
+      }
+
+      _lastPolledByOrg[org.Id] = DateTime.UtcNow;
       await PollOrgMailboxAsync(org, context, ct);
     }
   }
@@ -119,14 +139,22 @@ public class EmailPollingService : BackgroundService
       var inbox = client.Inbox;
       await inbox.OpenAsync(FolderAccess.ReadWrite, ct);
 
-      var since = _serviceStartTime.AddMinutes(-1);
+      // Use the org's onboarding stamp as the hard cut-off so we never
+      // back-fill tickets from mail that arrived before SMTP/IMAP was
+      // wired up. Fall back to service start time for legacy rows where
+      // the column is still null.
+      var onboardedAt =
+          org.EmailPollingOnboardedAt ?? _serviceStartTime;
+      // Search 1 minute earlier than cutoff to ride out clock skew.
+      var since = onboardedAt.AddMinutes(-1);
       var query = SearchQuery.And(
           SearchQuery.NotSeen,
           SearchQuery.DeliveredAfter(since));
 
       var uids = await inbox.SearchAsync(query, ct);
       _logger.LogInformation(
-          "Org {Org}: {Count} unread email(s)", org.Name, uids.Count);
+          "Org {Org}: {Count} unread email(s) since {Since:u}",
+          org.Name, uids.Count, onboardedAt);
 
       foreach (var uid in uids)
       {
@@ -136,10 +164,11 @@ public class EmailPollingService : BackgroundService
         {
           var msg = await inbox.GetMessageAsync(uid, ct);
 
-          if (msg.Date.UtcDateTime < _serviceStartTime.AddMinutes(-5))
+          // Skip any message strictly older than the onboarding moment.
+          if (msg.Date.UtcDateTime < onboardedAt)
           {
             _logger.LogDebug(
-                "Skipping old email dated {D}", msg.Date);
+                "Skipping pre-onboarding email dated {D}", msg.Date);
             continue;
           }
 

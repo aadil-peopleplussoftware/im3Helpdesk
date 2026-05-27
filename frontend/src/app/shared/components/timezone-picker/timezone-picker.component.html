@@ -1,0 +1,47 @@
+<div class="tz-picker" [class.open]="open" [class.disabled]="disabled">
+
+  <!-- Closed-state trigger -->
+  <button type="button" class="tz-trigger"
+          [disabled]="disabled"
+          (click)="toggleOpen()">
+    <span class="tz-trigger-label" *ngIf="selectedLabel">{{ selectedLabel }}</span>
+    <span class="tz-trigger-placeholder" *ngIf="!selectedLabel">{{ placeholder }}</span>
+    <i class="fas fa-chevron-down chev"></i>
+  </button>
+
+  <!-- Open-state dropdown -->
+  <div class="tz-panel" *ngIf="open" (keydown)="onKeydown($event)">
+    <div class="tz-search">
+      <i class="fas fa-search"></i>
+      <input #searchInput type="text"
+             [(ngModel)]="query"
+             (ngModelChange)="onQueryChange($event)"
+             placeholder="Search city, region or GMT offset…"
+             autocomplete="off" spellcheck="false"/>
+      <button *ngIf="query" type="button" class="clear" (click)="onQueryChange('')" title="Clear">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="tz-list" role="listbox">
+      <button *ngFor="let opt of filteredOptions; trackBy: trackByIana; let i = index"
+              type="button"
+              class="tz-option"
+              role="option"
+              [class.active]="opt.iana === value"
+              [class.highlighted]="i === highlightedIdx"
+              (click)="select(opt)"
+              (mouseenter)="highlightedIdx = i">
+        <span class="tz-offset">{{ opt.offset }}</span>
+        <span class="tz-city">{{ opt.city }}</span>
+        <span class="tz-iana">{{ opt.iana }}</span>
+        <i class="fas fa-check tick" *ngIf="opt.iana === value"></i>
+      </button>
+
+      <div class="tz-empty" *ngIf="filteredOptions.length === 0">
+        No timezones match <strong>"{{ query }}"</strong>.
+      </div>
+    </div>
+  </div>
+
+</div>

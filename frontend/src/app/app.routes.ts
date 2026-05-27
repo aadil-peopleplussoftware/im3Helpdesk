@@ -134,6 +134,14 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'organization-profile',
+    loadComponent: () =>
+      import('./features/organization/organization-profile/organization-profile').then(
+        m => m.OrganizationProfileComponent
+      ),
+    canActivate: [authGuard]
+  },
+  {
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications-page/notifications-page').then(m => m.NotificationsPageComponent),

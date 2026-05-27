@@ -148,6 +148,51 @@
                 </button>
               </div>
             </div>
+
+            <div class="sidebar-pos-row">
+              <div class="sidebar-pos-label">Email polling interval</div>
+              <div class="sidebar-pos-options polling-interval-control">
+                <input
+                  type="number"
+                  min="1"
+                  class="polling-interval-input"
+                  [(ngModel)]="pollingIntervalValue"
+                  aria-label="Polling interval value" />
+                <select
+                  class="polling-interval-unit"
+                  [(ngModel)]="pollingIntervalUnit"
+                  aria-label="Polling interval unit">
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                  <option value="days">Days</option>
+                </select>
+                <button
+                  type="button"
+                  class="sidebar-pos-btn active"
+                  [disabled]="pollingSaving"
+                  (click)="savePollingInterval()">
+                  {{ pollingSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="sidebar-pos-row">
+              <div class="sidebar-pos-label">Timezone</div>
+              <div class="sidebar-pos-options polling-interval-control">
+                <app-timezone-picker
+                  class="timezone-picker-wrap"
+                  [(ngModel)]="timezone"
+                  placeholder="Select timezone…"></app-timezone-picker>
+                <button
+                  type="button"
+                  class="sidebar-pos-btn active"
+                  [disabled]="timezoneSaving"
+                  (click)="saveTimezone()">
+                  {{ timezoneSaving ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="pane-divider"></div>

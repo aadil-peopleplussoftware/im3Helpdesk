@@ -53,8 +53,18 @@ public class OrganizationsController : ControllerBase
       org.ImapHost,
       org.ImapPort,
       org.EmailPollingEnabled,
+      org.EmailPollingOnboardedAt,
+      org.EmailPollingIntervalSeconds,
+      Timezone = org.Timezone ?? "Asia/Kolkata",
       org.TrialEndsAt,
-      org.IsActive
+      org.IsActive,
+      org.CreatedAt,
+      org.WhatsAppNumber,
+      org.TwilioAccountSid,
+      // Auth token is sensitive \u2014 expose only a "set" flag, not the value.
+      twilioAuthTokenSet = !string.IsNullOrWhiteSpace(org.TwilioAuthToken),
+      org.SlackWebhookUrl,
+      org.TeamsWebhookUrl
     });
   }
 
@@ -164,7 +174,28 @@ public class OrganizationsController : ControllerBase
     if (dto.ImapHost != null) org.ImapHost = Clean(dto.ImapHost);
     if (dto.ImapPort.HasValue) org.ImapPort = dto.ImapPort;
     if (dto.EmailPollingEnabled.HasValue)
+    {
+      // Stamp onboarding time the first time polling is enabled (or when
+      // it's re-enabled after being off). Inbound emails delivered before
+      // this moment will be skipped by EmailPollingService.
+      if (dto.EmailPollingEnabled.Value && !org.EmailPollingEnabled)
+        org.EmailPollingOnboardedAt = DateTime.UtcNow;
       org.EmailPollingEnabled = dto.EmailPollingEnabled.Value;
+    }
+    if (dto.EmailPollingIntervalSeconds.HasValue)
+    {
+      var raw = dto.EmailPollingIntervalSeconds.Value;
+      org.EmailPollingIntervalSeconds = raw < 5 ? 5 : raw;
+    }
+    if (dto.Timezone != null)
+      org.Timezone = Clean(dto.Timezone);
+
+    // Belt-and-braces: if SMTP/IMAP just got filled in for the first time
+    // and onboarding stamp is still null, set it now.
+    if (org.EmailPollingOnboardedAt == null &&
+        !string.IsNullOrWhiteSpace(org.SmtpHost) &&
+        !string.IsNullOrWhiteSpace(org.ImapHost))
+      org.EmailPollingOnboardedAt = DateTime.UtcNow;
 
     if (string.IsNullOrWhiteSpace(org.SmtpFromEmail))
       org.SmtpFromEmail = org.SupportEmail;
@@ -209,6 +240,8 @@ public class UpdateOrgDto
   public string? ImapHost { get; set; }
   public int? ImapPort { get; set; }
   public bool? EmailPollingEnabled { get; set; }
+  public int? EmailPollingIntervalSeconds { get; set; }
+  public string? Timezone { get; set; }
   public string? SlackWebhookUrl { get; set; }
   public string? TeamsWebhookUrl { get; set; }
   public string? WhatsAppNumber { get; set; }

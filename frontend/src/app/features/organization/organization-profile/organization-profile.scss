@@ -1,0 +1,395 @@
+// Organization Settings page \u2014 mirrors profile-page visual tokens
+// (rainbow strip, section-head icon badges, form-grid) so the workspace
+// feels consistent across "My Profile" and "Organization Profile".
+
+:host { display: block; }
+
+$brand:        #0078d4;
+$ink:          #1f2937;
+$ink-soft:     #4b5563;
+$muted:        #6b7280;
+$line:         #e5e7eb;
+$bg-soft:      #f8fafc;
+$danger:       #dc2626;
+$ok:           #059669;
+
+.org-page {
+  padding: 24px 28px 56px;
+  max-width: 1440px;
+  margin: 0 auto;
+  color: $ink;
+}
+
+/* ============ Header ============ */
+.org-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 20px;
+
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .page-subtitle {
+    margin: 0;
+    color: $muted;
+    font-size: 13.5px;
+    max-width: 720px;
+  }
+
+  .header-actions { display: flex; gap: 10px; flex-shrink: 0; }
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  &:disabled { opacity: .55; cursor: not-allowed; }
+}
+.btn-edit  { background: $brand;       color: #fff; &:hover:not(:disabled) { background: darken($brand, 6%); } }
+.btn-save  { background: $ok;          color: #fff; &:hover:not(:disabled) { background: darken($ok, 6%); } }
+.btn-cancel{ background: #fff; color: $ink-soft; border: 1px solid $line; &:hover:not(:disabled) { background: $bg-soft; } }
+
+/* ============ Loading / banner ============ */
+.loading-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 80px 0; gap: 14px; color: $muted;
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #e5e7eb;
+    border-top-color: $brand;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.readonly-banner {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+  padding: 12px 16px; border-radius: 10px; font-size: 13px;
+  margin-bottom: 18px;
+  i { color: #ea580c; }
+}
+
+/* Same look as the reminder shown on the Profile page so admins see
+   a consistent "Complete now" cue across both surfaces. */
+.smtp-setup-banner {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  background: linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(251,191,36,0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(249,115,22,0.14) 0%, rgba(251,191,36,0.1) 100%);
+  }
+  &:active { transform: translateY(1px); }
+
+  .ssb-left { flex: 1; min-width: 0; }
+  .ssb-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #c2410c;
+    margin-bottom: 3px;
+  }
+  .ssb-sub {
+    font-size: 12.5px;
+    color: $ink-soft;
+    line-height: 1.45;
+    strong { color: #9a3412; font-weight: 700; }
+  }
+  .ssb-action {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #c2410c;
+    white-space: nowrap;
+  }
+}
+
+/* ============ Grid layout ============ */
+.org-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 22px;
+  align-items: flex-start;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+
+  /* When the form is not in edit mode, soften inputs visually so users
+     get the same "read-only" cue across every control type (text, color,
+     select, checkbox). Pointer events still pass through to text inputs
+     so values stay selectable / copyable. */
+  &.locked {
+    input[type="color"],
+    input[type="checkbox"],
+    select {
+      pointer-events: none;
+      opacity: .75;
+      filter: grayscale(0.15);
+    }
+  }
+}
+
+/* ============ Left: Identity card ============ */
+.identity-card {
+  background: #fff;
+  border: 1px solid $line;
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 0 22px 22px;
+  text-align: center;
+  position: sticky;
+  top: 18px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.rainbow-strip {
+  height: 6px;
+  margin: 0 -22px 22px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444, #8b5cf6, #06b6d4, #10b981);
+}
+.logo-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+}
+.logo-frame {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 36px; font-weight: 700;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+.logo-camera {
+  position: absolute;
+  right: -2px; bottom: -2px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: $brand;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  &:hover { background: darken($brand, 6%); }
+  i { font-size: 12px; }
+}
+.identity-name {
+  margin: 6px 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.identity-slug {
+  margin: 0 0 14px;
+  color: $muted;
+  font-size: 13px;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f1f5f9; color: $muted;
+  padding: 5px 11px; border-radius: 99px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #94a3b8;
+  }
+  &.active {
+    background: #ecfdf5; color: #047857;
+    .dot { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+  }
+}
+.meta-list {
+  margin-top: 18px;
+  display: flex; flex-direction: column; gap: 10px;
+  text-align: left;
+}
+.meta-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px;
+  padding: 9px 12px;
+  background: $bg-soft;
+  border-radius: 8px;
+  .meta-label { color: $muted; font-weight: 600; }
+  .meta-value { color: $ink; font-weight: 600; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+}
+
+/* ============ Right: Section cards ============ */
+.col-right { display: flex; flex-direction: column; gap: 18px; }
+
+.section-card {
+  background: #fff;
+  border: 1px solid $line;
+  border-radius: 14px;
+  padding: 22px 24px 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+.section-head {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 18px;
+
+  h3 { margin: 0 0 2px; font-size: 15.5px; font-weight: 700; }
+  .sec-desc { margin: 0; font-size: 12.5px; color: $muted; }
+}
+.sec-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  flex-shrink: 0;
+  &.teal   { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+  &.orange { background: linear-gradient(135deg, #f59e0b, #ea580c); }
+  &.blue   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+  &.purple { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+  &.pink   { background: linear-gradient(135deg, #ec4899, #be185d); }
+}
+
+/* ============ Form grid ============ */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 22px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+}
+.field {
+  display: flex; flex-direction: column; gap: 6px;
+
+  &.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    color: $muted;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+
+    .hint {
+      text-transform: none;
+      font-weight: 500;
+      letter-spacing: 0;
+      color: #94a3b8;
+      font-size: 10.5px;
+    }
+    .badge-set, .badge-unset {
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 700;
+    }
+    .badge-set   { background: #ecfdf5; color: #047857; }
+    .badge-unset { background: #fef2f2; color: #b91c1c; }
+  }
+
+  input, select {
+    font-family: inherit;
+    font-size: 13.5px;
+    color: $ink;
+    background: #fff;
+    border: 1px solid $line;
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border .15s, box-shadow .15s, background .15s;
+
+    &:focus:not([readonly]):not(:disabled) {
+      border-color: $brand;
+      box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.13);
+    }
+    &[readonly], &:disabled {
+      background: $bg-soft;
+      color: $ink-soft;
+      cursor: not-allowed;
+    }
+  }
+  .muted { color: $muted; font-size: 11.5px; margin-top: 2px; }
+}
+
+.color-row {
+  display: flex; gap: 10px; align-items: center;
+  input[type="color"] {
+    width: 46px; height: 38px; padding: 2px;
+    border-radius: 8px; cursor: pointer;
+    &:disabled { cursor: not-allowed; }
+  }
+  .hex { flex: 1; font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
+}
+
+.interval-row {
+  display: flex; gap: 10px;
+  input { width: 110px; }
+  select { flex: 1; }
+}
+
+/* ============ Toggle switch ============ */
+.toggle-field .switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 4px;
+
+  input { display: none; }
+
+  .slider {
+    width: 42px; height: 24px;
+    border-radius: 99px;
+    background: #cbd5e1;
+    position: relative;
+    transition: background .18s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .18s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.18);
+    }
+  }
+  input:checked + .slider {
+    background: $ok;
+    &::after { transform: translateX(18px); }
+  }
+  .switch-text {
+    font-size: 12.5px; font-weight: 600; color: $ink-soft;
+  }
+}
+
+/* ============ Bottom save bar ============ */
+.bottom-save {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 4px;
+}

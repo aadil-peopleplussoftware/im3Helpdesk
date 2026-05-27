@@ -12,6 +12,7 @@ import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
+import { OrgContextService } from '../../../core/services/org-context.service';
 
 // ── Interfaces ──────────────────────────────────────
 export interface CalendarEvent {
@@ -60,6 +61,7 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   private toastr = inject(ToastrService);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private orgContext = inject(OrgContextService);
   private destroy$ = new Subject<void>();
 
   // ── View state ───────────────────────────────────
@@ -72,7 +74,10 @@ export class CalendarEventComponent implements OnInit, OnDestroy {
   allEvents: CalendarEvent[] = [];
   allTickets: any[] = [];
 
-  private readonly ticketTimeZone = 'Asia/Kolkata';
+  // Org-wide IANA timezone (was hardcoded to Asia/Kolkata). Reads the
+  // current value from OrgContextService so a setting change in the UI
+  // is reflected immediately on the next CD cycle.
+  private get ticketTimeZone(): string { return this.orgContext.timezone(); }
 
   private ticketsRangeKey = '';
 

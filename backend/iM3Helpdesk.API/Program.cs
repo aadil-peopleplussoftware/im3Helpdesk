@@ -128,6 +128,14 @@ builder.Services.AddControllers()
           System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
       options.JsonSerializerOptions.PropertyNamingPolicy =
           System.Text.Json.JsonNamingPolicy.CamelCase;
+      // Always serialize DateTime as ISO-8601 UTC with a Z suffix so
+      // browsers convert correctly to the user's configured timezone.
+      // Without this, EF Core's DateTimeKind.Unspecified values would be
+      // written without a zone and treated as local time by JavaScript.
+      options.JsonSerializerOptions.Converters.Add(
+          new iM3Helpdesk.API.Json.UtcDateTimeConverter());
+      options.JsonSerializerOptions.Converters.Add(
+          new iM3Helpdesk.API.Json.NullableUtcDateTimeConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

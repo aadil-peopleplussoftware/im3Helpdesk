@@ -29,6 +29,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
+import { OrgContextService } from '../../../core/services/org-context.service';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -62,6 +63,12 @@ export class TicketDetailComponent
   private sanitizer = inject(DomSanitizer);
   private ticketMasterService = inject(TicketMasterService);
   private topbarCtx = inject(TopbarContextService);
+  private orgContext = inject(OrgContextService);
+
+  /** Project-wide IANA timezone used for all template date formatting. */
+  get tz(): string {
+    return this.orgContext.timezone();
+  }
 
   @ViewChild('replyEditor')
     replyEditorRef!: ElementRef;

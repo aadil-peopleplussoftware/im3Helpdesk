@@ -28,6 +28,7 @@ import { environment } from '../../../environments/environment';
 import { GlobalCallNotificationService } from '../../core/services/global-call-notification.service';
 import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
 import { TopbarContextService } from '../../core/services/topbar-context.service';
+import { OrgContextService } from '../../core/services/org-context.service';
 
 @Component({
   selector: 'app-layout',
@@ -87,6 +88,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/profile']);
   }
 
+  public goToOrganizationProfile() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/organization-profile']);
+  }
+
   public goToCustomerPortal() {
     this.showProfileDropdown = false;
     this.router.navigate(['/customer']);
@@ -101,6 +107,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private globalCallSvc  = inject(GlobalCallNotificationService);
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
   public  topbarCtx      = inject(TopbarContextService);
+  private orgContext     = inject(OrgContextService);
   isSidebarCollapsed = (() => {
     const saved = localStorage.getItem('im3_sidebar_collapsed');
     // Freshdesk-style compact sidebar by default (only when user has never chosen).
@@ -496,6 +503,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
         );
         this.smtpSetupIncomplete = !complete;
         this.smtpSetupChecked = true;
+        // Propagate org-wide timezone to OrgContextService so date pipes,
+        // calendars and any timezone-aware UI immediately use it.
+        const tz = (org?.timezone || '').trim();
+        if (tz) this.orgContext.setTimezone(tz);
         this.cdr.detectChanges();
       },
       error: () => {
