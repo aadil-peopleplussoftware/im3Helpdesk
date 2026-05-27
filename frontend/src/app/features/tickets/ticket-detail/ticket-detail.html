@@ -10,98 +10,85 @@
       <!-- LEFT MAIN -->
       <div class="fd-main">
 
-        <!-- Action Bar -->
-        <div class="fd-action-bar">
-          <div class="ab-left">
-            <button class="ab-back"
-              (click)="router.navigate(['/tickets'])">
-              ← Back
-            </button>
-            <span class="fd-ticket-num">
-              #TN{{ ticket.ticketNumber }}
-            </span>
-            <span class="fd-status-badge"
-              [class]="'st-' +
-                ticket.status?.toLowerCase()">
-              {{ ticket.status }}
-            </span>
-          </div>
-          <div class="ab-right">
-            <div class="fd-viewers"
-              *ngIf="viewers.length > 0">
-              <span class="v-eye">👁</span>
-              <div class="v-stack">
-                <div class="v-av"
-                  *ngFor="let v of
-                    viewers.slice(0,3)"
-                  [title]="v.userName"
-                  [style.background]="
-                    getAvatarColor(v.userName)">
-                  {{ v.userName?.charAt(0)
-                    ?.toUpperCase() }}
-                </div>
-              </div>
-            </div>
+        <!-- Title: source-aware icon + (right) Delete + viewer count badge -->
+        <h1 class="fd-title">
+          <span class="fd-mail-ic"
+            [class.is-system]="!isEmailTicket()"
+            [title]="isEmailTicket()
+              ? 'Created from inbound email'
+              : 'Created in the system'"
+            aria-hidden="true">
+            {{ isEmailTicket() ? '✉' : '🎫' }}
+          </span>
+          <span class="fd-title-txt">{{ ticket.title }}</span>
+          <span class="fd-title-actions">
             <button class="ab-del"
               *ngIf="isAgent"
               type="button"
               (click)="deleteTicket()">
               🗑 Delete
             </button>
-          </div>
-        </div>
-
-        <!-- Title -->
-        <h1 class="fd-title">{{ ticket.title }}</h1>
+            <div class="fd-viewers-badge"
+              *ngIf="uniqueViewers().length > 0"
+              [title]="'Viewed by:\n' + uniqueViewerNames()">
+              <span class="vb-count">{{ uniqueViewers().length }}</span>
+            </div>
+          </span>
+        </h1>
 
         <!-- Original Email -->
         <div class="fd-email-card">
           <div class="ec-header">
-            <div class="ec-av"
+            <div class="ec-av is-clickable"
+              role="button"
+              tabindex="0"
+              [title]="'Open contact: ' + (senderEmail() || senderName())"
+              (click)="openContact(senderEmail() || senderName())"
+              (keydown.enter)="openContact(senderEmail() || senderName())"
               [style.background]="
                 ticket.createdBy?.photoUrl
                   ? 'transparent'
-                  : getAvatarColor(
-                      ticket.createdBy?.fullName)">
+                  : getAvatarColor(senderName())">
               <img
                 *ngIf="ticket.createdBy?.photoUrl"
                 [src]="baseUrl
                   + ticket.createdBy.photoUrl"/>
               <span
                 *ngIf="!ticket.createdBy?.photoUrl">
-                {{ ticket.createdBy?.fullName
-                  ?.charAt(0)?.toUpperCase() }}
+                {{ getInitials(senderName()) }}
               </span>
             </div>
             <div class="ec-info">
-              <div class="ec-name">
-                {{ ticket.createdBy?.fullName }}
-              </div>
-              <div class="ec-sub">
-                {{ ticket.createdBy?.email }}
-                <span class="ec-via">
-                  · via helpdesk
-                  <span
-                    *ngIf="ticket.tags
-                      ?.includes('email')">
-                    · email
-                  </span>
+              <div class="ec-name-row">
+                <span class="ec-name is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (senderEmail() || senderName())"
+                  (click)="openContact(senderEmail() || senderName())"
+                  (keydown.enter)="openContact(senderEmail() || senderName())">
+                  {{ senderName() }}
+                </span>
+                <span class="ec-via">reported via email</span>
+                <span class="ec-dot">·</span>
+                <span class="ec-time"
+                  [title]="ticket.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                  {{ timeAgo(ticket.createdAt) }}
+                  (<span>{{ ticket.createdAt | date:'EEE, dd MMM yyyy \'at\' hh:mm a' }}</span>)
                 </span>
               </div>
-            </div>
-            <div class="ec-right">
-              <span class="ec-type"
-                *ngIf="ticket.ticketType">
-                {{ ticket.ticketType }}
-              </span>
-              <span class="ec-cat">
-                {{ ticket.category }}
-              </span>
-              <span class="ec-date">
-                {{ ticket.createdAt
-                  | date:'EEE, dd MMM yyyy,
-                    hh:mm a':'Asia/Kolkata' }}
-              </span>
+              <div class="ec-to-row" *ngIf="orgSupportEmail">
+                <span class="ec-to-lbl">To:</span>
+                <span class="ec-to-val">
+                  &quot;{{ orgSupportName || 'Support' }}&quot;
+                  &lt;{{ orgSupportEmail }}&gt;
+                </span>
+                <ng-container *ngIf="getTicketCcList().length > 0">
+                  <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
+                  <span class="ec-to-val ec-cc-val">
+                    {{ getTicketCcList().join(', ') }}
+                  </span>
+                </ng-container>
+              </div>
             </div>
           </div>
 
@@ -145,16 +132,25 @@
             <div class="fd-reply"
               *ngIf="!c.isInternal">
               <div class="fr-header">
-                <div class="fr-av"
+                <div class="fr-av is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
                   [style.background]="
                     getAvatarColor(
-                      c.user?.fullName)">
-                  {{ c.user?.fullName?.charAt(0)
-                    ?.toUpperCase() }}
+                      commentAuthor(c))">
+                  {{ getInitials(commentAuthor(c)) }}
                 </div>
                 <div class="fr-info">
-                  <span class="fr-name">
-                    {{ c.user?.fullName }}
+                  <span class="fr-name is-clickable"
+                    role="button"
+                    tabindex="0"
+                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                    {{ commentAuthor(c) }}
                   </span>
                   <span class="fr-agent"
                     *ngIf="c.user?.isAgent">
@@ -169,14 +165,40 @@
                       *ngIf="c.source === 'forward'">
                       · forwarded
                     </ng-container>
+                    <ng-container
+                      *ngIf="c.source !== 'email' && c.source !== 'forward'">
+                      · replied
+                    </ng-container>
                   </span>
                 </div>
-                <span class="fr-time">
+                <span class="fr-time"
+                  [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                  {{ timeAgo(c.createdAt) }}
+                  ·
                   {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy,
-                      hh:mm a':'Asia/Kolkata' }}
+                    | date:'EEE, dd MMM yyyy, hh:mm a':'Asia/Kolkata' }}
                 </span>
               </div>
+
+              <!-- To / Cc / Bcc recipients (like inbound email) -->
+              <div class="fr-recipients"
+                *ngIf="getReplyToList(c).length
+                  || getCcList(c).length
+                  || getBccList(c).length">
+                <ng-container *ngIf="getReplyToList(c).length > 0">
+                  <span class="fr-rec-lbl">To:</span>
+                  <span class="fr-rec-val">{{ getReplyToList(c).join(', ') }}</span>
+                </ng-container>
+                <ng-container *ngIf="getCcList(c).length > 0">
+                  <span class="fr-rec-lbl">Cc:</span>
+                  <span class="fr-rec-val">{{ getCcList(c).join(', ') }}</span>
+                </ng-container>
+                <ng-container *ngIf="getBccList(c).length > 0">
+                  <span class="fr-rec-lbl">Bcc:</span>
+                  <span class="fr-rec-val">{{ getBccList(c).join(', ') }}</span>
+                </ng-container>
+              </div>
+
               <div class="fr-body"
                 [innerHTML]="
                   sanitizeHtml(c.comment)">
@@ -208,37 +230,92 @@
               </div>
             </div>
 
-            <!-- Note -->
-            <div class="fd-note"
+            <!-- Note (private/internal) — same layout as Reply, peach color -->
+            <div class="fd-reply is-note"
               *ngIf="c.isInternal && isAgent">
-              <div class="fn-header">
-                <div class="fn-av"
+              <div class="fr-header">
+                <div class="fr-av is-clickable"
+                  role="button"
+                  tabindex="0"
+                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
                   [style.background]="
                     getAvatarColor(
-                      c.user?.fullName)">
-                  {{ c.user?.fullName?.charAt(0)
-                    ?.toUpperCase() }}
+                      commentAuthor(c))">
+                  {{ getInitials(commentAuthor(c)) }}
                 </div>
-                <div class="fn-info">
-                  <span class="fn-name">
-                    {{ c.user?.fullName }}
+                <div class="fr-info">
+                  <span class="fr-name note-name is-clickable"
+                    role="button"
+                    tabindex="0"
+                    [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
+                    (click)="openContact(commentEmail(c) || commentAuthor(c))"
+                    (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                    {{ commentAuthor(c) }}
                   </span>
-                  <span class="fn-label">
-                    added a
-                  </span>
-                  <span class="fn-badge">
-                    private note
+                  <span class="fr-note-lbl">
+                    added a private note
                   </span>
                 </div>
-                <span class="fn-time">
+                <span class="fr-time"
+                  [title]="c.createdAt | date:'EEEE, dd MMMM yyyy, hh:mm a'">
+                  {{ timeAgo(c.createdAt) }}
+                  ·
                   {{ c.createdAt
-                    | date:'EEE, dd MMM yyyy,
-                      hh:mm a':'Asia/Kolkata' }}
+                    | date:'EEE, dd MMM yyyy, hh:mm a':'Asia/Kolkata' }}
                 </span>
+                <div class="fr-actions"
+                  *ngIf="canEditNote(c)">
+                  <button type="button"
+                    class="fr-act-btn"
+                    title="Edit note (within 1 hour)"
+                    (click)="editNote(c)">
+                    ✎
+                  </button>
+                  <button type="button"
+                    class="fr-act-btn danger"
+                    title="Delete note (within 1 hour)"
+                    (click)="deleteNote(c)">
+                    🗑
+                  </button>
+                </div>
               </div>
-              <div class="fn-body"
+
+              <!-- Notified-to recipients (note) -->
+              <div class="fr-recipients is-note-rec"
+                *ngIf="getNotifiedList(c).length > 0">
+                <span class="fr-rec-lbl">Notified to:</span>
+                <span class="fr-rec-val">{{ getNotifiedList(c).join(', ') }}</span>
+              </div>
+              <div class="fr-body"
                 [innerHTML]="
                   sanitizeHtml(c.comment)">
+              </div>
+              <div class="ec-attachments"
+                *ngIf="getCommentAttachments(c.id)
+                  .length > 0">
+                <div class="att-row">
+                  <a class="att-chip"
+                    *ngFor="let a of
+                      getCommentAttachments(c.id)"
+                    [href]="baseUrl
+                      + a.fileUrl"
+                    target="_blank">
+                    <span class="att-ic">
+                      {{ getFileIcon(
+                        a.contentType) }}
+                    </span>
+                    <div>
+                      <div class="att-name">
+                        {{ a.fileName }}
+                      </div>
+                      <div class="att-sz">
+                        {{ a.sizeFormatted }}
+                      </div>
+                    </div>
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -294,40 +371,106 @@
             </div>
           </div>
 
-          <!-- ── REPLY BODY ── -->
+          <!-- ── COLLAPSED COMPOSER (one-liner) ── -->
+          <div class="fdc-collapsed"
+            *ngIf="!composerExpanded"
+            (click)="expandComposer(activeComposerTab)">
+            <input class="fdc-collapsed-input"
+              type="text"
+              readonly
+              [placeholder]="activeComposerTab === 'note'
+                ? 'Add an internal note…'
+                : activeComposerTab === 'forward'
+                  ? 'Forward this ticket…'
+                  : 'Type your response here…'"
+              (focus)="expandComposer(activeComposerTab)"/>
+            <button type="button"
+              class="fdc-collapsed-send"
+              (click)="$event.stopPropagation(); expandComposer(activeComposerTab)"
+              [title]="activeComposerTab === 'note'
+                ? 'Open note editor'
+                : activeComposerTab === 'forward'
+                  ? 'Open forward editor'
+                  : 'Open reply editor'">
+              ✈
+            </button>
+          </div>
+
+          <!-- ── REPLY BODY (Image 3) ── -->
           <ng-container
-            *ngIf="activeComposerTab === 'reply'">
-            <div class="fdc-to-row">
-              <span class="fdc-lbl">To:</span>
-              <span class="fdc-to-val">
-                {{ ticket.createdBy?.fullName }}
-                &lt;{{ ticket.createdBy?.email }}&gt;
+            *ngIf="composerExpanded && activeComposerTab === 'reply'">
+
+            <!-- From (readonly: Org SMTP) -->
+            <div class="fdc-hdr-row">
+              <span class="fdc-hdr-lbl">From&nbsp;:</span>
+              <span class="fdc-hdr-val readonly">
+                {{ orgSupportName || 'Support' }}
+                <span class="fdc-hdr-email">
+                  ({{ orgSupportEmail || '—' }})
+                </span>
               </span>
             </div>
-            <div class="fdc-toolbar">
-              <button type="button" class="fdc-tb"
-                (click)="execCmd('bold')">
-                <b>B</b>
-              </button>
-              <button type="button" class="fdc-tb"
-                (click)="execCmd('italic')">
-                <i>I</i>
-              </button>
-              <button type="button" class="fdc-tb"
-                (click)="execCmd('underline')">
-                <u>U</u>
-              </button>
-              <span class="fdc-sep">|</span>
-              <button type="button" class="fdc-tb"
-                (click)="execCmd(
-                  'insertUnorderedList')">
-                ≡
-              </button>
-              <button type="button" class="fdc-tb"
-                (click)="insertLink()">
-                🔗
-              </button>
+
+            <!-- To (readonly: original sender email) -->
+            <div class="fdc-hdr-row">
+              <span class="fdc-hdr-lbl">To&nbsp;:</span>
+              <span class="fdc-hdr-val readonly">
+                {{ ticket.fromEmail || ticket.createdBy?.email }}
+              </span>
+              <span class="fdc-hdr-right">
+                <a class="fdc-link"
+                  (click)="showCc = !showCc"
+                  href="javascript:void(0)">Cc</a>
+                <a class="fdc-link"
+                  (click)="showBcc = !showBcc"
+                  href="javascript:void(0)">Bcc</a>
+              </span>
             </div>
+
+            <!-- Cc (editable) -->
+            <div class="fdc-hdr-row" *ngIf="showCc">
+              <span class="fdc-hdr-lbl">Cc&nbsp;:</span>
+              <div class="fdc-chip-wrap">
+                <span class="fdc-chip"
+                  *ngFor="let e of replyCc; let i = index">
+                  {{ e }}
+                  <button type="button" (click)="removeCc(i)">×</button>
+                </span>
+                <input class="fdc-chip-input"
+                  [(ngModel)]="ccInput"
+                  (keyup.enter)="addCc()"
+                  (blur)="addCc()"
+                  placeholder="Add Cc and press Enter"/>
+              </div>
+              <span class="fdc-hdr-right">
+                <a class="fdc-link"
+                  (click)="replyCc=[]; showCc=false"
+                  href="javascript:void(0)">Clear</a>
+              </span>
+            </div>
+
+            <!-- Bcc (editable) -->
+            <div class="fdc-hdr-row" *ngIf="showBcc">
+              <span class="fdc-hdr-lbl">Bcc&nbsp;:</span>
+              <div class="fdc-chip-wrap">
+                <span class="fdc-chip"
+                  *ngFor="let e of replyBcc; let i = index">
+                  {{ e }}
+                  <button type="button" (click)="removeBcc(i)">×</button>
+                </span>
+                <input class="fdc-chip-input"
+                  [(ngModel)]="bccInput"
+                  (keyup.enter)="addBcc()"
+                  (blur)="addBcc()"
+                  placeholder="Add Bcc and press Enter"/>
+              </div>
+              <span class="fdc-hdr-right">
+                <a class="fdc-link"
+                  (click)="replyBcc=[]; showBcc=false"
+                  href="javascript:void(0)">Clear</a>
+              </span>
+            </div>
+
             <div class="fdc-editor"
               contenteditable="true"
               #replyEditor
@@ -356,10 +499,10 @@
                     removePendingFile(i)">×</button>
               </div>
             </div>
+            <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
             <div class="fdc-footer">
               <div class="fdc-fl">
-                <label class="fdc-attach"
-                  type="button">
+                <label class="fdc-attach">
                   📎
                   <input type="file" hidden
                     multiple
@@ -368,6 +511,7 @@
                 </label>
               </div>
               <div class="fdc-fr">
+                <span class="fdc-saved">Saved</span>
                 <button type="button"
                   class="fdc-cancel"
                   (click)="clearReply()">
@@ -375,11 +519,13 @@
                 </button>
                 <button type="button"
                   class="fdc-send reply-btn"
+                  [class.is-loading]="updating"
                   [disabled]="updating"
                   (click)="sendReply()">
-                  {{ updating
-                    ? 'Sending...'
-                    : 'Send Reply' }}
+                  <span class="btn-spinner" *ngIf="updating"></span>
+                  <span class="btn-label">
+                    {{ updating ? 'Sending…' : '✈ Send' }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -387,7 +533,7 @@
 
           <!-- ── NOTE BODY ── -->
           <ng-container
-            *ngIf="activeComposerTab === 'note'
+            *ngIf="composerExpanded && activeComposerTab === 'note'
               && isAgent">
             <div class="fdc-note-vis-row">
               <div class="fdc-nv"
@@ -450,6 +596,7 @@
               data-placeholder=
                 "Add a note, @mention...">
             </div>
+            <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
             <div class="fdc-pending"
               *ngIf="pendingFiles.length > 0">
               <div class="fdc-pf"
@@ -481,48 +628,114 @@
                 </button>
                 <button type="button"
                   class="fdc-send note-btn"
+                  [class.is-loading]="updating"
                   [disabled]="updating"
                   (click)="sendNote()">
-                  {{ updating
-                    ? 'Adding...'
-                    : 'Add Note' }}
+                  <span class="btn-spinner" *ngIf="updating"></span>
+                  <span class="btn-label">
+                    {{ updating ? 'Adding…' : 'Add Note' }}
+                  </span>
                 </button>
               </div>
             </div>
           </ng-container>
 
-          <!-- ── FORWARD BODY ── -->
+          <!-- ── FORWARD BODY (Image 4) ── -->
           <ng-container
-            *ngIf="activeComposerTab === 'forward'
+            *ngIf="composerExpanded && activeComposerTab === 'forward'
               && isAgent">
-            <div class="fdc-to-row">
-              <span class="fdc-lbl">To:</span>
+
+            <!-- From (readonly) -->
+            <div class="fdc-hdr-row">
+              <span class="fdc-hdr-lbl">From&nbsp;:</span>
+              <span class="fdc-hdr-val readonly">
+                {{ orgSupportName || 'Support' }}
+                <span class="fdc-hdr-email">
+                  ({{ orgSupportEmail || '—' }})
+                </span>
+              </span>
+            </div>
+
+            <!-- To (editable, focused) -->
+            <div class="fdc-hdr-row focus-row">
+              <span class="fdc-hdr-lbl">To&nbsp;:</span>
               <input class="fdc-fwd-input"
                 [(ngModel)]="forwardEmail"
-                placeholder="Email address..."/>
+                placeholder=""/>
+              <span class="fdc-hdr-right">
+                <a class="fdc-link"
+                  (click)="showFwdCc = !showFwdCc"
+                  href="javascript:void(0)">Cc</a>
+                <a class="fdc-link"
+                  (click)="showFwdBcc = !showFwdBcc"
+                  href="javascript:void(0)">Bcc</a>
+              </span>
             </div>
+
+            <div class="fdc-hdr-row" *ngIf="showFwdCc">
+              <span class="fdc-hdr-lbl">Cc&nbsp;:</span>
+              <div class="fdc-chip-wrap">
+                <span class="fdc-chip"
+                  *ngFor="let e of fwdCc; let i = index">
+                  {{ e }}
+                  <button type="button" (click)="fwdCc.splice(i,1)">×</button>
+                </span>
+                <input class="fdc-chip-input"
+                  [(ngModel)]="fwdCcInput"
+                  (keyup.enter)="addFwdCc()"
+                  (blur)="addFwdCc()"
+                  placeholder="Add Cc and press Enter"/>
+              </div>
+            </div>
+
+            <div class="fdc-hdr-row" *ngIf="showFwdBcc">
+              <span class="fdc-hdr-lbl">Bcc&nbsp;:</span>
+              <div class="fdc-chip-wrap">
+                <span class="fdc-chip"
+                  *ngFor="let e of fwdBcc; let i = index">
+                  {{ e }}
+                  <button type="button" (click)="fwdBcc.splice(i,1)">×</button>
+                </span>
+                <input class="fdc-chip-input"
+                  [(ngModel)]="fwdBccInput"
+                  (keyup.enter)="addFwdBcc()"
+                  (blur)="addFwdBcc()"
+                  placeholder="Add Bcc and press Enter"/>
+              </div>
+            </div>
+
             <div class="fdc-editor"
               contenteditable="true"
               #forwardEditor
               (input)="onForwardInput($event)"
+              [innerHTML]="forwardPrefillHtml"
               data-placeholder="Add a message...">
             </div>
+            <ng-container *ngTemplateOutlet="editorToolbar"></ng-container>
             <div class="fdc-footer">
-              <div class="fdc-fl"></div>
+              <div class="fdc-fl">
+                <label class="fdc-attach">
+                  📎
+                  <input type="file" hidden
+                    multiple
+                    (change)="onFileSelect($event)"/>
+                </label>
+              </div>
               <div class="fdc-fr">
                 <button type="button"
                   class="fdc-cancel"
-                  (click)="
-                    activeComposerTab='reply'">
+                  (click)="activeComposerTab='reply'; composerExpanded=false">
                   Cancel
                 </button>
                 <button type="button"
                   class="fdc-send fwd-btn"
+                  [class.is-loading]="updating"
                   [disabled]="updating"
                   (click)="doForward()">
-                  {{ updating
-                    ? 'Forwarding...'
-                    : 'Forward' }}
+                  <span class="btn-spinner" *ngIf="updating"></span>
+                  <span class="btn-label">
+                    {{ updating ? 'Forwarding…' : '↗ Forward' }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -581,17 +794,17 @@
                 *ngFor="let t of getTagsArray()">
                 @{{ t }}
                 <button type="button"
-                  (click)="removeTag(t)">×</button>
+                  (click)="stageRemoveTag(t)">×</button>
               </span>
             </div>
             <div class="fds-tag-row">
               <input class="fds-tag-in"
                 [(ngModel)]="newTag"
                 placeholder="Add tag..."
-                (keyup.enter)="addTag()"/>
+                (keyup.enter)="stageAddTag()"/>
               <button type="button"
                 class="fds-tag-btn"
-                (click)="addTag()">+</button>
+                (click)="stageAddTag()">+</button>
             </div>
           </div>
 
@@ -601,34 +814,11 @@
               TYPE <span class="req">*</span>
             </div>
             <select class="fds-sel"
-              [(ngModel)]="ticket.ticketType"
-              (change)="updateTicketType()">
+              [(ngModel)]="ticket.ticketType">
               <option value="">-- Select --</option>
-              <option value="Question">Question</option>
-              <option value="Incident">Incident</option>
-              <option value="Problem">Problem</option>
-              <option value="Feature Request">
-                Feature Request
+              <option *ngFor="let t of ticketTypes" [value]="t.value">
+                {{ t.label }}
               </option>
-              <option value="Request">Request</option>
-              <option value="Support">Support</option>
-              <option value="Data">Data</option>
-              <option value="Customer Training">
-                Customer Training
-              </option>
-              <option value="Backend Script">
-                Backend Script
-              </option>
-              <option value="System Gap">
-                System Gap
-              </option>
-              <option value="Release">Release</option>
-              <option value="Information Only">
-                Information Only
-              </option>
-              <option value="On Hold">On Hold</option>
-              <option value="Bug">Bug</option>
-              <option value="Billing">Billing</option>
             </select>
           </div>
 
@@ -638,11 +828,9 @@
               STATUS <span class="req">*</span>
             </div>
             <select class="fds-sel"
-              [(ngModel)]="ticket.status"
-              (change)="
-                updateStatus(ticket.status)">
+              [(ngModel)]="ticket.status">
               <option *ngFor="let s of statuses"
-                [value]="s">{{ s }}</option>
+                [value]="s.value">{{ s.label }}</option>
             </select>
           </div>
 
@@ -650,16 +838,9 @@
           <div class="fds-grp">
             <div class="fds-lbl">PRIORITY</div>
             <select class="fds-sel"
-              [(ngModel)]="ticket.priority"
-              (change)="
-                updatePriority(ticket.priority)">
-              <option value="Low">● Low</option>
-              <option value="Medium">
-                ● Medium
-              </option>
-              <option value="High">● High</option>
-              <option value="Critical">
-                ● Critical
+              [(ngModel)]="ticket.priority">
+              <option *ngFor="let p of priorities" [value]="p.value">
+                ● {{ p.label }}
               </option>
             </select>
           </div>
@@ -691,10 +872,13 @@
           <!-- ✅ SINGLE Update button -->
           <button type="button"
             class="fds-update-btn"
+            [class.is-loading]="updating"
             [disabled]="updating"
             (click)="updateAllProps()">
-            {{ updating
-              ? 'Updating...' : 'Update' }}
+            <span class="btn-spinner" *ngIf="updating"></span>
+            <span class="btn-label">
+              {{ updating ? 'Updating…' : 'Update' }}
+            </span>
           </button>
         </div>
 
@@ -798,4 +982,96 @@
     </div>
 
   </div>
+
+  <!-- ─────────────────────────────────────────────
+       Shared rich-text editor toolbar
+       Used by Reply, Note and Forward composers.
+       Buttons act on the currently-focused contenteditable.
+       ───────────────────────────────────────────── -->
+  <ng-template #editorToolbar>
+    <div class="fdc-toolbar">
+      <button type="button" class="fdc-tb" title="Bold"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('bold')"><b>B</b></button>
+      <button type="button" class="fdc-tb" title="Italic"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('italic')"><i>I</i></button>
+      <button type="button" class="fdc-tb" title="Underline"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('underline')"><u>U</u></button>
+      <button type="button" class="fdc-tb" title="Strikethrough"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('strikeThrough')"><s>S</s></button>
+      <span class="fdc-sep">|</span>
+
+      <button type="button" class="fdc-tb" title="Heading 1"
+        (mousedown)="$event.preventDefault()"
+        (click)="applyBlock('H1')">H1</button>
+      <button type="button" class="fdc-tb" title="Heading 2"
+        (mousedown)="$event.preventDefault()"
+        (click)="applyBlock('H2')">H2</button>
+      <button type="button" class="fdc-tb" title="Paragraph"
+        (mousedown)="$event.preventDefault()"
+        (click)="applyBlock('P')">¶</button>
+      <button type="button" class="fdc-tb" title="Quote"
+        (mousedown)="$event.preventDefault()"
+        (click)="applyBlock('BLOCKQUOTE')">❝</button>
+      <span class="fdc-sep">|</span>
+
+      <button type="button" class="fdc-tb" title="Text color"
+        (mousedown)="$event.preventDefault()"
+        (click)="pickColor('fore')">A<span style="color:#ef4444">●</span></button>
+      <button type="button" class="fdc-tb" title="Highlight"
+        (mousedown)="$event.preventDefault()"
+        (click)="pickColor('back')">🖍</button>
+      <span class="fdc-sep">|</span>
+
+      <button type="button" class="fdc-tb" title="Bullet list"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('insertUnorderedList')">•≡</button>
+      <button type="button" class="fdc-tb" title="Numbered list"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('insertOrderedList')">1.</button>
+      <button type="button" class="fdc-tb" title="Align left"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('justifyLeft')">⯇</button>
+      <button type="button" class="fdc-tb" title="Align center"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('justifyCenter')">≡</button>
+      <button type="button" class="fdc-tb" title="Align right"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('justifyRight')">⯈</button>
+      <button type="button" class="fdc-tb" title="Outdent"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('outdent')">⇤</button>
+      <button type="button" class="fdc-tb" title="Indent"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('indent')">⇥</button>
+      <span class="fdc-sep">|</span>
+
+      <button type="button" class="fdc-tb" title="Insert link"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertLink()">🔗</button>
+      <button type="button" class="fdc-tb" title="Insert image"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertImage()">🖼</button>
+      <button type="button" class="fdc-tb" title="Insert table"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertTable()">▦</button>
+      <button type="button" class="fdc-tb" title="Code block"
+        (mousedown)="$event.preventDefault()"
+        (click)="insertCodeBlock()">&lt;/&gt;</button>
+      <span class="fdc-sep">|</span>
+
+      <button type="button" class="fdc-tb" title="Undo"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('undo')">↺</button>
+      <button type="button" class="fdc-tb" title="Redo"
+        (mousedown)="$event.preventDefault()"
+        (click)="execCmd('redo')">↻</button>
+      <button type="button" class="fdc-tb" title="Clear formatting"
+        (mousedown)="$event.preventDefault()"
+        (click)="clearFormatting()">⌫</button>
+    </div>
+  </ng-template>
 </app-layout>

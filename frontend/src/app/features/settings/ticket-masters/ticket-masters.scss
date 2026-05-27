@@ -1,0 +1,216 @@
+.tm-page {
+  background: var(--ui-color-bg-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.tm-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+
+  h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--ui-color-text-secondary);
+    font-size: 13px;
+  }
+}
+
+.add-btn {
+  border: none;
+  background: var(--ui-color-primary);
+  color: #fff;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tm-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  border: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg-page);
+  color: var(--ui-color-text-secondary);
+  border-radius: 999px;
+  padding: 7px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &.active {
+    color: var(--ui-color-primary);
+    border-color: var(--ui-color-primary);
+    background: color-mix(in srgb, var(--ui-color-primary) 10%, #fff);
+  }
+}
+
+.tab-count {
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-color-border-soft);
+  background: var(--ui-color-bg-surface);
+  font-size: 11px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-form {
+  margin-top: 14px;
+  border: 1px solid var(--ui-color-border-soft);
+  border-radius: 10px;
+  padding: 12px;
+
+  h4 {
+    margin: 0 0 10px;
+  }
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 960px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.check {
+    justify-content: end;
+  }
+
+  label {
+    font-size: 12px;
+    color: var(--ui-color-text-secondary);
+  }
+
+  input {
+    border: 1px solid var(--ui-color-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: var(--ui-color-bg-page);
+    color: var(--ui-color-text-primary);
+  }
+}
+
+.req {
+  color: var(--ui-color-danger);
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ui-color-text-muted);
+}
+
+.form-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.save-btn,
+.cancel-btn,
+.edit-btn,
+.act-btn,
+.dis-btn,
+.rm-btn {
+  border: 1px solid var(--ui-color-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  background: var(--ui-color-bg-page);
+}
+
+.save-btn {
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: #fff;
+}
+
+.act-btn {
+  color: var(--ui-color-success);
+  border-color: color-mix(in srgb, var(--ui-color-success) 35%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-success) 8%, var(--ui-color-bg-page));
+}
+
+.dis-btn {
+  color: var(--ui-color-warning-strong);
+  border-color: color-mix(in srgb, var(--ui-color-warning-strong) 30%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-warning-strong) 8%, var(--ui-color-bg-page));
+}
+
+.rm-btn {
+  color: var(--ui-color-danger);
+  border-color: color-mix(in srgb, var(--ui-color-danger) 35%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-danger) 8%, var(--ui-color-bg-page));
+}
+
+.tm-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.item {
+  border: 1px solid var(--ui-color-border-soft);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.value {
+  font-weight: 700;
+}
+
+.meta {
+  margin-top: 3px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ui-color-text-secondary);
+}
+
+.off {
+  color: var(--ui-color-danger);
+}
+
+.right {
+  display: flex;
+  gap: 8px;
+}
+
+.loading,
+.empty {
+  margin-top: 12px;
+  color: var(--ui-color-text-muted);
+}

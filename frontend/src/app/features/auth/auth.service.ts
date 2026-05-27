@@ -108,6 +108,10 @@ resendOtp(dto: { email: string }) {
     return localStorage.getItem('im3_isFirstLogin') === 'true';
   }
 
+  markFirstLoginComplete(): void {
+    localStorage.setItem('im3_isFirstLogin', 'false');
+  }
+
   getUserRole(): string {
     return localStorage.getItem('im3_role') || '';
   }

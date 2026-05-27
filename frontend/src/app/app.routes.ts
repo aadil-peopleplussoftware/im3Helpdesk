@@ -1,9 +1,26 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { superAdminGuard } from './core/guards/super-admin-guard';
+import { setupOrgGuard } from './core/guards/setup-org.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
+  {
+    path: 'lead',
+    loadComponent: () =>
+      import('./features/public-onboarding/lead-capture/lead-capture').then(m => m.LeadCaptureComponent)
+  },
+  {
+    path: 'setup-org',
+    loadComponent: () =>
+      import('./features/public-onboarding/setup-org/setup-org').then(m => m.SetupOrgComponent),
+    canActivate: [setupOrgGuard]
+  },
+  {
+    path: 'setup-org-error',
+    loadComponent: () =>
+      import('./features/public-onboarding/setup-org-error/setup-org-error').then(m => m.SetupOrgErrorComponent)
+  },
   {
     path: 'auth',
     loadChildren: () =>
@@ -130,6 +147,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
+    pathMatch: 'full',
     loadComponent: () =>
       import('./features/super-admin/super-admin-dashboard/super-admin-dashboard').then(m => m.SuperAdminDashboardComponent),
     canActivate: [superAdminGuard]
@@ -144,6 +162,12 @@ export const routes: Routes = [
     path: 'admin/users',
     loadComponent: () =>
       import('./features/super-admin/all-users/all-users').then(m => m.AllUsersComponent),
+    canActivate: [superAdminGuard]
+  },
+  {
+    path: 'admin/leads',
+    loadComponent: () =>
+      import('./features/super-admin/lead-management/lead-management').then(m => m.LeadManagementComponent),
     canActivate: [superAdminGuard]
   },
   {

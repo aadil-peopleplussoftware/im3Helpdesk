@@ -12,6 +12,7 @@ import { HeatmapHourlyComponent } from './heatmap-hourly/heatmap-hourly';
 import { HeatmapDailyComponent } from './heatmap-daily/heatmap-daily';
 import { HeatmapMonthlyComponent } from './heatmap-monthly/heatmap-monthly';
 import { HeatmapInsightsComponent } from './heatmap-insights/heatmap-insights';
+import { TicketMasterService } from '../../../core/services/ticket-master';
 
 type HeatmapTab = 'hourly' | 'daily' | 'monthly';
 
@@ -67,6 +68,7 @@ type InsightsModel = {
 export class HeatmapComponent implements OnInit {
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  private ticketMasterService = inject(TicketMasterService);
 
   @ViewChild('exportArea')
   exportAreaRef!: ElementRef;
@@ -89,13 +91,7 @@ export class HeatmapComponent implements OnInit {
     'Custom'
   ];
 
-  priorityOptions = [
-    'All',
-    'Low',
-    'Medium',
-    'High',
-    'Urgent'
-  ];
+  priorityOptions = ['All', 'Low', 'Medium', 'High', 'Critical'];
 
   typeOptions = [
     'All',
@@ -124,8 +120,19 @@ export class HeatmapComponent implements OnInit {
 
   ngOnInit() {
     this.applyPreset('Last 7 Days');
+    this.loadPriorities();
     this.loadAgents();
     this.reloadAll();
+  }
+
+  private loadPriorities() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        const values = (data.ticketPriorities || []).map(x => x.value);
+        this.priorityOptions = ['All', ...values];
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   setTab(tab: HeatmapTab) {

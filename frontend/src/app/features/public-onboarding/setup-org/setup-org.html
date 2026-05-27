@@ -1,0 +1,128 @@
+<ng-container *ngIf="!loading; else loadingState">
+  <section class="lead-shell">
+    <div class="lead-left">
+      <div class="brand-row">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <div class="brand-name">iM3HelpDesk</div>
+          <div class="brand-sub">Secure B2B onboarding</div>
+        </div>
+      </div>
+
+      <div class="lead-hero">
+        <div class="eyebrow">Secure token verified</div>
+        <h1>Complete organization setup</h1>
+        <p>
+          The organization and admin account will be created only after this final step.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article>
+          <span>02</span>
+          <h3>Approved by Super Admin</h3>
+          <p>Your request was reviewed and approved for secure onboarding.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Token verification</h3>
+          <p>This setup link is verified and protected by a time-limited token.</p>
+        </article>
+        <article>
+          <span>04</span>
+          <h3>Create admin account</h3>
+          <p>Set your password to create the organization and the owner admin account.</p>
+        </article>
+        <article>
+          <span>SA</span>
+          <h3>Secure creation</h3>
+          <p>Organizations are never created from public requests without approval.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="lead-right">
+      <div class="lead-card">
+        <div class="card-head">
+          <div>
+            <div class="card-kicker">Step 4 of 4</div>
+            <h2>Create your admin account</h2>
+          </div>
+          <div class="card-badge">Verified</div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="lead-form">
+          <div class="form-grid">
+            <label>
+              <span>Organization Name</span>
+              <input type="text" formControlName="organizationName" />
+            </label>
+
+            <label>
+              <span>Owner Email</span>
+              <input type="email" formControlName="workEmail" />
+            </label>
+
+            <label>
+              <span>Owner Name</span>
+              <input type="text" formControlName="ownerName" />
+            </label>
+
+            <label>
+              <span>Password</span>
+              <input type="password" formControlName="password" placeholder="Create a strong password" autocomplete="new-password" />
+              <small class="field-hint">Minimum 10 characters.</small>
+              <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('required')">Password is required.</small>
+              <small class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.hasError('minlength')">Password must be at least 10 characters.</small>
+            </label>
+
+            <label>
+              <span>Confirm Password</span>
+              <input type="password" formControlName="confirmPassword" placeholder="Repeat password" autocomplete="new-password" />
+              <small class="field-error" *ngIf="form.get('confirmPassword')?.touched && form.get('confirmPassword')?.hasError('required')">Confirm password is required.</small>
+              <small class="field-error" *ngIf="form.get('confirmPassword')?.touched && form.hasError('passwordMismatch')">Passwords do not match.</small>
+            </label>
+          </div>
+
+          <button type="submit" [disabled]="saving">
+            {{ saving ? 'Creating...' : 'Create Organization' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</ng-container>
+
+<ng-template #loadingState>
+  <section class="lead-shell">
+    <div class="lead-left">
+      <div class="brand-row">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <div class="brand-name">iM3HelpDesk</div>
+          <div class="brand-sub">Secure B2B onboarding</div>
+        </div>
+      </div>
+
+      <div class="lead-hero">
+        <div class="eyebrow">Verifying token</div>
+        <h1>Preparing secure setup</h1>
+        <p>Please wait while we verify your time-limited setup link.</p>
+      </div>
+    </div>
+
+    <div class="lead-right">
+      <div class="lead-card">
+        <div class="card-head">
+          <div>
+            <div class="card-kicker">Secure onboarding</div>
+            <h2>Verifying…</h2>
+          </div>
+          <div class="card-badge">Protected</div>
+        </div>
+
+        <div class="loading-panel">Verifying secure token...</div>
+      </div>
+    </div>
+  </section>
+</ng-template>

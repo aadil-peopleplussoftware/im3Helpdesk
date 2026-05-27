@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
+import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 
 @Component({
   selector: 'app-customer-portal',
@@ -32,6 +33,7 @@ export class CustomerPortalComponent
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private ticketMasterService = inject(TicketMasterService);
 
   myTickets: any[] = [];
   loading = true;
@@ -47,13 +49,26 @@ export class CustomerPortalComponent
     category: ['General']
   });
 
-  priorities = ['Low', 'Medium', 'High', 'Urgent'];
+  priorities: TicketMasterOption[] = [];
   categories = [
     'General', 'Technical', 'Billing', 'Account'
   ];
 
   ngOnInit() {
+    this.loadMasterOptions();
     this.loadMyTickets();
+  }
+
+  loadMasterOptions() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        this.priorities = data.ticketPriorities || [];
+        this.createForm.patchValue({
+          priority: this.priorities[0]?.value || 'Medium'
+        });
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadMyTickets() {

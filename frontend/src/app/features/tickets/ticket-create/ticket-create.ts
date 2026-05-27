@@ -10,6 +10,7 @@ import { AgentService } from '../../../core/services/agent';
 import { AgentGroupService } from '../../../core/services/agent-group';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 import { environment } from '../../../../environments/environment';
+import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 
 @Component({
   selector: 'app-ticket-create',
@@ -30,6 +31,7 @@ export class TicketCreateComponent implements OnInit {
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private ticketMasterService = inject(TicketMasterService);
 
   @ViewChild('descEditor') descEditorRef!: ElementRef;
 
@@ -45,18 +47,9 @@ export class TicketCreateComponent implements OnInit {
   customFields: any[] = [];
   customFieldValues: { [key: string]: string } = {};
 
-  ticketTypes = [
-    'Question', 'Incident', 'Problem', 'Feature Request',
-    'Request', 'Data', 'Customer Training', 'Backend Script',
-    'System Gap', 'Release', 'Information Only', 'On Hold'
-  ];
-
-  statuses = [
-    'Open', 'Pending', 'Resolved on Beta',
-    'Resolved', 'On Hold', 'Close'
-  ];
-
-  priorities = ['Low', 'Medium', 'High', 'Urgent'];
+  ticketTypes: TicketMasterOption[] = [];
+  statuses: TicketMasterOption[] = [];
+  priorities: TicketMasterOption[] = [];
 
   categories = [
     'General', 'Technical', 'Billing',
@@ -68,17 +61,36 @@ export class TicketCreateComponent implements OnInit {
     description: ['', Validators.required],
     category: ['General', Validators.required],
     priority: ['Medium', Validators.required],
-    ticketType: ['Question', Validators.required],
+    ticketType: ['Support', Validators.required],
     status: ['Open', Validators.required],
     assignedToUserId: [''],
     agentGroupId: ['']
   });
 
   ngOnInit() {
+    this.loadMasterOptions();
     this.loadAgents();
     this.loadGroups();
     this.loadTemplates();
     this.loadCustomFields();
+  }
+
+  loadMasterOptions() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        this.ticketTypes = data.ticketTypes || [];
+        this.statuses = data.ticketStatuses || [];
+        this.priorities = data.ticketPriorities || [];
+
+        this.form.patchValue({
+          ticketType: this.form.value.ticketType || this.ticketTypes[0]?.value || 'Support',
+          status: this.form.value.status || this.statuses[0]?.value || 'Open',
+          priority: this.form.value.priority || this.priorities[0]?.value || 'Medium'
+        });
+
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadAgents() {

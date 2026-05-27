@@ -246,6 +246,11 @@
           <app-custom-fields></app-custom-fields>
         </div>
 
+        <!-- Ticket Masters -->
+        <div *ngIf="activeTab === 'ticket-masters'">
+          <app-ticket-masters></app-ticket-masters>
+        </div>
+
         <!-- Integrations -->
         <div *ngIf="activeTab === 'integrations'">
           <app-integrations></app-integrations>

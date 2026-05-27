@@ -160,6 +160,17 @@
           </span>
           <span>Overview</span>
         </a>
+        <a class="nav-item" routerLink="/admin/leads" routerLinkActive="active">
+          <span class="nav-icon" data-im3-icon-color="primary">
+            <span class="icon-emoji">📩</span>
+            <span class="icon-fa"><i class="fa-solid fa-inbox"></i></span>
+            <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          </span>
+          <span>Leads</span>
+          <span class="badge" *ngIf="superAdminPendingLeadsCount > 0">
+            {{ superAdminPendingLeadsCount > 99 ? '99+' : superAdminPendingLeadsCount }}
+          </span>
+        </a>
         <a class="nav-item" routerLink="/admin/organizations" routerLinkActive="active">
           <span class="nav-icon" data-im3-icon-color="primary">
             <span class="icon-emoji">🏢</span>
@@ -228,92 +239,15 @@
     <div class="topbar">
       <button class="hamburger" (click)="sidebarOpen = !sidebarOpen">☰</button>
 
-      <div class="topbar-search" *ngIf="!isSuperAdmin && !isCustomer" (click)="$event.stopPropagation()">
-        <span class="ts-icon" data-im3-icon-color="primary">
-          <span class="icon-emoji">🔍</span>
-          <span class="icon-fa"><i class="fa-solid fa-magnifying-glass"></i></span>
-          <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+      <div class="topbar-context" *ngIf="!isSuperAdmin && !isCustomer">
+        <span class="tc-title">{{ activePageTitle }}</span>
+        <ng-container *ngIf="topbarCtx.suffix() as ctxSuffix">
+          <span class="tc-sep" *ngIf="ctxSuffix">›</span>
+          <span class="tc-suffix" *ngIf="ctxSuffix">{{ ctxSuffix }}</span>
+        </ng-container>
+        <span class="tc-badge" *ngIf="isTicketsSection && unresolvedMyCount > 0 && !topbarCtx.suffix()">
+          {{ unresolvedMyCount > 99 ? '99+' : unresolvedMyCount }}
         </span>
-        <input class="ts-input"
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearchQueryChange()"
-          (focus)="openSearchPanel()"
-          autocomplete="off"
-          placeholder="Search Tickets, Contacts, Users, Solutions"/>
-
-        <div class="search-dropdown" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
-
-          <div class="sd-top">
-            <button type="button" class="sd-tab" [class.active]="searchTab==='all'" (click)="setSearchTab('all')">All</button>
-            <button type="button" class="sd-tab" [class.active]="searchTab==='tickets'" (click)="setSearchTab('tickets')">Tickets</button>
-            <button type="button" class="sd-tab" [class.active]="searchTab==='contacts'" (click)="setSearchTab('contacts')">Contacts</button>
-            <button type="button" class="sd-tab" [class.active]="searchTab==='users'" (click)="setSearchTab('users')">Users</button>
-            <button type="button" class="sd-tab" [class.active]="searchTab==='solutions'" (click)="setSearchTab('solutions')">Solutions</button>
-          </div>
-
-          <!-- Empty state: show recents -->
-          <ng-container *ngIf="!searchQuery.trim()">
-            <div class="sd-section">
-              <div class="sd-sec-head">
-                <span>Recently searched</span>
-                <button type="button" class="sd-clear" *ngIf="recentSearches.length > 0" (click)="clearRecentSearches()">Clear</button>
-              </div>
-              <div class="sd-list">
-                <button type="button" class="sd-row" *ngFor="let s of recentSearches" (click)="applyRecentSearch(s)">
-                  <span class="sd-row-icon">🔎</span>
-                  <span class="sd-row-text">{{ s }}</span>
-                </button>
-                <div class="sd-empty" *ngIf="recentSearches.length === 0">No recent searches</div>
-              </div>
-            </div>
-
-            <div class="sd-divider"></div>
-
-            <div class="sd-section">
-              <div class="sd-sec-head">
-                <span>Recently viewed</span>
-                <button type="button" class="sd-clear" *ngIf="recentViewed.length > 0" (click)="clearRecentViewed()">Clear</button>
-              </div>
-              <div class="sd-list">
-                <button type="button" class="sd-item" *ngFor="let r of recentViewed" (click)="goToGlobalResult(r)">
-                  <span class="sd-icon">
-                    <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
-                    <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
-                    <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
-                    <ng-container *ngIf="r.type === 'article'">📚</ng-container>
-                  </span>
-                  <span class="sd-main">
-                    <span class="sd-title">{{ r.title }}</span>
-                    <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
-                  </span>
-                  <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
-                </button>
-                <div class="sd-empty" *ngIf="recentViewed.length === 0">No recently viewed items</div>
-              </div>
-            </div>
-          </ng-container>
-
-          <!-- Query state: show results -->
-          <ng-container *ngIf="searchQuery.trim()">
-            <div class="sd-loading" *ngIf="searchLoading">Searching...</div>
-            <div class="sd-empty" *ngIf="!searchLoading && filteredSearchResults.length === 0">No results found</div>
-
-            <button type="button" class="sd-item" *ngFor="let r of filteredSearchResults" (click)="goToGlobalResult(r)">
-              <span class="sd-icon">
-                <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
-                <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
-                <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
-                <ng-container *ngIf="r.type === 'article'">📚</ng-container>
-              </span>
-              <span class="sd-main">
-                <span class="sd-title">{{ r.title }}</span>
-                <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
-              </span>
-              <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
-            </button>
-          </ng-container>
-
-        </div>
       </div>
 
       <div class="customer-header" *ngIf="isCustomer">Support Portal Gateway</div>
@@ -322,6 +256,12 @@
         <span class="super-label">Platform Core Operations</span>
         <div class="super-nav">
           <a class="super-nav-item" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Overview</a>
+          <a class="super-nav-item" routerLink="/admin/leads" routerLinkActive="active">
+            Leads
+            <span class="super-nav-badge" *ngIf="superAdminPendingLeadsCount > 0">
+              {{ superAdminPendingLeadsCount > 99 ? '99+' : superAdminPendingLeadsCount }}
+            </span>
+          </a>
           <a class="super-nav-item" routerLink="/admin/organizations" routerLinkActive="active">Organizations</a>
           <a class="super-nav-item" routerLink="/admin/users" routerLinkActive="active">Users Ecosystem</a>
         </div>
@@ -343,6 +283,96 @@
           (click)="router.navigate(['/tickets/create'])">
           + {{ tr.t('newTicket') }}
         </button>
+
+        <div class="global-search-anchor" *ngIf="!isSuperAdmin && !isCustomer" (click)="$event.stopPropagation()">
+          <button type="button" class="gs-trigger" (click)="toggleSearchPanel($event)">
+            <svg class="gs-ic" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+            <span>Search</span>
+          </button>
+
+          <div class="search-dropdown search-popover" *ngIf="searchPanelOpen" (click)="$event.stopPropagation()">
+            <div class="sd-input-wrap">
+              <span class="ts-icon" data-im3-icon-color="primary">
+                <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+              </span>
+              <input #globalSearchInput class="ts-input"
+                [(ngModel)]="searchQuery"
+                (ngModelChange)="onSearchQueryChange()"
+                autocomplete="off"
+                placeholder="Search Tickets, Contacts, Users, Solutions"/>
+            </div>
+
+            <div class="sd-top">
+              <button type="button" class="sd-tab" [class.active]="searchTab==='all'" (click)="setSearchTab('all')">All</button>
+              <button type="button" class="sd-tab" [class.active]="searchTab==='tickets'" (click)="setSearchTab('tickets')">Tickets</button>
+              <button type="button" class="sd-tab" [class.active]="searchTab==='contacts'" (click)="setSearchTab('contacts')">Contacts</button>
+              <button type="button" class="sd-tab" [class.active]="searchTab==='users'" (click)="setSearchTab('users')">Users</button>
+              <button type="button" class="sd-tab" [class.active]="searchTab==='solutions'" (click)="setSearchTab('solutions')">Solutions</button>
+            </div>
+
+            <!-- Empty state: show recents -->
+            <ng-container *ngIf="!searchQuery.trim()">
+              <div class="sd-section">
+                <div class="sd-sec-head">
+                  <span>Recently searched</span>
+                  <button type="button" class="sd-clear" *ngIf="recentSearches.length > 0" (click)="clearRecentSearches()">Clear</button>
+                </div>
+                <div class="sd-list">
+                  <button type="button" class="sd-row" *ngFor="let s of recentSearches" (click)="applyRecentSearch(s)">
+                    <span class="sd-row-icon">🔎</span>
+                    <span class="sd-row-text">{{ s }}</span>
+                  </button>
+                  <div class="sd-empty" *ngIf="recentSearches.length === 0">No recent searches</div>
+                </div>
+              </div>
+
+              <div class="sd-divider"></div>
+
+              <div class="sd-section">
+                <div class="sd-sec-head">
+                  <span>Recently viewed</span>
+                  <button type="button" class="sd-clear" *ngIf="recentViewed.length > 0" (click)="clearRecentViewed()">Clear</button>
+                </div>
+                <div class="sd-list">
+                  <button type="button" class="sd-item" *ngFor="let r of recentViewed" (click)="goToGlobalResult(r)">
+                    <span class="sd-icon">
+                      <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
+                      <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
+                      <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
+                      <ng-container *ngIf="r.type === 'article'">📚</ng-container>
+                    </span>
+                    <span class="sd-main">
+                      <span class="sd-title">{{ r.title }}</span>
+                      <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
+                    </span>
+                    <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
+                  </button>
+                  <div class="sd-empty" *ngIf="recentViewed.length === 0">No recently viewed items</div>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- Query state: show results -->
+            <ng-container *ngIf="searchQuery.trim()">
+              <div class="sd-loading" *ngIf="searchLoading">Searching...</div>
+              <div class="sd-empty" *ngIf="!searchLoading && filteredSearchResults.length === 0">No results found</div>
+
+              <button type="button" class="sd-item" *ngFor="let r of filteredSearchResults" (click)="goToGlobalResult(r)">
+                <span class="sd-icon">
+                  <ng-container *ngIf="r.type === 'ticket'">🎫</ng-container>
+                  <ng-container *ngIf="r.type === 'contact'">👤</ng-container>
+                  <ng-container *ngIf="r.type === 'user'">🧑‍💼</ng-container>
+                  <ng-container *ngIf="r.type === 'article'">📚</ng-container>
+                </span>
+                <span class="sd-main">
+                  <span class="sd-title">{{ r.title }}</span>
+                  <span class="sd-sub" *ngIf="r.subtitle">{{ r.subtitle }}</span>
+                </span>
+                <span class="sd-meta" *ngIf="r.meta">{{ r.meta }}</span>
+              </button>
+            </ng-container>
+          </div>
+        </div>
 
         <div class="todo-trigger" *ngIf="!isSuperAdmin && !isCustomer" (click)="toggleTodoPanel()">
           <span class="trigger-icon" data-im3-icon-color="warning">
@@ -486,6 +516,8 @@
             </div>
             <span class="profile-incomplete-dot" *ngIf="profileCompletion < 100"
               title="Profile {{ profileCompletion }}% complete — click to finish setup"></span>
+            <span class="smtp-incomplete-dot" *ngIf="isCompanyAdmin && smtpSetupChecked && smtpSetupIncomplete"
+              title="Workspace email setup incomplete — click Profile to finish"></span>
           </div>
           <div class="profile-dropdown" *ngIf="showProfileDropdown" (click)="$event.stopPropagation()">
             <div class="profile-header">
@@ -507,6 +539,19 @@
                 <div class="pcb-fill" [style.width.%]="profileCompletion"></div>
               </div>
               <p class="pcb-hint">Click to complete your profile</p>
+            </div>
+
+            <div class="profile-completion-banner"
+              *ngIf="isCompanyAdmin && smtpSetupChecked && smtpSetupIncomplete"
+              (click)="goToMailboxOnboarding()">
+              <div class="pcb-top">
+                <div class="pcb-label">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+                  <span>Workspace email setup</span>
+                </div>
+                <div class="pcb-pct">Action</div>
+              </div>
+              <p class="pcb-hint">Complete SMTP/IMAP to enable email-to-ticket</p>
             </div>
             <div class="profile-link-item" (click)="goToMainSettings()">
               <span class="profile-link-icon" data-im3-icon-color="primary">

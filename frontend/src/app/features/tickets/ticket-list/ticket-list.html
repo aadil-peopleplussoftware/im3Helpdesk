@@ -27,6 +27,10 @@
             (click)="setLayout('card')"
             title="Card">☰</button>
           <button class="lb"
+            [class.active]="currentLayout==='status'"
+            (click)="setLayout('status')"
+            title="Status Board">◫</button>
+          <button class="lb"
             [class.active]="currentLayout==='table'"
             (click)="setLayout('table')"
             title="Table">⊞</button>
@@ -44,9 +48,16 @@
             Columns ▾
           </button>
           <div class="col-dropdown"
-            *ngIf="showColumnPicker">
+            *ngIf="showColumnPicker"
+            cdkDropList
+            [cdkDropListData]="allColumns"
+            (cdkDropListDropped)="onColumnDrop($event)">
             <div class="col-item"
-              *ngFor="let c of allColumns">
+              *ngFor="let c of allColumns;
+                trackBy: trackColumn"
+              cdkDrag>
+              <span class="drag-handle"
+                cdkDragHandle>⋮⋮</span>
               <label>
                 <input type="checkbox"
                   [checked]="isColumnVisible(c.id)"
@@ -132,8 +143,17 @@
             (ngModelChange)="applyFilters()">
             <option value="">All Status</option>
             <option *ngFor="let s of statusOptions"
-              [value]="s">{{ s }}</option>
+              [value]="s.value">{{ s.label }}</option>
           </select>
+        </div>
+        <div class="filter-group check-group">
+          <label>Closed Tickets</label>
+          <label class="check-inline">
+            <input type="checkbox"
+              [(ngModel)]="filters.includeClosed"
+              (ngModelChange)="applyFilters()"/>
+            Include closed in list
+          </label>
         </div>
         <div class="filter-group">
           <label>Priority</label>
@@ -142,7 +162,7 @@
             (ngModelChange)="applyFilters()">
             <option value="">All Priority</option>
             <option *ngFor="let p of priorityOptions"
-              [value]="p">{{ p }}</option>
+              [value]="p.value">{{ p.label }}</option>
           </select>
         </div>
         <div class="filter-group">
@@ -287,6 +307,57 @@
       </div>
     </div>
 
+    <!-- STATUS BOARD VIEW -->
+    <div class="status-board"
+      *ngIf="!loading && tickets.length > 0
+        && currentLayout === 'status'">
+      <div class="status-col"
+        *ngFor="let status of statusBoardColumns">
+        <div class="status-head"
+          [style.borderColor]="getStatusColor(status)">
+          <span class="status-title">{{ status }}</span>
+          <span class="status-count">
+            {{ getTicketsForStatus(status).length }}
+          </span>
+        </div>
+
+        <div class="status-drop-zone"
+          [id]="getStatusDropListId(status)"
+          cdkDropList
+          [cdkDropListData]="getTicketsForStatus(status)"
+          [cdkDropListConnectedTo]="statusDropListIds"
+          (cdkDropListDropped)="onStatusDrop($event, status)">
+
+          <div class="status-ticket"
+            *ngFor="let t of getTicketsForStatus(status)"
+            cdkDrag
+            [cdkDragData]="t">
+            <div class="st-top">
+              <span class="t-num">#TN{{ t.ticketNumber }}</span>
+              <span class="priority-chip"
+                [style.background]="
+                  getPriorityColor(t.priority) + '15'"
+                [style.color]="
+                  getPriorityColor(t.priority)">
+                {{ t.priority }}
+              </span>
+            </div>
+
+            <div class="st-title"
+              (click)="viewTicket(t.id)">
+              {{ t.title }}
+            </div>
+
+            <div class="st-meta">
+              <span>{{ t.assignedTo || 'Unassigned' }}</span>
+              <span class="sep">·</span>
+              <span>{{ getTimeAgo(t.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TABLE VIEW -->
     <div class="table-wrap"
       *ngIf="!loading && tickets.length > 0
@@ -302,39 +373,15 @@
               (click)="sortBy_('ticketNumber')">
               # {{ getSortIcon('ticketNumber') }}
             </th>
-            <th class="sort-th title-th"
-              (click)="sortBy_('title')">
-              Title {{ getSortIcon('title') }}
-            </th>
-            <th *ngIf="isColumnVisible('status')"
-              class="sort-th"
-              (click)="sortBy_('status')">
-              Status {{ getSortIcon('status') }}
-            </th>
-            <th *ngIf="isColumnVisible('priority')"
-              class="sort-th"
-              (click)="sortBy_('priority')">
-              Priority {{ getSortIcon('priority') }}
-            </th>
-            <th *ngIf="isColumnVisible('category')">
-              Category
-            </th>
-            <th *ngIf="isColumnVisible('assignedTo')">
-              Assigned
-            </th>
-            <th *ngIf="isColumnVisible('ticketType')">
-              Type
-            </th>
-            <th *ngIf="isColumnVisible('tags')">
-              Tags
-            </th>
-            <th *ngIf="isColumnVisible('sla')">
-              SLA
-            </th>
-            <th *ngIf="isColumnVisible('createdAt')"
-              class="sort-th"
-              (click)="sortBy_('createdAt')">
-              Date {{ getSortIcon('createdAt') }}
+            <th *ngFor="let c of visibleColumnDefs;
+                trackBy: trackColumn"
+              [class.sort-th]="isSortableColumn(c.id)"
+              [class.title-th]="c.id === 'title'"
+              (click)="onColumnHeaderClick(c.id)">
+              {{ c.label }}
+              <span *ngIf="isSortableColumn(c.id)">
+                {{ getSortIcon(c.id) }}
+              </span>
             </th>
           </tr>
         </thead>
@@ -350,59 +397,73 @@
             <td class="num-cell">
               #TN{{ t.ticketNumber }}
             </td>
-            <td class="title-cell">
-              {{ t.title }}
-            </td>
-            <td *ngIf="isColumnVisible('status')">
-              <span class="status-badge"
-                [style.background]="
-                  getStatusColor(t.status) + '20'"
-                [style.color]="
-                  getStatusColor(t.status)">
-                {{ t.status }}
-              </span>
-            </td>
-            <td *ngIf="isColumnVisible('priority')">
-              <span class="priority-chip"
-                [style.background]="
-                  getPriorityColor(t.priority)+'15'"
-                [style.color]="
-                  getPriorityColor(t.priority)">
-                {{ t.priority }}
-              </span>
-            </td>
-            <td *ngIf="isColumnVisible('category')">
-              {{ t.category }}
-            </td>
-            <td *ngIf="isColumnVisible('assignedTo')">
-              {{ t.assignedTo || '—' }}
-            </td>
-            <td *ngIf="isColumnVisible('ticketType')">
-              {{ t.ticketType }}
-            </td>
-            <td *ngIf="isColumnVisible('tags')">
-              <ng-container
-                *ngIf="t.tags && t.tags.trim()">
-                <span class="tag-pill"
-                  *ngFor="let tag of
-                    getTagsArr(t.tags)">
-                  {{ tag }}
+            <td *ngFor="let c of visibleColumnDefs;
+                trackBy: trackColumn"
+              [class.title-cell]="c.id === 'title'"
+              [ngSwitch]="c.id">
+              <ng-container *ngSwitchCase="'title'">
+                {{ t.title }}
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'status'">
+                <span class="status-badge"
+                  [style.background]="
+                    getStatusColor(t.status) + '20'"
+                  [style.color]="
+                    getStatusColor(t.status)">
+                  {{ t.status }}
                 </span>
               </ng-container>
-              <span
-                *ngIf="!t.tags ||
-                  !t.tags.trim()">—</span>
-            </td>
-            <td *ngIf="isColumnVisible('sla')">
-              <span *ngIf="t.slaStatus"
-                [style.color]="
-                  getSlaColor(t.slaStatus)">
-                {{ t.slaStatus }}
-              </span>
-            </td>
-            <td *ngIf="isColumnVisible('createdAt')">
-              {{ t.createdAt
-                | date:'dd MMM yy':'Asia/Kolkata' }}
+
+              <ng-container *ngSwitchCase="'priority'">
+                <span class="priority-chip"
+                  [style.background]="
+                    getPriorityColor(t.priority)+'15'"
+                  [style.color]="
+                    getPriorityColor(t.priority)">
+                  {{ t.priority }}
+                </span>
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'category'">
+                {{ t.category }}
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'assignedTo'">
+                {{ t.assignedTo || '—' }}
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'ticketType'">
+                {{ t.ticketType }}
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'tags'">
+                <ng-container
+                  *ngIf="t.tags && t.tags.trim()">
+                  <span class="tag-pill"
+                    *ngFor="let tag of
+                      getTagsArr(t.tags)">
+                    {{ tag }}
+                  </span>
+                </ng-container>
+                <span *ngIf="!t.tags || !t.tags.trim()">
+                  —
+                </span>
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'sla'">
+                <span *ngIf="t.slaStatus"
+                  [style.color]="
+                    getSlaColor(t.slaStatus)">
+                  {{ t.slaStatus }}
+                </span>
+                <span *ngIf="!t.slaStatus">—</span>
+              </ng-container>
+
+              <ng-container *ngSwitchCase="'createdAt'">
+                {{ t.createdAt
+                  | date:'dd MMM yy':'Asia/Kolkata' }}
+              </ng-container>
             </td>
           </tr>
         </tbody>

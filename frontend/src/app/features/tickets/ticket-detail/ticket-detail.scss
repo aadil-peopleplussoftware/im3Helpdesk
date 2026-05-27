@@ -1164,3 +1164,1001 @@
     font-size: 13px;
   }
 }
+
+
+/* ------------------------------------------
+   IMAGE 1 � Title + Email Card refinements
+------------------------------------------ */
+.fd-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--fd-text);
+  margin: 8px 4px 4px;
+
+  .fd-mail-ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    background: var(--fd-accent-light, #e0eaff);
+    color: var(--fd-accent, #2563eb);
+    border-radius: 8px;
+    font-size: 18px;
+  }
+  .fd-title-txt { line-height: 1.3; }
+  .fd-status-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--ui-color-primary-soft, #e0eaff);
+    color: var(--fd-accent, #2563eb);
+    text-transform: capitalize;
+  }
+}
+
+.fd-email-card .ec-header {
+  align-items: flex-start;
+  gap: 10px;
+}
+.fd-email-card .ec-info {
+  flex: 1;
+  min-width: 0;
+}
+.ec-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--fd-sub);
+
+  .ec-name {
+    color: var(--fd-accent, #2563eb);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .ec-via {
+    color: var(--fd-sub);
+    font-style: normal;
+  }
+  .ec-dot { color: var(--fd-muted); }
+  .ec-time { color: var(--fd-sub); font-style: italic; }
+}
+.ec-to-row {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fd-accent, #2563eb);
+  .ec-to-lbl { color: var(--fd-sub); margin-right: 6px; }
+  .ec-to-val { word-break: break-all; }
+  .ec-cc-lbl { margin-left: 12px; }
+  .ec-cc-val { color: var(--fd-text); }
+}
+
+/* ------------------------------------------
+   IMAGE 2 � Private Note v2 (peach background)
+------------------------------------------ */
+.fd-note.v2 {
+  display: flex;
+  gap: 10px;
+  margin: 8px 0;
+
+  .fn-av-col { flex: 0 0 auto; padding-top: 4px; }
+  .fn-av {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .fn-card {
+    flex: 1;
+    background: #fff4e0;
+    border: 1px solid #f6d8a8;
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--fd-text);
+  }
+  .fn-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--fd-sub);
+
+    .fn-name {
+      color: var(--fd-accent, #2563eb);
+      font-weight: 600;
+    }
+    .fn-label { color: var(--fd-text); }
+    .fn-dot { color: var(--fd-muted); }
+    .fn-time { font-style: italic; }
+  }
+  .fn-notified {
+    margin-top: 6px;
+    font-size: 12px;
+    .fn-nt-lbl { font-weight: 600; color: var(--fd-text); margin-right: 4px; }
+    .fn-nt-val { color: var(--fd-accent, #2563eb); }
+  }
+  .fn-body {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fd-text);
+    word-break: break-word;
+  }
+}
+
+/* ------------------------------------------
+   IMAGE 3 / 4 � Composer header rows (From/To/Cc/Bcc)
+------------------------------------------ */
+.fdc-hdr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--fd-border);
+  font-size: 13px;
+
+  &.focus-row .fdc-fwd-input {
+    border: 1px solid var(--fd-accent, #2563eb);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+
+  .fdc-hdr-lbl {
+    width: 46px;
+    flex: 0 0 46px;
+    color: var(--fd-sub);
+    font-weight: 500;
+  }
+  .fdc-hdr-val {
+    flex: 1;
+    color: var(--fd-text);
+    word-break: break-all;
+
+    &.readonly {
+      color: var(--fd-text);
+      font-weight: 500;
+    }
+    .fdc-hdr-email {
+      color: var(--fd-sub);
+      font-weight: 400;
+      margin-left: 4px;
+    }
+  }
+  .fdc-hdr-right {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;
+  }
+  .fdc-link {
+    color: var(--fd-accent, #2563eb);
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.fdc-chip-wrap {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.fdc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--ui-color-bg-subtle, #eef2ff);
+  border: 1px solid var(--fd-border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--fd-text);
+
+  button {
+    border: 0;
+    background: transparent;
+    color: var(--fd-sub);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    &:hover { color: #ef4444; }
+  }
+}
+.fdc-chip-input {
+  flex: 1;
+  min-width: 160px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--fd-text);
+}
+
+.fdc-greet {
+  padding: 12px 14px 0;
+  font-size: 13px;
+  color: var(--fd-text);
+}
+
+.fdc-fwd-input {
+  flex: 1;
+  border: 1px solid var(--fd-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  background: var(--ui-color-bg-surface, #fff);
+  color: var(--fd-text);
+}
+
+.fdc-saved {
+  font-size: 12px;
+  color: var(--fd-sub);
+  margin-right: 10px;
+}
+
+/* ------------------------------------------
+   Button loading spinner (Send / Update / Forward)
+------------------------------------------ */
+@keyframes fdSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: fdSpin 0.7s linear infinite;
+}
+
+.fds-update-btn,
+.fdc-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+
+  .btn-label { display: inline-flex; align-items: center; }
+
+  &.is-loading {
+    cursor: progress;
+    opacity: 0.92;
+  }
+}
+
+/* Slightly tighter peach note card */
+.fd-note.v2 .fn-card {
+  background: linear-gradient(180deg, #fff8ec 0%, #fff2dd 100%);
+  border-color: #f1cf95;
+  box-shadow: 0 1px 0 rgba(241, 207, 149, 0.18);
+}
+.fd-note.v2 .fn-body { font-size: 13.5px; }
+.fd-note.v2 .fn-header .fn-name { letter-spacing: 0.1px; }
+
+/* Smoother conversation cards */
+.fd-convo {
+  gap: 10px;
+}
+
+.fd-reply {
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.fd-reply:hover {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* Subtle entrance for new items */
+.fd-reply,
+.fd-note.v2 {
+  animation: fdFadeIn 0.18s ease-out;
+}
+@keyframes fdFadeIn {
+  from { opacity: 0; transform: translateY(2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SMOOTH POLISH OVERRIDES — bring the page closer to the
+   reference design (Image 1). Visual-only refinements, layered
+   on top of the existing rules so the rest stays intact.
+════════════════════════════════════════════════════════════ */
+
+/* Page background — soft warm tint */
+.td-page {
+  background:
+    radial-gradient(1100px 360px at 90% -8%,
+      rgba(99, 102, 241, 0.05) 0%,
+      transparent 60%),
+    var(--fd-bg);
+}
+
+/* Layout — a touch more breathing room between main + sidebar */
+.fd-layout {
+  gap: 18px;
+}
+.fd-main { gap: 12px; }
+
+/* ── Action bar — pill-style chips, soft shadow ── */
+.fd-action-bar {
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(15, 23, 42, 0.02);
+  padding: 11px 16px;
+}
+.fd-ticket-num {
+  background: var(--ui-color-bg-subtle);
+  color: var(--ui-color-text-primary);
+  letter-spacing: 0.3px;
+  border: 1px solid var(--fd-border);
+}
+.fd-status-badge {
+  font-size: 11.5px;
+  padding: 3px 11px;
+  letter-spacing: 0.2px;
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: 6px;
+    vertical-align: 1px;
+    opacity: 0.85;
+  }
+}
+.ab-back {
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  &:hover { background: var(--ui-color-bg-subtle); text-decoration: none; }
+}
+.ab-del {
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+/* ── Title — tighter, softer ── */
+.fd-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+  margin: 2px 4px 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fd-mail-ic {
+  width: 32px; height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary);
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+/* ── Email + reply cards — premium card feel ── */
+.fd-email-card,
+.fd-reply {
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(15, 23, 42, 0.02);
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.fd-email-card:hover,
+.fd-reply:hover {
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.06),
+    0 1px 0 rgba(15, 23, 42, 0.02);
+  border-color: var(--ui-color-border);
+}
+
+.ec-header,
+.fr-header {
+  padding: 14px 18px;
+}
+.ec-body,
+.fr-body {
+  padding: 16px 18px 18px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+/* Sender name like the reference (primary tone) */
+.ec-name,
+.fr-name {
+  color: var(--ui-color-text-primary);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.ec-via,
+.fr-via,
+.ec-dot,
+.fr-time,
+.ec-time {
+  color: var(--fd-muted);
+}
+
+/* ── Note card — already polished; tighten paddings ── */
+.fd-note.v2 {
+  margin: 4px 0 2px;
+  .fn-card {
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+}
+
+/* ── Conversation — smoother stack ── */
+.fd-convo { gap: 12px; }
+
+/* ── Sidebar polish ── */
+.fd-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fds-card {
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(15, 23, 42, 0.02);
+}
+.fds-card-title {
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  padding: 11px 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--fd-border);
+  color: var(--ui-color-text-primary);
+  opacity: 0.78;
+}
+.fds-grp {
+  padding: 10px 16px;
+}
+.fds-lbl {
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  margin-bottom: 6px;
+}
+.fds-sel {
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:focus {
+    border-color: var(--ui-color-primary);
+    box-shadow: 0 0 0 3px var(--ui-color-primary-soft);
+  }
+}
+
+/* Tag pills — softer, pill-shaped */
+.fds-tag {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary);
+  border: 1px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+  &:hover { border-color: var(--ui-color-primary); }
+  button { font-size: 13px; line-height: 1; }
+}
+.fds-tag-in {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.fds-tag-btn {
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: var(--ui-color-primary);
+  transition: background 0.15s, transform 0.1s;
+  &:hover { background: var(--ui-color-primary-hover); }
+  &:active { transform: translateY(1px); }
+}
+
+/* ── Update button — premium green-style primary ── */
+.fds-update-btn {
+  margin: 14px 14px 16px;
+  width: calc(100% - 28px);
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.25px;
+  background: linear-gradient(180deg,
+    var(--ui-color-primary) 0%,
+    var(--ui-color-primary-hover) 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.18s ease,
+    filter 0.15s ease;
+  &:hover:not(:disabled) {
+    filter: brightness(1.04);
+    box-shadow:
+      0 4px 12px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  &:active:not(:disabled) { transform: translateY(1px); }
+}
+
+/* SLA chip — bolder pill */
+.fds-sla-chip {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+
+/* ── Composer — smoother shell ── */
+.fd-reply-composer,
+.fdc-shell,
+.fdc-wrap {
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+/* Composer send buttons — match primary gradient */
+.fdc-send {
+  background: linear-gradient(180deg,
+    var(--ui-color-primary) 0%,
+    var(--ui-color-primary-hover) 100%);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.18s;
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow:
+      0 4px 12px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  &:active:not(:disabled) { transform: translateY(1px); }
+}
+
+/* Cancel button as subtle ghost */
+.fdc-cancel {
+  background: transparent;
+  border: 1px solid var(--fd-border);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  color: var(--fd-text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  &:hover { background: var(--ui-color-bg-subtle); }
+}
+
+/* Recent activity timeline — subtle hover */
+.fds-tl-item {
+  transition: background 0.15s;
+  &:hover { background: var(--ui-color-bg-subtle); }
+}
+
+/* Better focus rings everywhere */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[contenteditable]:focus-visible {
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+/* Soft scrollbars inside the page */
+.fd-main,
+.fd-sidebar {
+  scrollbar-width: thin;
+}
+
+/* ════════════════════════════════════════════════════════════
+   COLLAPSED COMPOSER (one-liner) — expands on click
+════════════════════════════════════════════════════════════ */
+.fdc-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 14px;
+  background: var(--fd-white);
+  cursor: text;
+  border-top: 1px solid var(--fd-border);
+}
+
+.fdc-collapsed-input {
+  flex: 1;
+  background: var(--ui-color-bg-subtle);
+  border: 1px solid var(--fd-border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  color: var(--fd-text);
+  outline: none;
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+
+  &::placeholder { color: var(--fd-muted); }
+
+  &:hover {
+    background: var(--ui-color-bg-surface);
+    border-color: var(--ui-color-border);
+  }
+  &:focus {
+    background: var(--ui-color-bg-surface);
+    border-color: var(--ui-color-primary);
+    box-shadow: 0 0 0 3px var(--ui-color-primary-soft);
+  }
+}
+
+.fdc-collapsed-send {
+  width: 40px; height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg,
+    var(--ui-color-primary) 0%,
+    var(--ui-color-primary-hover) 100%);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.18s;
+
+  &:hover {
+    filter: brightness(1.05);
+    box-shadow:
+      0 4px 12px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  &:active { transform: translateY(1px); }
+}
+
+/* When composer is collapsed, soften the tabs row */
+.fd-composer .fdc-tabs {
+  border-bottom: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PRIVATE NOTE — refinement (matches reference: peach card,
+   floating actions on the right, clean header line)
+════════════════════════════════════════════════════════════ */
+.fd-note.v2 {
+  .fn-card {
+    position: relative;
+    padding-right: 96px; /* room for floating action buttons */
+  }
+
+  /* Floating edit/delete action buttons (when present) */
+  .fn-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(2px);
+    border: 1px solid #f1cf95;
+    border-radius: 8px;
+    padding: 2px;
+
+    button {
+      width: 26px; height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--fd-sub);
+      font-size: 13px;
+      transition: background 0.15s, color 0.15s;
+      &:hover {
+        background: #fff;
+        color: var(--fd-text);
+      }
+    }
+  }
+
+  .fn-header {
+    padding: 0;
+    background: transparent;
+    margin-bottom: 4px;
+
+    .fn-name {
+      color: var(--ui-color-primary);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .fn-label {
+      color: var(--fd-text);
+      font-weight: 500;
+    }
+    .fn-time {
+      color: var(--fd-muted);
+      font-style: italic;
+      font-size: 12.5px;
+    }
+  }
+
+  .fn-notified {
+    margin-top: 4px;
+    font-size: 12.5px;
+    .fn-nt-lbl { color: var(--fd-text); font-weight: 600; }
+    .fn-nt-val { color: var(--ui-color-primary); font-weight: 500; }
+  }
+
+  .fn-body {
+    margin-top: 12px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--fd-text);
+
+    p { margin: 0 0 6px; }
+    p:last-child { margin-bottom: 0; }
+    a { color: var(--ui-color-primary); text-decoration: underline; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   NOTE (private/internal) — same shape as Reply, peach color
+   Applied via `.fd-reply.is-note` modifier on the existing
+   `.fd-reply` card so reply / note / forward share layout.
+════════════════════════════════════════════════════════════ */
+.fd-reply.is-note {
+  background: linear-gradient(180deg, #fff8ec 0%, #fff2dd 100%);
+  border-color: #f1cf95;
+  border-left: 4px solid var(--ui-color-warning, #f0a500);
+  box-shadow:
+    0 1px 2px rgba(241, 207, 149, 0.25),
+    0 1px 0 rgba(241, 207, 149, 0.18);
+
+  &:hover {
+    box-shadow:
+      0 4px 16px rgba(241, 207, 149, 0.35),
+      0 1px 0 rgba(241, 207, 149, 0.2);
+  }
+
+  .fr-header {
+    border-bottom: 1px dashed rgba(241, 207, 149, 0.6);
+    background: transparent;
+  }
+
+  .fr-name.note-name {
+    color: var(--ui-color-primary);
+    font-weight: 700;
+  }
+
+  .fr-note-lbl {
+    color: var(--fd-text);
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  .fr-via,
+  .fr-time {
+    color: var(--fd-sub);
+  }
+
+  .fr-notified {
+    color: var(--ui-color-primary);
+    font-weight: 600;
+  }
+
+  .fr-body {
+    color: var(--fd-text);
+    background: transparent;
+  }
+}
+
+/* Note action buttons (edit / delete) — visible within 1h only */
+.fr-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid #f1cf95;
+  border-radius: 8px;
+  padding: 2px;
+  backdrop-filter: blur(2px);
+}
+
+.fr-act-btn {
+  width: 26px; height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fd-sub);
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+
+  &:hover {
+    background: #fff;
+    color: var(--fd-text);
+  }
+  &:active { transform: translateY(1px); }
+
+  &.danger:hover {
+    background: var(--ui-color-danger-bg);
+    color: var(--ui-color-danger);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Reply / Note recipient meta-row (To / Cc / Bcc / Notified-to)
+   Mirrors the inbound email's `.ec-to-row` styling so the
+   conversation tells you *who* received each message.
+════════════════════════════════════════════════════════════ */
+.fr-recipients {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 16px 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fd-sub);
+
+  .fr-rec-lbl {
+    color: var(--fd-sub);
+    font-weight: 600;
+    margin-right: 2px;
+  }
+
+  .fr-rec-val {
+    color: var(--fd-text);
+    word-break: break-word;
+    margin-right: 8px;
+  }
+
+  &.is-note-rec {
+    color: #8a5a00;
+    .fr-rec-lbl { color: #8a5a00; }
+    .fr-rec-val { color: var(--ui-color-primary); font-weight: 600; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   Action-bar viewer badge — red round count with hover tooltip
+   Replaces the old avatar stack. Sits to the right of Delete.
+════════════════════════════════════════════════════════════ */
+.fd-viewers-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  height: 30px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: help;
+  box-shadow:
+    0 1px 2px rgba(220, 38, 38, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.12s ease, box-shadow 0.18s ease;
+  white-space: pre-line;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 6px 16px rgba(220, 38, 38, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .vb-eye { font-size: 13px; line-height: 1; }
+  .vb-count { line-height: 1; }
+}
+
+/* System-created ticket gets a different icon tile color */
+.fd-mail-ic.is-system {
+  background: var(--ui-color-info-soft, #e0f2fe);
+  color: var(--ui-color-info, #0284c7);
+}
+
+/* Clickable avatar / name → contacts page */
+.ec-av.is-clickable,
+.fr-av.is-clickable,
+.ec-name.is-clickable,
+.fr-name.is-clickable {
+  cursor: pointer;
+  transition: transform 0.12s ease, color 0.15s ease, box-shadow 0.18s ease;
+}
+.ec-av.is-clickable:hover,
+.fr-av.is-clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+.ec-name.is-clickable:hover,
+.fr-name.is-clickable:hover {
+  color: var(--ui-color-primary);
+  text-decoration: underline;
+}
+.ec-av.is-clickable:focus-visible,
+.fr-av.is-clickable:focus-visible,
+.ec-name.is-clickable:focus-visible,
+.fr-name.is-clickable:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   Title row → Delete + viewer badge live on the right side
+   (replaces the removed `.fd-action-bar`).
+════════════════════════════════════════════════════════════ */
+.fd-title {
+  align-items: center;
+  justify-content: flex-start;
+
+  .fd-title-txt {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .fd-title-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+}
+
+/* Compact viewer count pill (no eye icon, just the number) */
+.fd-viewers-badge {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 12px;
+  justify-content: center;
+  .vb-count { font-size: 13px; font-weight: 800; }
+}
+
+
+
+
+

@@ -46,10 +46,10 @@ public class EscalationService : IEscalationService
       ticket.IsSlaBreached = true;
       ticket.SlaStatus = "Breached";
 
-      if (ticket.CreatedBy != null)
+      if (ticket.CreatedBy != null && ticket.CreatedByUserId.HasValue)
       {
         await notifService.CreateAsync(
-            ticket.CreatedByUserId,
+            ticket.CreatedByUserId.Value,
             ticket.OrganizationId,
             "SLA Breached",
             $"Ticket '{ticket.Title}' SLA has been breached!",

@@ -409,6 +409,27 @@ $red-bg:      var(--ui-color-danger-bg);
   line-height: 1;
 }
 
+/*
+  Fix: When user selects Awesome icon style globally,
+  global CSS hides `.app-shell svg.im3-icon`, which also
+  blanks the settings preview cards (they use SVG).
+  Keep previews visible regardless of current global style.
+*/
+:host-context(body[data-im3-icon-style='awesome']) .icon-style-preview svg.im3-icon,
+:host-context(body[data-im3-icon-style='awesome-colorful']) .icon-style-preview svg.im3-icon,
+:host-context(body[data-im3-icon-style='emoji']) .icon-style-preview svg.im3-icon {
+  display: inline-flex !important;
+}
+
+:host-context(body[data-im3-icon-style='awesome']) .icon-style-preview .icon-style-fa,
+:host-context(body[data-im3-icon-style='awesome-colorful']) .icon-style-preview .icon-style-fa {
+  display: inline-block !important;
+}
+
+:host-context(body[data-im3-icon-style='emoji']) .icon-style-preview .icon-style-emoji {
+  display: inline-block !important;
+}
+
 /* ── Toggle Row ── */
 .toggle-item {
   display: flex;

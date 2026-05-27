@@ -120,8 +120,8 @@
             <div class="prop-field">
               <label>Type</label>
               <select class="form-select" formControlName="ticketType">
-                <option *ngFor="let t of ticketTypes" [value]="t">
-                  {{ t }}
+                <option *ngFor="let t of ticketTypes" [value]="t.value">
+                  {{ t.label }}
                 </option>
               </select>
             </div>
@@ -129,8 +129,8 @@
             <div class="prop-field">
               <label>Status</label>
               <select class="form-select" formControlName="status">
-                <option *ngFor="let s of statuses" [value]="s">
-                  {{ s }}
+                <option *ngFor="let s of statuses" [value]="s.value">
+                  {{ s.label }}
                 </option>
               </select>
             </div>
@@ -138,8 +138,8 @@
             <div class="prop-field">
               <label>Priority</label>
               <select class="form-select" formControlName="priority">
-                <option *ngFor="let p of priorities" [value]="p">
-                  {{ p }}
+                <option *ngFor="let p of priorities" [value]="p.value">
+                  {{ p.label }}
                 </option>
               </select>
             </div>

@@ -10,6 +10,11 @@ import {
   ActivatedRoute
 } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import {
+  CdkDragDrop,
+  DragDropModule,
+  moveItemInArray
+} from '@angular/cdk/drag-drop';
 import { ToastrService } from 'ngx-toastr';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -17,6 +22,7 @@ import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
+import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 
 
 @Component({
@@ -26,6 +32,7 @@ import { environment } from '../../../../environments/environment';
     CommonModule,
     FormsModule,
     RouterModule,
+    DragDropModule,
     LayoutComponent
   ],
   templateUrl: './ticket-list.html',
@@ -41,12 +48,13 @@ export class TicketListComponent
   private toastr = inject(ToastrService);
   public cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
+  private ticketMasterService = inject(TicketMasterService);
   private destroy$ = new Subject<void>();
 
   allTickets: any[] = [];
   tickets: any[] = [];
   loading = true;
-  currentLayout: 'card' | 'table' | 'grid' =
+  currentLayout: 'card' | 'table' | 'grid' | 'status' =
     (localStorage.getItem('ticketLayout') as any) || 'card';
   showFilters = false;
   showColumnPicker = false;
@@ -55,6 +63,7 @@ export class TicketListComponent
 
   filters = {
     status: '',
+    includeClosed: false,
     priority: '',
     category: '',
     assignedTo: '',
@@ -63,18 +72,25 @@ export class TicketListComponent
     dateTo: ''
   };
 
+  statusBoardColumns = ['Open', 'InProgress', 'Pending', 'Resolved', 'Closed'];
+
+  statusDropListIds = this.statusBoardColumns
+    .map(s => this.getStatusDropListId(s));
+
   sortBy = 'createdAt';
   sortDir = 'desc';
 
-  visibleColumns: string[] = (() => {
-    const saved = localStorage.getItem('ticketColumns');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return ['title', 'status', 'priority', 'assignedTo', 'createdAt', 'sla'];
-  })();
-
-  allColumns = [
+  private readonly columnVisibilityKey = 'ticketColumns';
+  private readonly columnOrderKey = 'ticketColumnOrder';
+  private readonly defaultVisibleColumns = [
+    'title',
+    'status',
+    'priority',
+    'assignedTo',
+    'createdAt',
+    'sla'
+  ];
+  private readonly defaultColumns = [
     { id: 'title', label: 'Title' },
     { id: 'status', label: 'Status' },
     { id: 'priority', label: 'Priority' },
@@ -86,17 +102,36 @@ export class TicketListComponent
     { id: 'createdAt', label: 'Date' }
   ];
 
-  statusOptions = [
-    'Open', 'InProgress', 'Pending',
-    'Resolved', 'Closed'
-  ];
+  visibleColumns: string[] = this.loadVisibleColumns();
 
-  priorityOptions = [
-    'Low', 'Medium', 'High', 'Critical'
-  ];
+  allColumns = this.loadColumnOrder();
+
+  visibleColumnDefs = this.computeVisibleColumnDefs();
+
+  statusOptions: TicketMasterOption[] = [];
+  priorityOptions: TicketMasterOption[] = [];
 
   ngOnInit() {
+    this.loadMasterOptions();
     this.loadTickets();
+  }
+
+  loadMasterOptions() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        this.statusOptions = data.ticketStatuses || [];
+        this.priorityOptions = data.ticketPriorities || [];
+
+        const boardStatuses = this.statusOptions.map(x => x.value);
+        if (boardStatuses.length > 0) {
+          this.statusBoardColumns = boardStatuses;
+          this.statusDropListIds = this.statusBoardColumns
+            .map(s => this.getStatusDropListId(s));
+        }
+
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -129,10 +164,17 @@ export class TicketListComponent
 
   applyFilters() {
     let result = [...this.allTickets];
+    const hasSearch =
+      this.filters.search.trim().length > 0;
+    const includeClosed =
+      this.filters.includeClosed || hasSearch;
 
     if (this.filters.status)
       result = result.filter(t =>
         t.status === this.filters.status);
+    else if (!includeClosed)
+      result = result.filter(t =>
+        t.status !== 'Closed');
 
     if (this.filters.priority)
       result = result.filter(t =>
@@ -193,6 +235,7 @@ export class TicketListComponent
   clearFilters() {
     this.filters = {
       status: '',
+      includeClosed: false,
       priority: '',
       category: '',
       assignedTo: '',
@@ -249,14 +292,88 @@ export class TicketListComponent
   }
 
   // ✅ Layout save
-  setLayout(layout: 'card' | 'table' | 'grid') {
+  setLayout(layout: 'card' | 'table' | 'grid' | 'status') {
     this.currentLayout = layout;
     localStorage.setItem('ticketLayout', layout);
     this.cdr.markForCheck();
   }
 
+  getStatusDropListId(status: string): string {
+    return `status-col-${status.toLowerCase()}`;
+  }
+
+  getTicketsForStatus(status: string): any[] {
+    return this.tickets.filter(t => t.status === status);
+  }
+
+  onStatusDrop(
+    event: CdkDragDrop<any[]>,
+    status: string
+  ) {
+    const movedTicket = event.item?.data;
+    if (!movedTicket || movedTicket.status === status) {
+      return;
+    }
+
+    const previousStatus = movedTicket.status;
+
+    // Optimistic UI update for smoother drag-drop UX.
+    movedTicket.status = status;
+    this.applyFilters();
+
+    this.http.put(
+      `${environment.apiUrl}/Tickets/${movedTicket.id}/status`,
+      { status }
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        Promise.resolve().then(() =>
+          this.toastr.success(
+            `#TN${movedTicket.ticketNumber} moved to ${status}`
+          )
+        );
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        movedTicket.status = previousStatus;
+        this.applyFilters();
+        Promise.resolve().then(() =>
+          this.toastr.error('Status change failed')
+        );
+      }
+    });
+  }
+
   isColumnVisible(colId: string): boolean {
     return this.visibleColumns.includes(colId);
+  }
+
+  trackColumn(_: number, col: { id: string }): string {
+    return col.id;
+  }
+
+  onColumnDrop(event: CdkDragDrop<Array<{ id: string; label: string }>>) {
+    if (event.previousIndex === event.currentIndex) {
+      return;
+    }
+
+    moveItemInArray(this.allColumns, event.previousIndex, event.currentIndex);
+    this.persistColumnOrder();
+    this.syncVisibleColumnDefs();
+    this.cdr.markForCheck();
+  }
+
+  isSortableColumn(colId: string): boolean {
+    return colId === 'title'
+      || colId === 'status'
+      || colId === 'priority'
+      || colId === 'createdAt';
+  }
+
+  onColumnHeaderClick(colId: string) {
+    if (!this.isSortableColumn(colId)) {
+      return;
+    }
+    this.sortBy_(colId);
   }
 
   toggleColumn(colId: string) {
@@ -267,10 +384,75 @@ export class TicketListComponent
     } else {
       this.visibleColumns.push(colId);
     }
-    // ✅ Save columns to localStorage
-    localStorage.setItem('ticketColumns',
-      JSON.stringify(this.visibleColumns));
+    this.persistVisibleColumns();
+    this.syncVisibleColumnDefs();
     this.cdr.markForCheck();
+  }
+
+  private loadVisibleColumns(): string[] {
+    const validIds = new Set(this.defaultColumns.map(c => c.id));
+    const saved = localStorage.getItem(this.columnVisibilityKey);
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const normalized = parsed.filter(
+            (colId): colId is string => typeof colId === 'string' && validIds.has(colId)
+          );
+
+          if (normalized.length > 0) {
+            return normalized;
+          }
+        }
+      } catch {}
+    }
+
+    return [...this.defaultVisibleColumns];
+  }
+
+  private loadColumnOrder(): Array<{ id: string; label: string }> {
+    const saved = localStorage.getItem(this.columnOrderKey);
+    const lookup = new Map(this.defaultColumns.map(col => [col.id, col]));
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const idsInOrder = parsed.filter(
+            (colId): colId is string => typeof colId === 'string' && lookup.has(colId)
+          );
+
+          const missingIds = this.defaultColumns
+            .map(col => col.id)
+            .filter(id => !idsInOrder.includes(id));
+
+          return [...idsInOrder, ...missingIds]
+            .map(id => lookup.get(id) as { id: string; label: string });
+        }
+      } catch {}
+    }
+
+    return [...this.defaultColumns];
+  }
+
+  private computeVisibleColumnDefs(): Array<{ id: string; label: string }> {
+    return this.allColumns.filter(col => this.visibleColumns.includes(col.id));
+  }
+
+  private syncVisibleColumnDefs() {
+    this.visibleColumnDefs = this.computeVisibleColumnDefs();
+  }
+
+  private persistVisibleColumns() {
+    localStorage.setItem(this.columnVisibilityKey, JSON.stringify(this.visibleColumns));
+  }
+
+  private persistColumnOrder() {
+    localStorage.setItem(
+      this.columnOrderKey,
+      JSON.stringify(this.allColumns.map(col => col.id))
+    );
   }
 
   getTagsArr(tags: string): string[] {

@@ -122,6 +122,7 @@ public class CalendarEventsController : ControllerBase
     var org = await _context.Organizations
         .AsNoTracking()
         .FirstOrDefaultAsync(o => o.Id == orgId);
+        var organizationId = org?.Id ?? orgId.Value;
 
     var ev = new iM3Helpdesk.Domain.Entities.CalendarEvent
     {
@@ -154,7 +155,8 @@ public class CalendarEventsController : ControllerBase
       await SendInviteEmailsAsync(
           ev, attendees,
           creator.FullName,
-          org?.Name ?? "iM3 Helpdesk");
+          org?.Name ?? "iM3 Helpdesk",
+          organizationId);
     }
 
     return Ok(ev);
@@ -213,6 +215,7 @@ public class CalendarEventsController : ControllerBase
         .FirstOrDefaultAsync(u => u.Id == userId);
     var org = await _context.Organizations.AsNoTracking()
         .FirstOrDefaultAsync(o => o.Id == _tenant.OrganizationId);
+        var organizationId = org?.Id ?? _tenant.OrganizationId;
 
     if (newAttendees.Any() && creator != null && dateChanged)
     {
@@ -226,7 +229,7 @@ public class CalendarEventsController : ControllerBase
           {
             await _emailService.SendCalendarEventUpdatedAsync(
                 email, name, ev.Title, ev.StartDate,
-                "updated", org?.Name ?? "iM3 Helpdesk");
+                "updated", org?.Name ?? "iM3 Helpdesk", organizationId);
           }
           catch { }
         });
@@ -243,7 +246,7 @@ public class CalendarEventsController : ControllerBase
       await SendInviteEmailsAsync(
           ev, brandNewAttendees,
           creator.FullName,
-          org?.Name ?? "iM3 Helpdesk");
+          org?.Name ?? "iM3 Helpdesk", organizationId);
     }
 
     return Ok(ev);
@@ -267,6 +270,7 @@ public class CalendarEventsController : ControllerBase
     var attendees = ParseAttendees(ev.AttendeeEmails);
     var org = await _context.Organizations.AsNoTracking()
         .FirstOrDefaultAsync(o => o.Id == _tenant.OrganizationId);
+        var organizationId = org?.Id ?? _tenant.OrganizationId;
 
     if (attendees.Any())
     {
@@ -279,7 +283,7 @@ public class CalendarEventsController : ControllerBase
           {
             await _emailService.SendCalendarEventUpdatedAsync(
                 email, name, ev.Title, ev.StartDate,
-                "cancelled", org?.Name ?? "iM3 Helpdesk");
+                "cancelled", org?.Name ?? "iM3 Helpdesk", organizationId);
           }
           catch { }
         });
@@ -344,6 +348,7 @@ public class CalendarEventsController : ControllerBase
 
     var org = await _context.Organizations.AsNoTracking()
         .FirstOrDefaultAsync(o => o.Id == _tenant.OrganizationId);
+        var organizationId = org?.Id ?? _tenant.OrganizationId;
 
     var orgName = org?.Name ?? "iM3 Helpdesk";
 
@@ -370,7 +375,8 @@ public class CalendarEventsController : ControllerBase
             ev.StartDate,
             ev.ReminderMinutes ?? 30,
             ticketNumber,
-            orgName);
+            orgName, 
+            organizationId);
       }
       catch { }
     }
@@ -391,7 +397,8 @@ public class CalendarEventsController : ControllerBase
               ev.StartDate,
               ev.ReminderMinutes ?? 30,
               ticketNumber,
-              orgName);
+              orgName,
+              organizationId);
         }
         catch { }
       });
@@ -415,7 +422,8 @@ public class CalendarEventsController : ControllerBase
       iM3Helpdesk.Domain.Entities.CalendarEvent ev,
       List<string> attendeeEmails,
       string organizerName,
-      string orgName)
+      string orgName,
+      Guid? organizationId)
   {
     foreach (var email in attendeeEmails)
     {
@@ -433,7 +441,8 @@ public class CalendarEventsController : ControllerBase
               ev.StartDate,
               ev.EndDate,
               organizerName,
-              orgName);
+              orgName,
+              organizationId);
         }
         catch { }
       });

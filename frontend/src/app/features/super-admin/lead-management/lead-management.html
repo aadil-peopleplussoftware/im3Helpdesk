@@ -1,0 +1,160 @@
+<app-layout>
+  <div class="lm-page">
+
+    <!-- Header -->
+    <div class="lm-header">
+      <div class="lm-header-left">
+        <div>
+          <h1 class="lm-title">Leads</h1>
+          <p class="lm-subtitle">Admin-approved organization onboarding requests</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Chips -->
+    <div class="lm-summary" *ngIf="!loading">
+      <button type="button" class="lm-chip shield" [class.active]="statusFilter==='all'" (click)="setStatusFilter('all')">
+        <span class="chip-num">{{ summary.total }}</span>
+        <span class="chip-label">All</span>
+      </button>
+      <button type="button" class="lm-chip pending" [class.active]="statusFilter==='pending'" (click)="setStatusFilter('pending')">
+        <span class="chip-num">{{ summary.pending }}</span>
+        <span class="chip-label">Pending</span>
+      </button>
+      <button type="button" class="lm-chip secure" [class.active]="statusFilter==='approved'" (click)="setStatusFilter('approved')">
+        <span class="chip-num">{{ summary.approved }}</span>
+        <span class="chip-label">Approved</span>
+      </button>
+      <button type="button" class="lm-chip danger" [class.active]="statusFilter==='rejected'" (click)="setStatusFilter('rejected')">
+        <span class="chip-num">{{ summary.rejected }}</span>
+        <span class="chip-label">Rejected</span>
+      </button>
+      <button type="button" class="lm-chip shield" [class.active]="statusFilter==='completed'" (click)="setStatusFilter('completed')">
+        <span class="chip-num">{{ summary.completed }}</span>
+        <span class="chip-label">Completed</span>
+      </button>
+      <div class="lm-chip shield">
+        <span class="chip-num">24h</span>
+        <span class="chip-label">Token expiry</span>
+      </div>
+      <div class="lm-chip secure">
+        <span class="chip-num">SA</span>
+        <span class="chip-label">Super admin only</span>
+      </div>
+    </div>
+
+    <!-- Last generated link banner -->
+    <div class="lm-link-banner" *ngIf="lastGeneratedSetupUrl">
+      <div class="lm-link-left">
+        <div class="lm-link-title">Setup link generated</div>
+        <div class="lm-link-sub">For: {{ lastGeneratedFor }}</div>
+        <div class="lm-link-url">{{ lastGeneratedSetupUrl }}</div>
+      </div>
+      <div class="lm-link-actions">
+        <button type="button" class="lm-btn" (click)="copyLastLink()">Copy link</button>
+        <a class="lm-btn primary" [href]="lastGeneratedSetupUrl" target="_blank" rel="noopener noreferrer">Open</a>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="lm-filter-row">
+      <div class="lm-search">
+        <span class="lm-s-icon">🔍</span>
+        <input
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="applyFilter()"
+          placeholder="Search by org, owner, email, phone or notes..."
+          class="lm-s-input"/>
+        <button class="lm-s-clear"
+          *ngIf="searchQuery"
+          type="button"
+          (click)="searchQuery=''; applyFilter()">✕</button>
+      </div>
+
+      <button class="lm-clear-btn"
+        *ngIf="searchQuery"
+        type="button"
+        (click)="clearFilters()">✕ Clear</button>
+
+      <span class="lm-count-label">
+        {{ filteredLeads.length }} leads
+      </span>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="lm-loading">
+      <div class="lm-spinner"></div>
+      <p>Loading leads...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="lm-table-wrap" *ngIf="!loading">
+
+      <div class="lm-empty" *ngIf="filteredLeads.length === 0">
+        <div class="lm-empty-icon">📩</div>
+        <p>No leads match the current filter</p>
+        <button class="lm-clear-btn" type="button" *ngIf="searchQuery" (click)="clearFilters()">Clear Filter</button>
+      </div>
+
+      <table class="lm-table" *ngIf="filteredLeads.length > 0">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Owner</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Notes</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th class="center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lead of filteredLeads" class="lm-row">
+            <td>
+              <div class="lm-org-cell">
+                <div class="lm-org-dot"></div>
+                <span class="lm-org-name">{{ lead.organizationName }}</span>
+              </div>
+            </td>
+            <td class="lm-owner">{{ lead.ownerName }}</td>
+            <td class="lm-email">{{ lead.workEmail }}</td>
+            <td class="lm-phone">{{ lead.phone || '—' }}</td>
+            <td class="lm-notes">{{ lead.notes || '—' }}</td>
+            <td>
+              <span class="lm-status" [class]="'lm-status ' + getStatusClass(lead.status)">
+                {{ getStatusLabel(lead.status) }}
+              </span>
+            </td>
+            <td class="lm-date">{{ lead.createdAt | date:'dd MMM yyyy' }}</td>
+            <td class="center">
+              <ng-container *ngIf="lead.status === LeadStatus.Pending; else noAction">
+                <div class="lm-actions">
+                  <button
+                    type="button"
+                    class="lm-approve-btn"
+                    [disabled]="approvingId === lead.id || rejectingId === lead.id"
+                    (click)="approve(lead)">
+                    {{ approvingId === lead.id ? 'Approving...' : 'Approve' }}
+                  </button>
+
+                  <button
+                    type="button"
+                    class="lm-reject-btn"
+                    [disabled]="approvingId === lead.id || rejectingId === lead.id"
+                    (click)="reject(lead)">
+                    {{ rejectingId === lead.id ? 'Rejecting...' : 'Reject' }}
+                  </button>
+                </div>
+              </ng-container>
+              <ng-template #noAction>
+                <span class="lm-no-action">—</span>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</app-layout>

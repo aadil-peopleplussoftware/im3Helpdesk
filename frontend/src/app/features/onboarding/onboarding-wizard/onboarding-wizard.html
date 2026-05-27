@@ -1,126 +1,161 @@
-<div class="onboarding-shell">
-  <section class="setup-panel">
-    <header class="setup-header">
-      <div class="brand-mark">iM3</div>
+<section class="lead-shell">
+  <div class="lead-left">
+    <div class="brand-row">
+      <div class="brand-icon">⚡</div>
       <div>
-        <h1>Set up your helpdesk</h1>
-        <p>Connect the support mailbox that will create tickets for this organization.</p>
+        <div class="brand-name">iM3HelpDesk</div>
+        <div class="brand-sub">Workspace onboarding</div>
       </div>
-    </header>
-
-    <div class="steps">
-      <button type="button" class="step-pill" [class.active]="currentStep === 1">
-        <span>1</span>
-        Organization
-      </button>
-      <button type="button" class="step-pill" [class.active]="currentStep === 2">
-        <span>2</span>
-        Mailbox
-      </button>
     </div>
 
-    <form
-      *ngIf="currentStep === 1"
-      [formGroup]="step1Form"
-      (ngSubmit)="goToMailStep()"
-      class="step-form">
-      <div class="form-grid">
-        <div class="logo-block">
-          <div class="logo-preview">
-            <img *ngIf="logoPreview" [src]="logoPreview" alt="Organization logo"/>
-            <span *ngIf="!logoPreview">HQ</span>
+    <div class="lead-hero">
+      <div class="eyebrow">First login setup</div>
+      <h1>Connect your support mailbox</h1>
+      <p>
+        Set your organization support email and optionally connect SMTP/IMAP.
+        You can skip mailbox setup and complete it later from your Profile.
+      </p>
+    </div>
+
+    <div class="feature-grid">
+      <article>
+        <span>01</span>
+        <h3>Organization details</h3>
+        <p>Support email + branding only. Organization name is already set.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Mailbox (optional)</h3>
+        <p>Configure SMTP/IMAP to enable email-to-ticket and outbound notifications.</p>
+      </article>
+      <article>
+        <span>AD</span>
+        <h3>Admin only reminder</h3>
+        <p>If skipped, only the admin sees a reminder to complete it.</p>
+      </article>
+      <article>
+        <span>OK</span>
+        <h3>Finish anytime</h3>
+        <p>You can return later and complete mailbox settings securely.</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="lead-right">
+    <div class="lead-card">
+      <div class="card-head">
+        <div>
+          <div class="card-kicker">Step {{ currentStep }} of 2</div>
+          <h2>{{ currentStep === 1 ? 'Organization settings' : 'Mailbox settings' }}</h2>
+        </div>
+        <div class="card-badge" *ngIf="orgName">{{ orgName }}</div>
+        <div class="card-badge" *ngIf="!orgName">Secure</div>
+      </div>
+
+      <div class="steps">
+        <button type="button" class="step-pill" [class.active]="currentStep === 1">
+          <span>1</span>
+          Organization
+        </button>
+        <button type="button" class="step-pill" [class.active]="currentStep === 2">
+          <span>2</span>
+          Mailbox
+        </button>
+      </div>
+
+      <form
+        *ngIf="currentStep === 1"
+        [formGroup]="step1Form"
+        (ngSubmit)="goToMailStep()"
+        class="lead-form">
+        <div class="form-grid">
+          <div class="logo-block">
+            <div class="logo-preview">
+              <img *ngIf="logoPreview" [src]="logoPreview" alt="Organization logo"/>
+              <span *ngIf="!logoPreview">HQ</span>
+            </div>
+            <label class="upload-action">
+              Upload logo
+              <input type="file" hidden accept="image/*" (change)="onLogoSelect($event)"/>
+            </label>
           </div>
-          <label class="upload-action">
-            Upload logo
-            <input type="file" hidden accept="image/*" (change)="onLogoSelect($event)"/>
+
+          <label>
+            <span>Support email</span>
+            <input type="email" formControlName="supportEmail" placeholder="support@company.com"/>
+            <small class="field-hint">Incoming emails to this address will become tickets.</small>
+          </label>
+
+          <label>
+            <span>Brand color</span>
+            <input type="color" formControlName="brandColor"/>
           </label>
         </div>
 
-        <label class="field">
-          <span>Company name</span>
-          <input type="text" formControlName="companyName" placeholder="Acme Support"/>
+        <button type="submit" [disabled]="step1Form.invalid">Next</button>
+      </form>
+
+      <form
+        *ngIf="currentStep === 2"
+        [formGroup]="step2Form"
+        (ngSubmit)="finish()"
+        class="lead-form">
+        <div class="form-grid">
+          <label>
+            <span>SMTP host</span>
+            <input type="text" formControlName="smtpHost" placeholder="smtp.gmail.com"/>
+          </label>
+
+          <label>
+            <span>SMTP port</span>
+            <input type="number" formControlName="smtpPort" min="1"/>
+          </label>
+
+          <label>
+            <span>From email</span>
+            <input type="email" formControlName="smtpFromEmail"/>
+          </label>
+
+          <label>
+            <span>From name</span>
+            <input type="text" formControlName="smtpFromName" placeholder="Support"/>
+          </label>
+
+          <label>
+            <span>Mailbox username</span>
+            <input type="email" formControlName="smtpUsername"/>
+          </label>
+
+          <label>
+            <span>App password</span>
+            <input type="password" formControlName="smtpPassword" autocomplete="new-password"/>
+          </label>
+
+          <label>
+            <span>IMAP host</span>
+            <input type="text" formControlName="imapHost" placeholder="imap.gmail.com"/>
+          </label>
+
+          <label>
+            <span>IMAP port</span>
+            <input type="number" formControlName="imapPort" min="1"/>
+          </label>
+        </div>
+
+        <label class="toggle-row">
+          <input type="checkbox" formControlName="emailPollingEnabled"/>
+          <span>Enable email-to-ticket polling</span>
         </label>
 
-        <label class="field">
-          <span>Support email</span>
-          <input type="email" formControlName="supportEmail" placeholder="support@company.com"/>
-          <small>Incoming emails to this address will become support tickets.</small>
-        </label>
-
-        <label class="field color-field">
-          <span>Brand color</span>
-          <input type="color" formControlName="brandColor"/>
-          <strong [style.background]="step1Form.value.brandColor"></strong>
-        </label>
-      </div>
-
-      <footer class="actions">
-        <button type="submit" class="primary-action" [disabled]="step1Form.invalid">
-          Next
+        <button type="submit" [disabled]="step2Form.invalid || loading">
+          {{ loading ? 'Saving...' : 'Save & Finish' }}
         </button>
-      </footer>
-    </form>
 
-    <form
-      *ngIf="currentStep === 2"
-      [formGroup]="step2Form"
-      (ngSubmit)="finish()"
-      class="step-form">
-      <div class="mail-grid">
-        <label class="field">
-          <span>SMTP host</span>
-          <input type="text" formControlName="smtpHost" placeholder="smtp.gmail.com"/>
-        </label>
-
-        <label class="field compact">
-          <span>SMTP port</span>
-          <input type="number" formControlName="smtpPort" min="1"/>
-        </label>
-
-        <label class="field">
-          <span>From email</span>
-          <input type="email" formControlName="smtpFromEmail"/>
-        </label>
-
-        <label class="field">
-          <span>From name</span>
-          <input type="text" formControlName="smtpFromName" placeholder="Acme Support"/>
-        </label>
-
-        <label class="field">
-          <span>Mailbox username</span>
-          <input type="email" formControlName="smtpUsername"/>
-        </label>
-
-        <label class="field">
-          <span>App password</span>
-          <input type="password" formControlName="smtpPassword" autocomplete="new-password"/>
-        </label>
-
-        <label class="field">
-          <span>IMAP host</span>
-          <input type="text" formControlName="imapHost" placeholder="imap.gmail.com"/>
-        </label>
-
-        <label class="field compact">
-          <span>IMAP port</span>
-          <input type="number" formControlName="imapPort" min="1"/>
-        </label>
-      </div>
-
-      <label class="toggle-row">
-        <input type="checkbox" formControlName="emailPollingEnabled"/>
-        <span>Enable email-to-ticket polling for this organization</span>
-      </label>
-
-      <footer class="actions split">
-        <button type="button" class="secondary-action" (click)="currentStep = 1">
-          Back
-        </button>
-        <button type="submit" class="primary-action" [disabled]="step2Form.invalid || loading">
-          {{ loading ? 'Saving...' : 'Done' }}
-        </button>
-      </footer>
-    </form>
-  </section>
-</div>
+        <div class="alt-actions">
+          <button type="button" class="link-btn" (click)="currentStep = 1">Back</button>
+          <button type="button" class="link-btn" (click)="skipMailbox()">Skip for now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

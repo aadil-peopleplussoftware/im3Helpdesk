@@ -43,8 +43,8 @@
         <div class="form-group">
           <label>Type</label>
           <select formControlName="ticketType" class="form-sel">
-            <option *ngFor="let t of ticketTypes" [value]="t">
-              {{ t }}
+            <option *ngFor="let t of ticketTypes" [value]="t.value">
+              {{ t.label }}
             </option>
           </select>
         </div>
@@ -52,8 +52,8 @@
         <div class="form-group">
           <label>Status</label>
           <select formControlName="status" class="form-sel">
-            <option *ngFor="let s of statuses" [value]="s">
-              {{ s }}
+            <option *ngFor="let s of statuses" [value]="s.value">
+              {{ s.label }}
             </option>
           </select>
         </div>
@@ -61,8 +61,8 @@
         <div class="form-group">
           <label>Priority</label>
           <select formControlName="priority" class="form-sel">
-            <option *ngFor="let p of priorities" [value]="p">
-              {{ p }}
+            <option *ngFor="let p of priorities" [value]="p.value">
+              {{ p.label }}
             </option>
           </select>
         </div>

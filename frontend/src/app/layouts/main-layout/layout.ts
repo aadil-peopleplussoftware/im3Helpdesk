@@ -1,7 +1,9 @@
 // (cleaned up: file now starts with imports only)
 import {
   Component, OnInit, OnDestroy, AfterViewInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef, inject,
+  ViewChild,
+  ElementRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -15,7 +17,8 @@ import {
   catchError,
   debounceTime,
   distinctUntilChanged,
-  switchMap
+  switchMap,
+  filter
 } from 'rxjs/operators';
 import { AuthService } from '../../features/auth/auth.service';
 import { TodoPanelComponent } from '../../features/todo/todo-panel/todo-panel';
@@ -24,6 +27,7 @@ import { TranslationService } from '../../core/services/translation'; // ✅ ADD
 import { environment } from '../../../environments/environment';
 import { GlobalCallNotificationService } from '../../core/services/global-call-notification.service';
 import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
+import { TopbarContextService } from '../../core/services/topbar-context.service';
 
 @Component({
   selector: 'app-layout',
@@ -39,6 +43,8 @@ import { GlobalCallPopupComponent } from '../../shared/components/global-call-po
   styleUrls: ['./layout.scss']
 })
 export class LayoutComponent implements OnInit, OnDestroy {
+  @ViewChild('globalSearchInput')
+  globalSearchInput?: ElementRef<HTMLInputElement>;
   public showProfileDropdown = false;
   public keyboardShortcutsEnabled = true;
 
@@ -51,6 +57,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.showProfileDropdown = !this.showProfileDropdown;
     if (this.showProfileDropdown) {
+      if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
       setTimeout(() => {
         window.addEventListener('click', this.closeProfileDropdown, { once: true });
         window.addEventListener('keydown', this.handleProfileDropdownEsc, { once: true });
@@ -93,13 +100,17 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private chatService    = inject(ChatService);
   private globalCallSvc  = inject(GlobalCallNotificationService);
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
-
+  public  topbarCtx      = inject(TopbarContextService);
   isSidebarCollapsed = (() => {
     const saved = localStorage.getItem('im3_sidebar_collapsed');
     // Freshdesk-style compact sidebar by default (only when user has never chosen).
     if (saved === null) return true;
     return saved === 'true';
   })();
+
+  isCompanyAdmin = false;
+  smtpSetupIncomplete = false;
+  smtpSetupChecked = false;
   chatUnreadCount    = 0;
   missedCallCount    = 0;
   userName           = '';
@@ -123,6 +134,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   searchLoading = false;
 
   searchTab: 'all' | 'tickets' | 'contacts' | 'users' | 'solutions' = 'all';
+
+  activePageTitle = 'Dashboard';
+  activePageKey: 'dashboard' | 'tickets' | 'contacts' | 'chat' | 'todo' | 'kb' | 'agents' | 'notifications' | 'calendar' | 'reports' | 'settings' | 'other' = 'dashboard';
 
   private search$ = new Subject<string>();
   private searchData: any = null;
@@ -179,6 +193,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   profileCompletion = 100;
 
+  superAdminPendingLeadsCount = 0;
+
   // ──────────────────────────────────────────────
   // Todo
   // ──────────────────────────────────────────────
@@ -221,7 +237,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   refreshHeaderCounts() {
-    if (this.isSuperAdmin) return;
+    if (this.isSuperAdmin) {
+      this.loadSuperAdminPendingLeadsCount();
+      return;
+    }
 
     // Topbar modules exist only for internal users.
     if (!this.isCustomer) {
@@ -234,6 +253,20 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     // Ticket counts are useful for both internal users and customers.
     this.loadMyTicketCounts();
+  }
+
+  private loadSuperAdminPendingLeadsCount() {
+    // Avoid depending on /admin/leads/summary (may not exist on older backends).
+    // Use the list endpoint and compute pending count.
+    this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).subscribe({
+      next: (rows) => {
+        const list = Array.isArray(rows) ? rows : [];
+        // Backend stores numeric enum values; 0 == Pending.
+        this.superAdminPendingLeadsCount = list.filter(x => x?.status === 0).length;
+        this.cdr.detectChanges();
+      },
+      error: () => {}
+    });
   }
 
   // ──────────────────────────────────────────────
@@ -389,6 +422,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.userRole = this.authService.getUserRole();
     this.isSuperAdmin = this.userRole === 'SuperAdmin';
     this.isCustomer = this.userRole === 'Customer';
+    this.isCompanyAdmin = this.userRole === 'CompanyAdmin';
 
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
@@ -426,15 +460,88 @@ export class LayoutComponent implements OnInit, OnDestroy {
     });
 
     this.loadProfile();
+    if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
     this.loadNotifications();
     this.refreshHeaderCounts();
 
     this.loadSearchRecents();
     this.initSearchPipeline();
 
+    this.updateActivePageFromUrl(this.router.url);
+    this.router.events
+      .pipe(
+        filter((e: any) => e?.constructor?.name === 'NavigationEnd'),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.updateActivePageFromUrl(this.router.url);
+      });
+
     // Live counters (near real-time) without full page reload.
     interval(15000).pipe(takeUntil(this.destroy$)).subscribe(() => this.refreshHeaderCounts());
   }
+
+  private loadMailboxSetupStatus() {
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+      next: (org) => {
+        const smtpPasswordSet = Boolean(org?.smtpPasswordSet);
+        const complete = Boolean(
+          org?.smtpHost &&
+          org?.smtpPort &&
+          org?.smtpFromEmail &&
+          org?.smtpUsername &&
+          smtpPasswordSet &&
+          org?.imapHost &&
+          org?.imapPort
+        );
+        this.smtpSetupIncomplete = !complete;
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  goToMailboxOnboarding() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/onboarding']);
+    this.cdr.detectChanges();
+  }
+  private updateActivePageFromUrl(url: string) {
+    const clean = (url || '').split('?')[0] || '';
+    const first = clean.split('/').filter(Boolean)[0] || 'dashboard';
+
+    const map: any = {
+      dashboard: { key: 'dashboard', title: 'Dashboard' },
+      tickets: { key: 'tickets', title: 'Tickets' },
+      contacts: { key: 'contacts', title: 'Contacts' },
+      chat: { key: 'chat', title: 'Chat' },
+      todo: { key: 'todo', title: 'To Do' },
+      kb: { key: 'kb', title: 'Solutions' },
+      agents: { key: 'agents', title: 'Team' },
+      notifications: { key: 'notifications', title: 'Notifications' },
+      calendar: { key: 'calendar', title: 'Calendar' },
+      reports: { key: 'reports', title: 'Reports' },
+      settings: { key: 'settings', title: 'Settings' }
+    };
+
+    const m = map[first] || { key: 'other', title: 'Dashboard' };
+    this.activePageKey = m.key;
+    this.activePageTitle = m.title;
+    this.cdr.detectChanges();
+  }
+
+  get isTicketsSection(): boolean {
+    return this.activePageKey === 'tickets';
+  }
+
+  get unresolvedMyCount(): number {
+    return (this.myTicketCounts.open || 0) + (this.myTicketCounts.inProgress || 0) + (this.myTicketCounts.pending || 0);
+  }
+
 
   ngAfterViewInit() {
     // Enable transitions after initial paint to avoid
@@ -587,6 +694,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       window.addEventListener('keydown', this.handleSearchEsc, { once: true });
     });
     this.cdr.detectChanges();
+  }
+
+  toggleSearchPanel(event?: MouseEvent) {
+    if (event) event.stopPropagation();
+    if (this.searchPanelOpen) {
+      this.closeSearchPanel();
+      return;
+    }
+    this.openSearchPanel();
+    setTimeout(() => {
+      try { this.globalSearchInput?.nativeElement?.focus(); } catch {}
+    }, 0);
   }
 
   closeSearchPanel = () => {

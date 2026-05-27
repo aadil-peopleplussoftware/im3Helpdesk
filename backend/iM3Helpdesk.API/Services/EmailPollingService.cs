@@ -59,7 +59,8 @@ public class EmailPollingService : BackgroundService
 
       try
       {
-        await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+        // Poll every 30 seconds for near-real-time ticket creation / replies.
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
       }
       catch (OperationCanceledException) { break; }
     }
@@ -314,31 +315,25 @@ public class EmailPollingService : BackgroundService
         ?? 1000;
     var nameTag = MakeTag(fromName);
 
-    // âœ… FIX: customer removed, use CompanyAdmin as system actor
-    var systemUser = await context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u =>
-            u.OrganizationId == org.Id &&
-            u.Role == UserRole.CompanyAdmin, ct);
-
-    if (systemUser == null)
-    {
-      _logger.LogWarning(
-          "No CompanyAdmin found for org {O} â€” cannot create ticket",
-          org.Name);
-      return;
-    }
+    // ── Capture inbound Cc recipients (exclude own org addresses + sender) ──
+    var inboundCc = ExtractExternalCc(message, fromEmail, org);
 
     var ticket = new Ticket
     {
       Title = subject,
       Description = description,
+      FromEmail = fromEmail,
+      FromName = fromName,
+      CcEmails = inboundCc.Count > 0 ? string.Join(",", inboundCc) : null,
+      InboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty),
       Category = "General",
       Priority = TicketPriority.Medium,
       Status = TicketStatus.Open,
       TicketType = "Support",
       OrganizationId = org.Id,
-      CreatedByUserId = systemUser.Id, // âœ… CompanyAdmin as system actor
+      // ✅ Email-originated ticket: no registered user → CreatedByUserId is null.
+      //    Sender identity is preserved in FromEmail + FromName.
+      CreatedByUserId = null,
       Tags = $"email,support-email,{nameTag}",
       SlaDeadline = DateTime.UtcNow.AddHours(24),
       SlaStatus = "OnTrack",
@@ -355,6 +350,18 @@ public class EmailPollingService : BackgroundService
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
   }
 
+  /// <summary>
+  /// Locate an existing ticket for an inbound message using RFC-5322 threading
+  /// headers first, then fallback heuristics. Does NOT require the sender
+  /// to have a User record — email-originated tickets never have one.
+  ///
+  /// Resolution order:
+  ///   1. In-Reply-To matches Ticket.InboundMessageId or a TicketComment.EmailMessageId
+  ///   2. Any Message-Id from References matches the same
+  ///   3. Subject contains explicit #TN&lt;number&gt; tag
+  ///   4. Sender email matches Ticket.FromEmail on a recent (30 days) non-closed ticket
+  ///   5. Registered user (UI-submitted tickets) on a recent non-closed ticket
+  /// </summary>
   private async Task<Guid?> FindExistingTicketAsync(
       MimeMessage message,
       Guid orgId,
@@ -362,11 +369,69 @@ public class EmailPollingService : BackgroundService
       ApplicationDbContext context,
       CancellationToken ct)
   {
-    // 1. Explicit ticket number in subject
+    // ── 1 / 2. RFC-5322 In-Reply-To + References headers ──
+    var candidateIds = new List<string>();
+    if (!string.IsNullOrWhiteSpace(message.InReplyTo))
+      candidateIds.Add(NormalizeMsgId(message.InReplyTo));
+    foreach (var r in message.References ?? Enumerable.Empty<string>())
+      candidateIds.Add(NormalizeMsgId(r));
+
+    candidateIds = candidateIds
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Distinct()
+        .ToList();
+
+    _logger.LogInformation(
+        "[Email-In] From={From} Subj=\"{Subj}\" InReplyTo={IRT} RefCount={RC} CandidateIds=[{Ids}]",
+        fromEmail, message.Subject, message.InReplyTo ?? "(none)",
+        message.References?.Count ?? 0, string.Join(",", candidateIds));
+
+    // ── 0. Custom X-iM3-Ticket header (most reliable — set by all outbound paths) ──
+    var anchorHeader = message.Headers["X-iM3-Ticket"];
+    if (!string.IsNullOrWhiteSpace(anchorHeader))
+    {
+      var m = TicketNumberRegex.Match(anchorHeader);
+      if (m.Success && int.TryParse(m.Groups[1].Value, out var anchorTn))
+      {
+        var byAnchor = await context.Tickets
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(t =>
+                t.OrganizationId == orgId &&
+                t.TicketNumber == anchorTn, ct);
+        if (byAnchor != null) return byAnchor.Id;
+      }
+    }
+
+    if (candidateIds.Count > 0)
+    {
+      // (a) Match against Ticket.InboundMessageId
+      var ticketAnchor = await context.Tickets
+          .IgnoreQueryFilters()
+          .Where(t => t.OrganizationId == orgId &&
+                      t.InboundMessageId != null &&
+                      candidateIds.Contains(t.InboundMessageId))
+          .Select(t => (Guid?)t.Id)
+          .FirstOrDefaultAsync(ct);
+      if (ticketAnchor.HasValue) return ticketAnchor;
+
+      // (b) Match against any TicketComment.EmailMessageId
+      var commentAnchor = await context.TicketComments
+          .IgnoreQueryFilters()
+          .Where(c => c.OrganizationId == orgId &&
+                      c.EmailMessageId != null &&
+                      candidateIds.Contains(c.EmailMessageId))
+          .OrderByDescending(c => c.CreatedAt)
+          .Select(c => (Guid?)c.TicketId)
+          .FirstOrDefaultAsync(ct);
+      if (commentAnchor.HasValue) return commentAnchor;
+    }
+
+    // ── 3. Explicit #TN<number> in subject ──
     var tnMatch = TicketNumberRegex.Match(message.Subject ?? "");
     if (tnMatch.Success && int.TryParse(tnMatch.Groups[1].Value, out var tnNum))
     {
       var byNumber = await context.Tickets
+          .IgnoreQueryFilters()
           .FirstOrDefaultAsync(t =>
               t.OrganizationId == orgId &&
               t.TicketNumber == tnNum, ct);
@@ -374,34 +439,95 @@ public class EmailPollingService : BackgroundService
       if (byNumber != null) return byNumber.Id;
     }
 
-    // 2. Email is a reply (Re: subject or email headers)
-    bool isReply =
+    // ── 4 / 5. Subject "Re:" heuristic + sender fallback ──
+    bool subjectLooksLikeReply =
         (message.Subject ?? "").TrimStart()
             .StartsWith("re:", StringComparison.OrdinalIgnoreCase) ||
-        message.InReplyTo != null ||
-        message.References.Count > 0;
+        !string.IsNullOrWhiteSpace(message.InReplyTo) ||
+        (message.References?.Count ?? 0) > 0;
 
-    if (!isReply) return null;
+    if (!subjectLooksLikeReply) return null;
 
-    // Find customer's most recent open ticket (within 30 days)
+    var since = DateTime.UtcNow.AddDays(-30);
+    var loweredFrom = fromEmail.ToLower();
+
+    // 4. Ticket.FromEmail (email-originated tickets, no User row)
+    var byFromEmail = await context.Tickets
+        .IgnoreQueryFilters()
+        .Where(t =>
+            t.OrganizationId == orgId &&
+            t.FromEmail != null &&
+            t.FromEmail.ToLower() == loweredFrom &&
+            t.Status != TicketStatus.Closed &&
+            t.CreatedAt >= since)
+        .OrderByDescending(t => t.CreatedAt)
+        .Select(t => (Guid?)t.Id)
+        .FirstOrDefaultAsync(ct);
+    if (byFromEmail.HasValue) return byFromEmail;
+
+    // 5. Registered user (UI-submitted tickets)
     var customer = await context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
-            u.Email.ToLower() == fromEmail.ToLower() &&
+            u.Email.ToLower() == loweredFrom &&
             u.OrganizationId == orgId, ct);
-
     if (customer == null) return null;
 
-    var recentTicket = await context.Tickets
+    var byUser = await context.Tickets
+        .IgnoreQueryFilters()
         .Where(t =>
             t.CreatedByUserId == customer.Id &&
             t.OrganizationId == orgId &&
             t.Status != TicketStatus.Closed &&
-            t.CreatedAt >= DateTime.UtcNow.AddDays(-30))
+            t.CreatedAt >= since)
         .OrderByDescending(t => t.CreatedAt)
+        .Select(t => (Guid?)t.Id)
         .FirstOrDefaultAsync(ct);
+    return byUser;
+  }
 
-    return recentTicket?.Id;
+  /// <summary>Strip enclosing angle brackets from a Message-Id header value.</summary>
+  private static string NormalizeMsgId(string raw)
+  {
+    if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+    var s = raw.Trim();
+    if (s.StartsWith("<") && s.EndsWith(">") && s.Length >= 2)
+      s = s.Substring(1, s.Length - 2);
+    return s.Trim();
+  }
+
+  /// <summary>
+  /// Extract external Cc addresses from an inbound message, excluding our own
+  /// org's support / SMTP addresses and the original sender. Returned in arrival
+  /// order, lowercased &amp; deduplicated.
+  /// </summary>
+  private List<string> ExtractExternalCc(
+      MimeMessage message,
+      string fromEmail,
+      Organization org)
+  {
+    var ownEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    void AddOwn(string? e)
+    {
+      if (!string.IsNullOrWhiteSpace(e)) ownEmails.Add(e.Trim());
+    }
+    AddOwn(org.SupportEmail);
+    AddOwn(org.SmtpFromEmail);
+    AddOwn(org.SmtpUsername);
+    AddOwn(_config["SmtpSettings:FromEmail"]);
+    AddOwn(fromEmail);
+
+    var result = new List<string>();
+    var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    foreach (var box in message.Cc.Mailboxes)
+    {
+      var addr = (box.Address ?? string.Empty).Trim();
+      if (string.IsNullOrEmpty(addr)) continue;
+      if (ownEmails.Contains(addr)) continue;
+      if (!seen.Add(addr)) continue;
+      result.Add(addr);
+    }
+    return result;
   }
 
   private async Task AddReplyToTicketAsync(
@@ -413,60 +539,156 @@ public class EmailPollingService : BackgroundService
       ApplicationDbContext context,
       CancellationToken ct)
   {
+    // Dedup: same inbound Message-Id already processed?
+    var inboundMsgId = NormalizeMsgId(message.MessageId ?? string.Empty);
+    if (!string.IsNullOrWhiteSpace(inboundMsgId))
+    {
+      var already = await context.TicketComments
+          .IgnoreQueryFilters()
+          .AnyAsync(c =>
+              c.TicketId == ticketId &&
+              c.EmailMessageId == inboundMsgId, ct);
+      if (already)
+      {
+        _logger.LogInformation(
+            "Skipping duplicate inbound reply (msg-id already stored): {M}",
+            inboundMsgId);
+        return;
+      }
+    }
+
+    // Optional link to a registered user if one happens to exist
     var user = await context.Users
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u =>
             u.Email.ToLower() == fromEmail.ToLower() &&
             u.OrganizationId == org.Id, ct);
 
-    if (user == null)
-    {
-      _logger.LogWarning(
-          "Reply from unknown user {E} â€” skipping", fromEmail);
-      return;
-    }
+    var inReplyTo = NormalizeMsgId(message.InReplyTo ?? string.Empty);
+    var references = message.References != null
+        ? string.Join(" ", message.References
+            .Select(NormalizeMsgId)
+            .Where(s => !string.IsNullOrWhiteSpace(s)))
+        : null;
+
+    // ── Capture this reply's Cc and merge into ticket-level CcEmails ──
+    var replyCc = ExtractExternalCc(message, fromEmail, org);
 
     var comment = new TicketComment
     {
       TicketId = ticketId,
-      UserId = user.Id,
+      UserId = user?.Id,                          // null when customer has no account
+      FromEmail = user == null ? fromEmail : null,
+      FromName = user == null ? fromName : null,
       Comment = BuildDescription(message),
       IsInternal = false,
       OrganizationId = org.Id,
-      EmailMessageId = message.MessageId,   // âœ… track for dedup
-      Source = "email"              // âœ… mark source
+      EmailMessageId = inboundMsgId,
+      Source = "email",
+      Cc = replyCc.Count > 0 ? string.Join(",", replyCc) : null,
+      InReplyTo = string.IsNullOrWhiteSpace(inReplyTo) ? null : inReplyTo,
+      References = string.IsNullOrWhiteSpace(references) ? null : references
     };
 
     context.TicketComments.Add(comment);
-    await context.SaveChangesAsync(ct);
 
-    // Save any attachments on the reply
+    // Bump ticket activity; auto-reopen if it was closed.
     var ticket = await context.Tickets
+        .IgnoreQueryFilters()
         .FirstOrDefaultAsync(t => t.Id == ticketId, ct);
+    if (ticket != null)
+    {
+      ticket.LastActivityAt = DateTime.UtcNow;
+      ticket.UpdatedAt = DateTime.UtcNow;
+      if (ticket.Status == TicketStatus.Closed)
+        ticket.Status = TicketStatus.Open;
+
+      // Merge any new external Cc recipients onto the ticket
+      // so future agent replies include them by default.
+      if (replyCc.Count > 0)
+      {
+        var existing = (ticket.CcEmails ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(e => e.Trim())
+            .Where(e => e.Length > 0)
+            .ToList();
+        var merged = existing
+            .Concat(replyCc)
+            .Where(e => !string.IsNullOrWhiteSpace(e) &&
+                        !e.Equals(ticket.FromEmail ?? string.Empty,
+                            StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        ticket.CcEmails = merged.Count > 0 ? string.Join(",", merged) : null;
+      }
+    }
+
+    await context.SaveChangesAsync(ct);
 
     if (ticket != null)
       await SaveAttachmentsAsync(message, ticket, comment.Id, context, ct);
 
     _logger.LogInformation(
-        "ðŸ’¬ Reply added to ticket {T} from {E}", ticketId, fromEmail);
+        "💬 Reply added to ticket {T} from {E} (user: {U})",
+        ticketId, fromEmail, user?.Id.ToString() ?? "none");
   }
 
   private static string BuildDescription(MimeMessage message)
   {
+    string raw;
     if (!string.IsNullOrEmpty(message.HtmlBody))
-      return message.HtmlBody;
-
-    if (!string.IsNullOrEmpty(message.TextBody))
+      raw = message.HtmlBody;
+    else if (!string.IsNullOrEmpty(message.TextBody))
     {
       var encoded = System.Net.WebUtility.HtmlEncode(message.TextBody)
           .Replace("\r\n\r\n", "</p><p>")
           .Replace("\n\n", "</p><p>")
           .Replace("\r\n", "<br>")
           .Replace("\n", "<br>");
-      return $"<p>{encoded}</p>";
+      raw = $"<p>{encoded}</p>";
     }
+    else
+      return "<p>(No content)</p>";
 
-    return "<p>(No content)</p>";
+    return StripQuotedReply(raw);
+  }
+
+  // Regex set for quoted-reply trimming (Freshdesk-style)
+  private static readonly Regex GmailQuoteRegex = new(
+      @"<blockquote[^>]*class=[""']gmail_quote[^>]*>[\s\S]*",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex GmailExtraRegex = new(
+      @"<div[^>]*class=[""']gmail_quote[^>]*>[\s\S]*",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex OutlookAppendRegex = new(
+      @"<div[^>]*id=[""']appendonsend[^>]*>[\s\S]*",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex OutlookDividerRegex = new(
+      @"<div[^>]*id=[""']divRplyFwdMsg[^>]*>[\s\S]*",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex OnWroteRegex = new(
+      @"(<(?:div|p|blockquote)[^>]*>\s*)?On\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{1,2})[\s\S]{0,500}?wrote:\s*<?[\s\S]*",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex GenericBlockquoteRegex = new(
+      @"<blockquote[\s\S]*?</blockquote>",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+  private static readonly Regex TrailingEmptyRegex = new(
+      @"(?:<br\s*/?>|\s|&nbsp;|<p>\s*</p>|<div>\s*</div>)+$",
+      RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+  /// <summary>Strip the "On &lt;date&gt; ... wrote:" quoted block so only the new
+  /// reply text is stored (Freshdesk behaviour).</summary>
+  private static string StripQuotedReply(string html)
+  {
+    if (string.IsNullOrWhiteSpace(html)) return html;
+    html = GmailQuoteRegex.Replace(html, string.Empty);
+    html = GmailExtraRegex.Replace(html, string.Empty);
+    html = OutlookAppendRegex.Replace(html, string.Empty);
+    html = OutlookDividerRegex.Replace(html, string.Empty);
+    html = OnWroteRegex.Replace(html, string.Empty);
+    html = GenericBlockquoteRegex.Replace(html, string.Empty);
+    html = TrailingEmptyRegex.Replace(html, string.Empty);
+    return html.Trim();
   }
 
   private static string CleanSubject(string? raw, string fromName)

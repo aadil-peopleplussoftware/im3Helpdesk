@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { ToastrService } from 'ngx-toastr';
 import { TicketTemplateService } from '../../../core/services/ticket-template';
+import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 
 @Component({
   selector: 'app-ticket-templates',
@@ -18,24 +19,15 @@ export class TicketTemplatesComponent implements OnInit {
   private toastr = inject(ToastrService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private ticketMasterService = inject(TicketMasterService);
 
   templates: any[] = [];
   loading = true;
   showForm = false;
 
-  ticketTypes = [
-    'Question', 'Incident', 'Problem', 'Feature Request',
-    'Request', 'Support', 'Data', 'Customer Training',
-    'Backend Script', 'System Gap', 'Release',
-    'Information Only', 'On Hold', 'Bug', 'Billing'
-  ];
-
-  statuses = [
-    'Open', 'Pending', 'Resolved on Beta',
-    'Resolved', 'On Hold', 'Close'
-  ];
-
-  priorities = ['Low', 'Medium', 'High', 'Urgent', 'Critical'];
+  ticketTypes: TicketMasterOption[] = [];
+  statuses: TicketMasterOption[] = [];
+  priorities: TicketMasterOption[] = [];
 
   categories = [
     'General', 'Technical', 'Billing',
@@ -54,7 +46,26 @@ export class TicketTemplatesComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.loadMasterOptions();
     this.loadTemplates();
+  }
+
+  loadMasterOptions() {
+    this.ticketMasterService.getAll(true).subscribe({
+      next: (data) => {
+        this.ticketTypes = data.ticketTypes || [];
+        this.statuses = data.ticketStatuses || [];
+        this.priorities = data.ticketPriorities || [];
+
+        this.form.patchValue({
+          ticketType: this.form.value.ticketType || this.ticketTypes[0]?.value || 'Support',
+          status: this.form.value.status || this.statuses[0]?.value || 'Open',
+          priority: this.form.value.priority || this.priorities[0]?.value || 'Medium'
+        });
+
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   loadTemplates() {

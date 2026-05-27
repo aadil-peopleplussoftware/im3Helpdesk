@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -6,10 +6,11 @@ import {
   FormGroup,
   Validators
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-onboarding-wizard',
@@ -18,19 +19,22 @@ import { environment } from '../../../../environments/environment';
   templateUrl: './onboarding-wizard.html',
   styleUrls: ['./onboarding-wizard.scss']
 })
-export class OnboardingWizardComponent {
+export class OnboardingWizardComponent implements OnInit {
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
   private router = inject(Router);
   private toastr = inject(ToastrService);
   private http = inject(HttpClient);
   private cdr = inject(ChangeDetectorRef);
+  private authService = inject(AuthService);
 
   currentStep = 1;
   loading = false;
   logoPreview = '';
+  orgName = '';
+  orgLoaded = false;
 
   step1Form: FormGroup = this.fb.group({
-    companyName: ['', Validators.required],
     supportEmail: ['', [Validators.required, Validators.email]],
     brandColor: ['#2563eb'],
     logoUrl: ['']
@@ -47,6 +51,46 @@ export class OnboardingWizardComponent {
     imapPort: [993, [Validators.required, Validators.min(1)]],
     emailPollingEnabled: [true]
   });
+
+  ngOnInit() {
+    const step = String(this.route.snapshot.queryParamMap.get('step') || '').toLowerCase();
+    if (step === 'mail' || step === 'smtp') {
+      this.currentStep = 2;
+    }
+
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+      next: (org) => {
+        this.orgLoaded = true;
+        this.orgName = String(org?.name || org?.Name || '');
+
+        const logoUrl = String(org?.logoUrl || '');
+        this.logoPreview = logoUrl;
+
+        this.step1Form.patchValue({
+          supportEmail: org?.supportEmail || '',
+          brandColor: org?.brandColor || '#2563eb',
+          logoUrl: logoUrl
+        }, { emitEvent: false });
+
+        this.step2Form.patchValue({
+          smtpHost: org?.smtpHost || 'smtp.gmail.com',
+          smtpPort: org?.smtpPort || 587,
+          smtpFromEmail: org?.smtpFromEmail || org?.supportEmail || '',
+          smtpFromName: org?.smtpFromName || this.orgName || '',
+          smtpUsername: org?.smtpUsername || org?.smtpFromEmail || org?.supportEmail || '',
+          imapHost: org?.imapHost || 'imap.gmail.com',
+          imapPort: org?.imapPort || 993,
+          emailPollingEnabled: org?.emailPollingEnabled !== false
+        }, { emitEvent: false });
+
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.orgLoaded = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   onLogoSelect(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -73,9 +117,13 @@ export class OnboardingWizardComponent {
     this.step2Form.patchValue({
       smtpFromEmail: supportEmail,
       smtpUsername: supportEmail,
-      smtpFromName: this.step1Form.value.companyName || 'Support'
+      smtpFromName: this.orgName || 'Support'
     });
     this.currentStep = 2;
+  }
+
+  skipMailbox() {
+    this.completeOnboarding('You can complete email setup later from Profile');
   }
 
   finish() {
@@ -88,7 +136,6 @@ export class OnboardingWizardComponent {
     this.cdr.detectChanges();
 
     const payload = {
-      name: this.step1Form.value.companyName,
       supportEmail: this.step1Form.value.supportEmail,
       brandColor: this.step1Form.value.brandColor || '#2563eb',
       logoUrl: this.step1Form.value.logoUrl || '',
@@ -108,18 +155,38 @@ export class OnboardingWizardComponent {
       payload
     ).subscribe({
       next: () => {
-        this.loading = false;
-        this.cdr.detectChanges();
-        Promise.resolve().then(() =>
-          this.toastr.success('Workspace email setup saved')
-        );
-        this.router.navigate(['/dashboard']);
+        this.completeOnboarding('Workspace email setup saved');
       },
       error: (err) => {
         this.loading = false;
         this.cdr.detectChanges();
         Promise.resolve().then(() =>
           this.toastr.error(err.error?.message || 'Setup failed')
+        );
+      }
+    });
+  }
+
+  private completeOnboarding(successMessage: string) {
+    this.loading = true;
+    this.cdr.detectChanges();
+
+    this.http.post(
+      `${environment.apiUrl}/Organizations/current/complete-onboarding`,
+      {}
+    ).subscribe({
+      next: () => {
+        this.loading = false;
+        this.authService.markFirstLoginComplete();
+        this.cdr.detectChanges();
+        Promise.resolve().then(() => this.toastr.success(successMessage));
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.loading = false;
+        this.cdr.detectChanges();
+        Promise.resolve().then(() =>
+          this.toastr.error(err.error?.message || 'Could not complete onboarding')
         );
       }
     });

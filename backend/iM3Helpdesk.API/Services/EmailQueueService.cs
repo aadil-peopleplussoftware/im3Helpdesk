@@ -6,7 +6,8 @@ namespace iM3Helpdesk.API.Services;
 
 public interface IEmailQueueService
 {
-  Task QueueEmailAsync(string toEmail, string subject, string body);
+  Task QueueEmailAsync(string toEmail, string subject, string body,
+      Guid? organizationId = null);
   Task ProcessQueueAsync();
 }
 
@@ -24,7 +25,8 @@ public class EmailQueueService : IEmailQueueService
   }
 
   public async Task QueueEmailAsync(
-      string toEmail, string subject, string body)
+      string toEmail, string subject, string body, 
+      Guid? organizationId = null)
   {
     using var scope = _scopeFactory.CreateScope();
     var context = scope.ServiceProvider
@@ -32,6 +34,7 @@ public class EmailQueueService : IEmailQueueService
 
     var email = new EmailQueue
     {
+      OrganizationId = organizationId,
       ToEmail = toEmail,
       Subject = subject,
       Body = body,
@@ -47,6 +50,8 @@ public class EmailQueueService : IEmailQueueService
     using var scope = _scopeFactory.CreateScope();
     var context = scope.ServiceProvider
         .GetRequiredService<ApplicationDbContext>();
+    var emailService = scope.ServiceProvider
+        .GetRequiredService<iM3Helpdesk.Infrastructure.Services.IEmailService>();
 
     var pendingEmails = await context.EmailQueues
         .Where(e => !e.IsSent
@@ -59,29 +64,10 @@ public class EmailQueueService : IEmailQueueService
     {
       try
       {
-        var smtpSettings = _config.GetSection("SmtpSettings");
-        using var client = new System.Net.Mail.SmtpClient(
-            smtpSettings["Host"]!,
-            int.Parse(smtpSettings["Port"]!))
-        {
-          EnableSsl = true,
-          Credentials = new System.Net.NetworkCredential(
-                smtpSettings["FromEmail"]!,
-                smtpSettings["Password"]!)
-        };
-
-        var message = new System.Net.Mail.MailMessage
-        {
-          From = new System.Net.Mail.MailAddress(
-                smtpSettings["FromEmail"]!,
-                smtpSettings["FromName"]!),
-          Subject = email.Subject,
-          Body = email.Body,
-          IsBodyHtml = true
-        };
-        message.To.Add(email.ToEmail);
-
-        await client.SendMailAsync(message);
+        
+        await emailService.SendAsync(
+            email.ToEmail, email.Subject, email.Body,
+            organizationId: email.OrganizationId);
 
         email.IsSent = true;
         email.SentAt = DateTime.UtcNow;

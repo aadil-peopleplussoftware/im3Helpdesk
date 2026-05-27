@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -15,6 +16,8 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class CustomerController : ControllerBase
 {
+  private const string TicketPriorityField = "TicketPriority";
+
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
@@ -32,6 +35,67 @@ public class CustomerController : ControllerBase
     _emailService = emailService;
   }
 
+  private async Task<bool> IsPriorityAllowedAsync(string value)
+  {
+    var hasRows = await _context.TicketFieldMasters
+        .AnyAsync(x => x.Field == TicketPriorityField);
+
+    if (!hasRows)
+      return true;
+
+    return await _context.TicketFieldMasters
+        .AnyAsync(x =>
+            x.Field == TicketPriorityField &&
+            x.IsActive &&
+            x.Value == value);
+  }
+
+  private static bool TryParseTicketPriority(string? input, out TicketPriority priority)
+  {
+    priority = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketPriority>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      priority = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "urgent")
+    {
+      priority = TicketPriority.Critical;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketPriority>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        priority = Enum.Parse<TicketPriority>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static string CompactEnumToken(string value)
+  {
+    var sb = new StringBuilder(value.Length);
+    foreach (var ch in value)
+    {
+      if (char.IsLetterOrDigit(ch))
+        sb.Append(char.ToLowerInvariant(ch));
+    }
+
+    return sb.ToString();
+  }
+
   [HttpGet("my-tickets")]
   public async Task<IActionResult> GetMyTickets()
   {
@@ -47,6 +111,7 @@ public class CustomerController : ControllerBase
           t.Id,
           t.Title,
           t.Description,
+          t.FromEmail,
           t.Category,
           Status = t.Status.ToString(),
           Priority = t.Priority.ToString(),
@@ -83,6 +148,7 @@ public class CustomerController : ControllerBase
       ticket.Id,
       ticket.Title,
       ticket.Description,
+      ticket.FromEmail,
       ticket.Category,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
@@ -114,12 +180,36 @@ public class CustomerController : ControllerBase
     var userId = GetUserId();
     if (userId == Guid.Empty) return Unauthorized();
 
+    var priorityRaw = string.IsNullOrWhiteSpace(dto.Priority)
+        ? TicketPriority.Medium.ToString()
+        : dto.Priority.Trim();
+
+    if (!TryParseTicketPriority(
+        priorityRaw,
+        out var parsedPriority))
+    {
+      return BadRequest(new
+      {
+        message = "Invalid priority"
+      });
+    }
+
+    if (!await IsPriorityAllowedAsync(
+        parsedPriority.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {parsedPriority} is not active in ticket master"
+      });
+    }
+
     var ticket = new Ticket
     {
       Title = dto.Title,
       Description = dto.Description,
+      FromEmail = dto.FromEmail,
       Category = dto.Category,
-      Priority = TicketPriority.Medium,
+      Priority = parsedPriority,
       OrganizationId = _tenantService.OrganizationId!.Value,
       CreatedByUserId = userId,
       Status = TicketStatus.Open
@@ -138,7 +228,8 @@ public class CustomerController : ControllerBase
       {
         await _emailService.SendAsync(
             user.Email, user.FullName,
-            ticket.Title, ticket.Id.ToString());
+            ticket.Title, ticket.Id.ToString(), 
+            _tenantService.OrganizationId);
       }
       catch { }
 
@@ -194,7 +285,9 @@ public class SubmitTicketDto
 {
   public string Title { get; set; } = string.Empty;
   public string Description { get; set; } = string.Empty;
+  public string? FromEmail { get; set; }
   public string Category { get; set; } = "General";
+  public string Priority { get; set; } = "Medium";
 }
 
 public class AddReplyDto

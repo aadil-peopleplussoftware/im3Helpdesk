@@ -16,6 +16,16 @@
       </div>
     </div>
 
+    <div class="smtp-setup-banner"
+      *ngIf="isCompanyAdmin && smtpSetupChecked && smtpSetupIncomplete"
+      (click)="goToMailboxOnboarding()">
+      <div class="ssb-left">
+        <div class="ssb-title">Workspace email setup is incomplete</div>
+        <div class="ssb-sub">Add SMTP/IMAP (optional) to enable email-to-ticket. You can skip, but reminders stay until completed.</div>
+      </div>
+      <div class="ssb-action">Complete now →</div>
+    </div>
+
     <div class="profile-grid">
 
       <!-- Left Column -->

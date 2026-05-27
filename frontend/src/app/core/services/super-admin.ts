@@ -5,8 +5,7 @@ import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class SuperAdminService {
-private readonly apiUrl = `${environment.apiUrl}/SuperAdmin`;
-
+  private readonly apiUrl = `${environment.apiUrl}/SuperAdmin`;
 
   constructor(private http: HttpClient) {}
 
@@ -24,5 +23,24 @@ private readonly apiUrl = `${environment.apiUrl}/SuperAdmin`;
 
   getAllUsers(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/users`);
+  }
+
+  getLeads(status?: string): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/admin/leads`, {
+      params: status ? { status } : {}
+    });
+  }
+
+  getLeadSummary(): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/admin/leads/summary`);
+  }
+
+  approveLead(id: string): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/admin/leads/${id}/approve`, {});
+  }
+
+  rejectLead(id: string, reason?: string): Observable<any> {
+    const body = reason ? { reason } : {};
+    return this.http.post<any>(`${environment.apiUrl}/admin/leads/${id}/reject`, body);
   }
 }

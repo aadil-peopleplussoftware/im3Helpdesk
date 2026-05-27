@@ -1,0 +1,92 @@
+<section class="lead-shell">
+  <div class="lead-left">
+    <div class="brand-row">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-name">iM3HelpDesk</div>
+        <div class="brand-sub">Secure B2B onboarding</div>
+      </div>
+    </div>
+
+    <div class="lead-hero">
+      <div class="eyebrow">Admin-approved onboarding</div>
+      <h1>Request access for your organization</h1>
+      <p>
+        Your workspace is created only after super admin approval and token verification.
+        This prevents unauthorized organization creation.
+      </p>
+    </div>
+
+    <div class="feature-grid">
+      <article>
+        <span>01</span>
+        <h3>Lead capture</h3>
+        <p>Organization, owner, work email, phone, and notes are captured in a secure request.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Super admin review</h3>
+        <p>Only super admins can see pending leads and approve trusted organizations.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h3>Shield verification</h3>
+        <p>Approved leads get a 24-hour token and a protected setup flow.</p>
+      </article>
+      <article>
+        <span>04</span>
+        <h3>AI-assisted onboarding</h3>
+        <p>Use your business details, validate access, then submit the setup form to create the org.</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="lead-right">
+    <div class="lead-card">
+      <div class="card-head">
+        <div>
+          <div class="card-kicker">Step 1 of 4</div>
+          <h2>Tell us about your company</h2>
+        </div>
+        <div class="card-badge">Protected</div>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="lead-form">
+        <div class="form-grid">
+          <label>
+            <span>Organization Name</span>
+            <input type="text" formControlName="organizationName" placeholder="Acme Pvt Ltd" />
+          </label>
+
+          <label>
+            <span>Owner Name</span>
+            <input type="text" formControlName="ownerName" placeholder="John Doe" />
+          </label>
+
+          <label>
+            <span>Work Email</span>
+            <input type="email" formControlName="workEmail" placeholder="owner@company.com" />
+          </label>
+
+          <label>
+            <span>Phone</span>
+            <input type="text" formControlName="phone" placeholder="+91 98765 43210" />
+          </label>
+        </div>
+
+        <label class="full-width">
+          <span>Notes</span>
+          <textarea rows="5" formControlName="notes" placeholder="Tell us what you need..."></textarea>
+        </label>
+
+        <button type="submit" [disabled]="loading || redirecting">
+          {{ redirecting ? 'Redirecting...' : (loading ? 'Submitting...' : 'Submit Request') }}
+        </button>
+
+        <p class="success-text" *ngIf="success">
+          Your request has been received. After approval, the setup link will be sent securely.
+        </p>
+      </form>
+    </div>
+  </div>
+</section>

@@ -495,6 +495,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime?>("NextRetryAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("RetryCount")
                         .HasColumnType("int");
 
@@ -646,6 +649,80 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("KbReactions");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Lead", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OrganizationName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("OwnerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("RegistrationToken")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("TokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WorkEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("RegistrationToken")
+                        .IsUnique()
+                        .HasFilter("[RegistrationToken] IS NOT NULL");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("WorkEmail");
+
+                    b.ToTable("Leads");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Notification", b =>
@@ -800,14 +877,26 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("CcEmails")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("CreatedByUserId")
+                    b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FromEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FromName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InboundMessageId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsSlaBreached")
@@ -910,7 +999,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UploadedByUserId")
+                    b.Property<Guid?>("UploadedByUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -928,6 +1017,12 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Bcc")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Cc")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Comment")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -936,6 +1031,15 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("EmailMessageId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("FromEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FromName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InReplyTo")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsInternal")
@@ -943,8 +1047,14 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("NotifiedTo")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("References")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Source")
                         .HasColumnType("nvarchar(max)");
@@ -952,10 +1062,12 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<Guid>("TicketId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmailMessageId");
 
                     b.HasIndex("TicketId");
 
@@ -990,6 +1102,52 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasIndex("TicketId");
 
                     b.ToTable("TicketCustomFieldValues");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketFieldMaster", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Field")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Field", "Value")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "Field", "IsActive", "SortOrder");
+
+                    b.ToTable("TicketFieldMasters");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketTemplate", b =>
@@ -1415,8 +1573,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("iM3Helpdesk.Domain.Entities.Organization", "Organization")
                         .WithMany()
@@ -1444,8 +1601,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "UploadedBy")
                         .WithMany()
                         .HasForeignKey("UploadedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Ticket");
 
@@ -1463,8 +1619,7 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Ticket");
 

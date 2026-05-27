@@ -29,6 +29,8 @@ public class ApplicationDbContext : DbContext
       => Set<Organization>();
   public DbSet<User> Users
       => Set<User>();
+  public DbSet<Lead> Leads
+      => Set<Lead>();
   public DbSet<Ticket> Tickets
       => Set<Ticket>();
   public DbSet<TicketComment> TicketComments
@@ -57,6 +59,8 @@ public class ApplicationDbContext : DbContext
       => Set<TicketAttachment>();
   public DbSet<CustomField> CustomFields
       => Set<CustomField>();
+  public DbSet<TicketFieldMaster> TicketFieldMasters
+      => Set<TicketFieldMaster>();
   public DbSet<TicketCustomFieldValue>
       TicketCustomFieldValues
       => Set<TicketCustomFieldValue>();
@@ -152,6 +156,35 @@ public class ApplicationDbContext : DbContext
               u.OrganizationId);
     });
 
+    // ── Lead ──────────────────────
+    modelBuilder.Entity<Lead>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.OrganizationName)
+          .HasMaxLength(200)
+          .IsRequired();
+      e.Property(x => x.OwnerName)
+          .HasMaxLength(200)
+          .IsRequired();
+      e.Property(x => x.WorkEmail)
+          .HasMaxLength(256)
+          .IsRequired();
+      e.Property(x => x.Phone)
+          .HasMaxLength(30);
+      e.Property(x => x.Notes)
+          .HasColumnType("nvarchar(max)");
+      e.Property(x => x.RejectionReason)
+          .HasMaxLength(500);
+      e.Property(x => x.Status)
+          .HasConversion<int>();
+      e.HasIndex(x => x.WorkEmail);
+      e.HasIndex(x => x.Status);
+      e.HasIndex(x => x.CreatedAt);
+      e.HasIndex(x => x.RegistrationToken)
+          .IsUnique()
+          .HasFilter("[RegistrationToken] IS NOT NULL");
+    });
+
     // ── Ticket ────────────────────
     modelBuilder.Entity<Ticket>(e =>
     {
@@ -223,8 +256,10 @@ public class ApplicationDbContext : DbContext
       e.HasOne(c => c.User)
           .WithMany()
           .HasForeignKey(c => c.UserId)
+          .IsRequired(false)
           .OnDelete(
               DeleteBehavior.Restrict);
+      e.HasIndex(c => c.EmailMessageId);
     });
 
     // ── Notification ──────────────
@@ -453,6 +488,38 @@ public class ApplicationDbContext : DbContext
           f.OrganizationId ==
               _currentTenantId);
     });
+
+        // ── TicketFieldMaster ────────
+        modelBuilder.Entity<TicketFieldMaster>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Field)
+                    .HasMaxLength(30)
+                    .IsRequired();
+            e.Property(x => x.Value)
+                    .HasMaxLength(120)
+                    .IsRequired();
+            e.Property(x => x.Label)
+                    .HasMaxLength(120)
+                    .IsRequired();
+            e.HasIndex(x => new
+            {
+                x.OrganizationId,
+                x.Field,
+                x.Value
+            }).IsUnique();
+            e.HasIndex(x => new
+            {
+                x.OrganizationId,
+                x.Field,
+                x.IsActive,
+                x.SortOrder
+            });
+            e.HasQueryFilter(m =>
+                    _isSuperAdmin ||
+                    m.OrganizationId ==
+                            _currentTenantId);
+        });
 
     // ── TicketCustomFieldValue ────
     modelBuilder.Entity<

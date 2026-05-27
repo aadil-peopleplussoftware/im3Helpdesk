@@ -3,6 +3,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Net.Mail;
 
 namespace iM3Helpdesk.API.Controllers;
@@ -85,6 +86,31 @@ public class OrganizationsController : ControllerBase
     ApplyEmailSettings(org, dto);
     await _context.SaveChangesAsync();
     return Ok(new { message = "Organization updated" });
+  }
+
+  [HttpPost("current/complete-onboarding")]
+  public async Task<IActionResult> CompleteOnboarding()
+  {
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+        ?? User.FindFirst("sub")?.Value;
+
+    if (!Guid.TryParse(userIdClaim, out var userId))
+      return Unauthorized();
+
+    var user = await _context.Users
+        .IgnoreQueryFilters()
+        .FirstOrDefaultAsync(u => u.Id == userId);
+
+    if (user == null)
+      return NotFound();
+
+    if (!user.LastLoginAt.HasValue)
+    {
+      user.LastLoginAt = DateTime.UtcNow;
+      await _context.SaveChangesAsync();
+    }
+
+    return Ok(new { message = "Onboarding completed" });
   }
 
   [HttpPost("upload-logo")]

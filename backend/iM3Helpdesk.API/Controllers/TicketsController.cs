@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -16,6 +17,10 @@ namespace iM3Helpdesk.API.Controllers;
 [Authorize]
 public class TicketsController : ControllerBase
 {
+  private const string TicketTypeField = "TicketType";
+  private const string TicketStatusField = "TicketStatus";
+  private const string TicketPriorityField = "TicketPriority";
+
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
@@ -48,12 +53,117 @@ public class TicketsController : ControllerBase
     return id;
   }
 
+  private static string? GetTicketRecipientEmail(Ticket ticket)
+  {
+    if (!string.IsNullOrWhiteSpace(ticket.FromEmail))
+      return ticket.FromEmail.Trim();
+ 
+    return ticket.CreatedBy?.Email;
+  }
+
   private static string FormatSize(long bytes)
   {
     if (bytes < 1024) return $"{bytes} B";
     if (bytes < 1048576)
       return $"{bytes / 1024} KB";
     return $"{bytes / 1048576} MB";
+  }
+
+  private async Task<bool> IsMasterValueAllowedAsync(
+      string field,
+      string value)
+  {
+    var hasRows = await _context.TicketFieldMasters
+        .AnyAsync(x => x.Field == field);
+
+    if (!hasRows)
+      return true;
+
+    return await _context.TicketFieldMasters
+        .AnyAsync(x =>
+            x.Field == field &&
+            x.IsActive &&
+            x.Value == value);
+  }
+
+  private static bool TryParseTicketStatus(string? input, out TicketStatus status)
+  {
+    status = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketStatus>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      status = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "close")
+    {
+      status = TicketStatus.Closed;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketStatus>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        status = Enum.Parse<TicketStatus>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static bool TryParseTicketPriority(string? input, out TicketPriority priority)
+  {
+    priority = default;
+    if (string.IsNullOrWhiteSpace(input))
+      return false;
+
+    var value = input.Trim();
+
+    if (Enum.TryParse<TicketPriority>(value, true, out var parsed) &&
+        Enum.IsDefined(parsed))
+    {
+      priority = parsed;
+      return true;
+    }
+
+    var compact = CompactEnumToken(value);
+    if (compact == "urgent")
+    {
+      priority = TicketPriority.Critical;
+      return true;
+    }
+
+    foreach (var name in Enum.GetNames<TicketPriority>())
+    {
+      if (CompactEnumToken(name) == compact)
+      {
+        priority = Enum.Parse<TicketPriority>(name, true);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private static string CompactEnumToken(string value)
+  {
+    var sb = new StringBuilder(value.Length);
+    foreach (var ch in value)
+    {
+      if (char.IsLetterOrDigit(ch))
+        sb.Append(char.ToLowerInvariant(ch));
+    }
+
+    return sb.ToString();
   }
 
   [HttpGet("my-status-counts")]
@@ -85,7 +195,7 @@ public class TicketsController : ControllerBase
 
     var open = Get(TicketStatus.Open);
     var inProgress = Get(TicketStatus.InProgress);
-    var resolved = Get(TicketStatus.Resolved);
+    var resolved = Get(TicketStatus.Resolved) + Get(TicketStatus.ResolvedOnBeta);
     var closed = Get(TicketStatus.Closed);
 
     var pending = Get(TicketStatus.Pending);
@@ -322,6 +432,10 @@ public class TicketsController : ControllerBase
       ticket.Title,
       ticket.Description,
       ticket.Category,
+      ticket.FromEmail,
+      ticket.FromName,
+      ticket.InboundMessageId,
+      CcEmails = ticket.CcEmails,
       Status = ticket.Status.ToString(),
       Priority = ticket.Priority.ToString(),
       TicketType = ticket.TicketType,
@@ -370,6 +484,11 @@ public class TicketsController : ControllerBase
               c.IsInternal,
               Source = c.Source ?? "web",
               c.EmailMessageId,
+              c.Cc,
+              c.Bcc,
+              c.NotifiedTo,
+              c.FromName,
+              c.FromEmail,
               User = c.User == null ? null : new
               {
                 c.User.Id,
@@ -423,7 +542,7 @@ public class TicketsController : ControllerBase
       Title = dto.Title?.Trim() ?? "",
       Description = dto.Description ?? "",
       Category = dto.Category ?? "General",
-      Priority = Enum.TryParse<TicketPriority>(
+      Priority = TryParseTicketPriority(
             dto.Priority, out var p)
             ? p : TicketPriority.Medium,
       Status = TicketStatus.Open,
@@ -435,6 +554,28 @@ public class TicketsController : ControllerBase
       AgentGroupId = groupId,
       TicketNumber = lastNum + 1
     };
+
+    if (!await IsMasterValueAllowedAsync(
+        TicketPriorityField,
+        ticket.Priority.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {ticket.Priority} is not active in ticket master"
+      });
+    }
+
+    var normalizedTicketType = (ticket.TicketType ?? "Support").Trim();
+    if (!await IsMasterValueAllowedAsync(
+        TicketTypeField,
+        normalizedTicketType))
+    {
+      return BadRequest(new
+      {
+        message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+      });
+    }
+    ticket.TicketType = normalizedTicketType;
 
     ticket.SlaDeadline = _slaService
         .CalculateSlaDeadline(
@@ -480,14 +621,37 @@ public class TicketsController : ControllerBase
     if (dto.Category != null)
       ticket.Category = dto.Category;
     if (dto.TicketType != null)
-      ticket.TicketType = dto.TicketType;
+    {
+      var normalizedTicketType = dto.TicketType.Trim();
+      if (!await IsMasterValueAllowedAsync(
+          TicketTypeField,
+          normalizedTicketType))
+      {
+        return BadRequest(new
+        {
+          message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+        });
+      }
+
+      ticket.TicketType = normalizedTicketType;
+    }
     if (dto.Tags != null)
       ticket.Tags = dto.Tags;
 
     if (!string.IsNullOrEmpty(dto.Priority) &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             dto.Priority, out var newP))
     {
+      if (!await IsMasterValueAllowedAsync(
+          TicketPriorityField,
+          newP.ToString()))
+      {
+        return BadRequest(new
+        {
+          message = $"Priority {newP} is not active in ticket master"
+        });
+      }
+
       ticket.Priority = newP;
       ticket.SlaDeadline = _slaService
           .CalculateSlaDeadline(
@@ -498,11 +662,23 @@ public class TicketsController : ControllerBase
     }
 
     if (!string.IsNullOrEmpty(dto.Status) &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             dto.Status, out var newS))
     {
-      if (newS == TicketStatus.Resolved &&
-          ticket.Status != TicketStatus.Resolved)
+      if (!await IsMasterValueAllowedAsync(
+          TicketStatusField,
+          newS.ToString()))
+      {
+        return BadRequest(new
+        {
+          message = $"Status {newS} is not active in ticket master"
+        });
+      }
+
+      if ((newS == TicketStatus.Resolved ||
+           newS == TicketStatus.ResolvedOnBeta) &&
+          ticket.Status != TicketStatus.Resolved &&
+          ticket.Status != TicketStatus.ResolvedOnBeta)
         ticket.ResolvedAt = DateTime.UtcNow;
       ticket.Status = newS;
     }
@@ -746,7 +922,8 @@ public class TicketsController : ControllerBase
             $"<strong>#TN{original.TicketNumber}" +
             $"</strong>. " +
             $"Please use that ticket number " +
-            $"for future reference.</p>");
+            $"for future reference.</p>",
+            organizationId: duplicate.OrganizationId);
       }
       catch { /* don't fail on email error */ }
     }
@@ -823,17 +1000,28 @@ public class TicketsController : ControllerBase
 
     if (ticket == null) return NotFound();
     var statusStr = dto.Status?.Trim() ?? "";
-    if (!Enum.TryParse<TicketStatus>(
-        statusStr, true, out var newStatus))
+    if (!TryParseTicketStatus(
+        statusStr, out var newStatus))
       return BadRequest(new
       {
         message = $"Invalid status: {statusStr}"
       });
 
+    if (!await IsMasterValueAllowedAsync(
+        TicketStatusField,
+        newStatus.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Status {newStatus} is not active in ticket master"
+      });
+    }
+
     ticket.Status = newStatus;
     ticket.UpdatedAt = DateTime.UtcNow;
 
-    if (newStatus == TicketStatus.Resolved &&
+    if ((newStatus == TicketStatus.Resolved ||
+         newStatus == TicketStatus.ResolvedOnBeta) &&
         !ticket.ResolvedAt.HasValue)
       ticket.ResolvedAt = DateTime.UtcNow;
 
@@ -862,7 +1050,8 @@ public class TicketsController : ControllerBase
         await _emailService.SendAsync(
             ticket.CreatedBy.Email,
             $"Ticket #{ticket.TicketNumber} Status: {newStatus}",
-            html);
+            html,
+            organizationId: ticket.OrganizationId);
       }
       catch (Exception ex)
       {
@@ -890,6 +1079,53 @@ public class TicketsController : ControllerBase
         .IgnoreQueryFilters()
         .FirstOrDefaultAsync(u => u.Id == userId);
 
+    // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
+    var commentMsgIds = await _context.TicketComments
+        .Where(c => c.TicketId == id &&
+                    !string.IsNullOrEmpty(c.EmailMessageId))
+        .OrderBy(c => c.CreatedAt)
+        .Select(c => c.EmailMessageId!)
+        .ToListAsync();
+
+    var referenceChain = new List<string>();
+    if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
+      referenceChain.Add(ticket.InboundMessageId);
+    referenceChain.AddRange(commentMsgIds);
+
+    // In-Reply-To = most recent message in the chain
+    var lastMsgId = referenceChain.LastOrDefault();
+
+    // ── Resolve notified users (private notes) ──
+    string? notifiedTo = null;
+    var notifyMailList = new List<string>();
+    if (dto.IsInternal)
+    {
+      if (dto.NotifyUserIds is { Count: > 0 })
+      {
+        var users = await _context.Users
+            .Where(u => dto.NotifyUserIds.Contains(u.Id))
+            .Select(u => u.Email)
+            .ToListAsync();
+        notifyMailList.AddRange(users);
+      }
+      if (dto.NotifyEmails is { Count: > 0 })
+        notifyMailList.AddRange(dto.NotifyEmails);
+      notifyMailList = notifyMailList
+          .Where(e => !string.IsNullOrWhiteSpace(e))
+          .Select(e => e.Trim())
+          .Distinct(StringComparer.OrdinalIgnoreCase)
+          .ToList();
+      if (notifyMailList.Count > 0)
+        notifiedTo = string.Join(",", notifyMailList);
+    }
+
+    var ccList = (dto.Cc ?? new List<string>())
+        .Where(e => !string.IsNullOrWhiteSpace(e))
+        .Select(e => e.Trim()).ToList();
+    var bccList = (dto.Bcc ?? new List<string>())
+        .Where(e => !string.IsNullOrWhiteSpace(e))
+        .Select(e => e.Trim()).ToList();
+
     var comment = new TicketComment
     {
       TicketId = id,
@@ -898,7 +1134,13 @@ public class TicketsController : ControllerBase
       IsInternal = dto.IsInternal,
       Source = "web",
       OrganizationId =
-            _tenantService.OrganizationId!.Value
+            _tenantService.OrganizationId!.Value,
+      Cc = ccList.Count > 0 ? string.Join(",", ccList) : null,
+      Bcc = bccList.Count > 0 ? string.Join(",", bccList) : null,
+      NotifiedTo = notifiedTo,
+      InReplyTo = !dto.IsInternal ? lastMsgId : null,
+      References = !dto.IsInternal && referenceChain.Count > 0
+          ? string.Join(" ", referenceChain) : null
     };
 
     _context.TicketComments.Add(comment);
@@ -910,23 +1152,61 @@ public class TicketsController : ControllerBase
     await _context.SaveChangesAsync();
 
     // ✅ Send email if public reply
-    if (!dto.IsInternal &&
-        ticket.CreatedBy?.Email != null)
+    if (!dto.IsInternal)
     {
-      try
+      var replyTo = !string.IsNullOrWhiteSpace(ticket.FromEmail)
+          ? ticket.FromEmail.Trim()
+          : ticket.CreatedBy?.Email;
+      if (!string.IsNullOrWhiteSpace(replyTo))
       {
-        await _emailService.SendReplyAsync(
-            ticket.CreatedBy.Email,
-            ticket.Title,
-            dto.Comment,
-            $"#TN{ticket.TicketNumber}",
-            agent?.FullName ?? "Support",
-            agent?.Signature ?? "");
+        try
+        {
+          var outboundMsgId = await _emailService.SendReplyAsync(
+              replyTo,
+              ticket.Title,
+              dto.Comment,
+              $"#TN{ticket.TicketNumber}",
+              agent?.FullName ?? "Support",
+              agent?.Signature ?? "",
+              ticket.OrganizationId,
+              cc: ccList,
+              bcc: bccList,
+              inReplyTo: lastMsgId,
+              references: referenceChain);
+
+          if (!string.IsNullOrEmpty(outboundMsgId))
+          {
+            comment.EmailMessageId = outboundMsgId;
+            await _context.SaveChangesAsync();
+          }
+        }
+        catch (Exception ex)
+        {
+          _logger.LogWarning(ex,
+              "Reply email failed");
+        }
       }
-      catch (Exception ex)
+    }
+
+    // ✅ Notify mentioned agents for private notes
+    if (dto.IsInternal && notifyMailList.Count > 0)
+    {
+      foreach (var em in notifyMailList)
       {
-        _logger.LogWarning(ex,
-            "Reply email failed");
+        try
+        {
+          await _emailService.SendAsync(
+              em,
+              $"🔒 Note on #TN{ticket.TicketNumber}: {ticket.Title}",
+              $"<p><strong>{agent?.FullName ?? "Agent"}</strong> added a private note:</p>" +
+              $"<blockquote style='border-left:3px solid #f59e0b;padding:8px 12px;background:#fff7ed'>{dto.Comment}</blockquote>",
+              organizationId: ticket.OrganizationId,
+              ticketNumberTag: $"#TN{ticket.TicketNumber}");
+        }
+        catch (Exception ex)
+        {
+          _logger.LogWarning(ex, "Note notify email failed for {Email}", em);
+        }
       }
     }
 
@@ -996,7 +1276,8 @@ public class TicketsController : ControllerBase
             await _emailService.SendAsync(
                 agent.Email,
                 $"Ticket Assigned: #{ticket.TicketNumber}",
-                html);
+                html,
+                organizationId:ticket.OrganizationId);
           }
           catch (Exception ex)
           {
@@ -1051,9 +1332,19 @@ public class TicketsController : ControllerBase
         .FindAsync(id);
     if (ticket == null) return NotFound();
 
-    if (!Enum.TryParse<TicketPriority>(
+    if (!TryParseTicketPriority(
         dto.Priority, out var newP))
       return BadRequest();
+
+    if (!await IsMasterValueAllowedAsync(
+        TicketPriorityField,
+        newP.ToString()))
+    {
+      return BadRequest(new
+      {
+        message = $"Priority {newP} is not active in ticket master"
+      });
+    }
 
     ticket.Priority = newP;
     ticket.UpdatedAt = DateTime.UtcNow;
@@ -1077,7 +1368,18 @@ public class TicketsController : ControllerBase
         .FindAsync(id);
     if (ticket == null) return NotFound();
 
-    ticket.TicketType = dto.TicketType;
+    var normalizedTicketType = dto.TicketType.Trim();
+    if (!await IsMasterValueAllowedAsync(
+        TicketTypeField,
+        normalizedTicketType))
+    {
+      return BadRequest(new
+      {
+        message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
+      });
+    }
+
+    ticket.TicketType = normalizedTicketType;
     ticket.UpdatedAt = DateTime.UtcNow;
     await _context.SaveChangesAsync();
     return Ok(new { message = "Type updated" });
@@ -1168,11 +1470,30 @@ public class TicketsController : ControllerBase
   <div>{dto.Message ?? ticket.Description}</div>
 </div>";
 
-      await _emailService.SendAsync(
+      // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
+      var commentMsgIds = await _context.TicketComments
+          .Where(c => c.TicketId == id &&
+                      !string.IsNullOrEmpty(c.EmailMessageId))
+          .OrderBy(c => c.CreatedAt)
+          .Select(c => c.EmailMessageId!)
+          .ToListAsync();
+
+      var referenceChain = new List<string>();
+      if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
+        referenceChain.Add(ticket.InboundMessageId);
+      referenceChain.AddRange(commentMsgIds);
+      var lastMsgId = referenceChain.LastOrDefault();
+
+      await _emailService.SendForwardAsync(
           dto.ToEmail,
           $"[Forwarded] {ticket.Title}" +
           $" #TN{ticket.TicketNumber}",
-          html);
+          html,
+          organizationId: ticket.OrganizationId,
+          cc: dto.Cc,
+          bcc: dto.Bcc,
+          inReplyTo: lastMsgId,
+          references: referenceChain);
 
       return Ok(new
       {
@@ -1258,9 +1579,21 @@ public class TicketsController : ControllerBase
     foreach (var t in tickets)
     {
       if (!string.IsNullOrEmpty(dto.Status) &&
-          Enum.TryParse<TicketStatus>(
+          TryParseTicketStatus(
               dto.Status, out var s))
+      {
+        if (!await IsMasterValueAllowedAsync(
+            TicketStatusField,
+            s.ToString()))
+        {
+          return BadRequest(new
+          {
+            message = $"Status {s} is not active in ticket master"
+          });
+        }
+
         t.Status = s;
+      }
 
       if (dto.AssignedToUserId.HasValue)
         t.AssignedToUserId =
@@ -1301,14 +1634,14 @@ public class TicketsController : ControllerBase
 
     if (!string.IsNullOrEmpty(status) &&
         status != "All" &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             status, out var sFilter))
       query = query.Where(t =>
           t.Status == sFilter);
 
     if (!string.IsNullOrEmpty(priority) &&
         priority != "All" &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             priority, out var pFilter))
       query = query.Where(t =>
           t.Priority == pFilter);
@@ -1365,14 +1698,14 @@ public class TicketsController : ControllerBase
 
     if (!string.IsNullOrEmpty(status) &&
         status != "All" &&
-        Enum.TryParse<TicketStatus>(
+      TryParseTicketStatus(
             status, out var sf))
       tickets = tickets.Where(t =>
           t.Status == sf);
 
     if (!string.IsNullOrEmpty(priority) &&
         priority != "All" &&
-        Enum.TryParse<TicketPriority>(
+      TryParseTicketPriority(
             priority, out var pf))
       tickets = tickets.Where(t =>
           t.Priority == pf);
@@ -1459,6 +1792,15 @@ public class AddCommentDto
 {
   public string Comment { get; set; } = string.Empty;
   public bool IsInternal { get; set; } = false;
+
+  // Public reply CC / BCC (comma-separated emails OR list).
+  public List<string>? Cc { get; set; }
+  public List<string>? Bcc { get; set; }
+
+  // Private note: who was notified (user IDs to look up agents).
+  public List<Guid>? NotifyUserIds { get; set; }
+  // Optional ad-hoc email recipients for note notifications.
+  public List<string>? NotifyEmails { get; set; }
 }
 
 public class AssignTicketDto
@@ -1509,4 +1851,6 @@ public class ForwardTicketDto
 {
   public string ToEmail { get; set; } = string.Empty;
   public string? Message { get; set; }
+  public List<string>? Cc { get; set; }
+  public List<string>? Bcc { get; set; }
 }

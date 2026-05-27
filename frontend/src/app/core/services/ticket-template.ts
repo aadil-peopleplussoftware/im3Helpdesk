@@ -10,6 +10,9 @@ export interface TicketTemplate {
   description: string;
   category: string;
   priority: string;
+  ticketType: string;
+  status: string;
+  tags?: string;
 }
 
 @Injectable({

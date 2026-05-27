@@ -55,6 +55,10 @@ export class ProfilePageComponent implements OnInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
 
+  isCompanyAdmin = false;
+  smtpSetupChecked = false;
+  smtpSetupIncomplete = false;
+
   loadingProfile = true;
   savingProfile = false;
   isEditMode = false;
@@ -106,12 +110,42 @@ export class ProfilePageComponent implements OnInit {
   genderOptions = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 
   ngOnInit() {
+    this.isCompanyAdmin = this.authService.getUserRole() === 'CompanyAdmin';
     this.profileForm.disable({ emitEvent: false });
     this.loadProfile();
+    if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
     this.profileForm.valueChanges.subscribe(() => {
       this.refreshCompletion();
       this.cdr.detectChanges();
     });
+  }
+
+  private loadMailboxSetupStatus() {
+    this.http.get<any>(`${environment.apiUrl}/Organizations/current`).subscribe({
+      next: (org) => {
+        const smtpPasswordSet = Boolean(org?.smtpPasswordSet);
+        const complete = Boolean(
+          org?.smtpHost &&
+          org?.smtpPort &&
+          org?.smtpFromEmail &&
+          org?.smtpUsername &&
+          smtpPasswordSet &&
+          org?.imapHost &&
+          org?.imapPort
+        );
+        this.smtpSetupIncomplete = !complete;
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.smtpSetupChecked = true;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  goToMailboxOnboarding() {
+    this.router.navigate(['/onboarding']);
   }
 
   loadProfile() {

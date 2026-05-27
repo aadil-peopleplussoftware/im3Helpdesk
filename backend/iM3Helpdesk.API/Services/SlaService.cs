@@ -35,7 +35,9 @@ public class SlaService : ISlaService
 
   public string GetSlaStatus(DateTime? slaDeadline, TicketStatus status)
   {
-    if (status == TicketStatus.Resolved || status == TicketStatus.Closed)
+    if (status == TicketStatus.Resolved ||
+        status == TicketStatus.ResolvedOnBeta ||
+        status == TicketStatus.Closed)
       return "Completed";
 
     if (!slaDeadline.HasValue) return "No SLA";

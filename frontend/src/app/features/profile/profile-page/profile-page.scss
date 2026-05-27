@@ -25,6 +25,44 @@
   }
 }
 
+/* -- Mailbox Setup Reminder (Company Admin only) -- */
+.smtp-setup-banner {
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  background: linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(251,191,36,0.06) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(249,115,22,0.14) 0%, rgba(251,191,36,0.1) 100%);
+  }
+}
+
+.ssb-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #c2410c;
+  margin-bottom: 3px;
+}
+
+.ssb-sub {
+  font-size: 12.5px;
+  color: var(--text-muted, var(--ui-color-text-muted));
+}
+
+.ssb-action {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #c2410c;
+  white-space: nowrap;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
