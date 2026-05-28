@@ -1115,29 +1115,28 @@ public class TicketsController : ControllerBase
     // In-Reply-To = most recent message in the chain
     var lastMsgId = referenceChain.LastOrDefault();
 
-    // ── Resolve notified users (private notes) ──
+    // ── Resolve notified users (notes AND replies) ──
     string? notifiedTo = null;
     var notifyMailList = new List<string>();
-    if (dto.IsInternal)
+    var notifyUserIds = new List<Guid>();
+    if (dto.NotifyUserIds is { Count: > 0 })
     {
-      if (dto.NotifyUserIds is { Count: > 0 })
-      {
-        var users = await _context.Users
-            .Where(u => dto.NotifyUserIds.Contains(u.Id))
-            .Select(u => u.Email)
-            .ToListAsync();
-        notifyMailList.AddRange(users);
-      }
-      if (dto.NotifyEmails is { Count: > 0 })
-        notifyMailList.AddRange(dto.NotifyEmails);
-      notifyMailList = notifyMailList
-          .Where(e => !string.IsNullOrWhiteSpace(e))
-          .Select(e => e.Trim())
-          .Distinct(StringComparer.OrdinalIgnoreCase)
-          .ToList();
-      if (notifyMailList.Count > 0)
-        notifiedTo = string.Join(",", notifyMailList);
+      var users = await _context.Users
+          .Where(u => dto.NotifyUserIds.Contains(u.Id))
+          .Select(u => new { u.Id, u.Email })
+          .ToListAsync();
+      notifyMailList.AddRange(users.Select(u => u.Email));
+      notifyUserIds.AddRange(users.Select(u => u.Id));
     }
+    if (dto.NotifyEmails is { Count: > 0 })
+      notifyMailList.AddRange(dto.NotifyEmails);
+    notifyMailList = notifyMailList
+        .Where(e => !string.IsNullOrWhiteSpace(e))
+        .Select(e => e.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    if (notifyMailList.Count > 0)
+      notifiedTo = string.Join(",", notifyMailList);
 
     var ccList = (dto.Cc ?? new List<string>())
         .Where(e => !string.IsNullOrWhiteSpace(e))
@@ -1226,6 +1225,30 @@ public class TicketsController : ControllerBase
         catch (Exception ex)
         {
           _logger.LogWarning(ex, "Note notify email failed for {Email}", em);
+        }
+      }
+    }
+
+    // ✅ In-app notification for every mentioned user (note or reply)
+    if (notifyUserIds.Count > 0)
+    {
+      var actorName = agent?.FullName ?? "An agent";
+      var kindLabel = dto.IsInternal ? "private note" : "reply";
+      foreach (var uid in notifyUserIds.Distinct())
+      {
+        if (uid == userId) continue; // don't notify self
+        try
+        {
+          await _notificationService.CreateAsync(
+              uid,
+              ticket.OrganizationId,
+              "You were mentioned",
+              $"{actorName} mentioned you in a {kindLabel} on #TN{ticket.TicketNumber}: {ticket.Title}",
+              "info", ticket.Id);
+        }
+        catch (Exception ex)
+        {
+          _logger.LogWarning(ex, "Mention notification failed for {UserId}", uid);
         }
       }
     }

@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 :host { display: block; }
 
 $brand: #0078d4;
@@ -37,7 +39,7 @@ $bg-soft: #f8fafc;
   transition: border .15s, box-shadow .15s;
 
   &:hover:not(:disabled) {
-    border-color: darken($line, 8%);
+    border-color: color.adjust($line, $lightness: -8%);
   }
   &:focus-visible {
     outline: none;

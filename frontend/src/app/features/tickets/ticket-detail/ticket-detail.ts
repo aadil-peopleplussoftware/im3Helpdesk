@@ -2,8 +2,7 @@ import {
   Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ViewChild, ElementRef,
-  ChangeDetectionStrategy,
-  SecurityContext
+  ChangeDetectionStrategy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -25,7 +24,7 @@ import { AgentGroupService }
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
-import { DomSanitizer } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
@@ -90,14 +89,18 @@ export class TicketDetailComponent
   // ─── Composer ────────────────────────
   // ✅ single variable controls tabs
   activeComposerTab:
-    'reply' | 'note' | 'forward' = 'reply';
+    'reply' | 'note' | 'forward' = 'note';
 
   /** Composer starts collapsed (small one-line input). Expands on click. */
   composerExpanded = false;
 
+  /** Conversation thread collapse (Freshdesk-style "+N conversations" pill). */
+  convoExpanded = false;
+
   quickReplyText = '';
   noteText = '';
   noteIsPrivate = true;
+  noteVisOpen = false;
   forwardEmail = '';
   forwardText = '';
   pendingFiles: File[] = [];
@@ -161,12 +164,14 @@ export class TicketDetailComponent
     });
   }
 
-  sanitizeHtml(html: string): string {
+  sanitizeHtml(html: string): SafeHtml {
     if (!html) return '';
-    return this.sanitizer.sanitize(
-      SecurityContext.HTML,
-      html
-    ) || '';
+    // Email bodies are sanitised server-side by HtmlSanitizer (Ganss.Xss)
+    // with a permissive style allow-list so highlights / colors / fonts
+    // round-trip back. Angular's built-in sanitiser strips inline `style`
+    // attributes and would erase that formatting — so we trust the
+    // server-cleaned HTML here.
+    return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
   getAvatarColor(name: string): string {
@@ -438,6 +443,26 @@ export class TicketDetailComponent
     if (bytes < 1048576)
       return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1048576).toFixed(1)} MB`;
+  }
+
+  // ── Conversation collapse (Freshdesk-style) ──
+  /** When collapsed, show only the last 2 comments; rest hide behind a pill. */
+  private readonly CONVO_TAIL_COUNT = 2;
+
+  get visibleComments(): any[] {
+    const all = this.ticket?.comments || [];
+    if (this.convoExpanded || all.length <= this.CONVO_TAIL_COUNT + 1) return all;
+    return all.slice(-this.CONVO_TAIL_COUNT);
+  }
+
+  get hiddenConversationsCount(): number {
+    const all = this.ticket?.comments || [];
+    if (this.convoExpanded || all.length <= this.CONVO_TAIL_COUNT + 1) return 0;
+    return all.length - this.CONVO_TAIL_COUNT;
+  }
+
+  expandConversations() {
+    this.convoExpanded = true;
   }
 
   getTimelineLabel(action: string): string {
@@ -1114,7 +1139,13 @@ async sendReply() {
         comment: content,
         isInternal: false,
         cc: this.replyCc,
-        bcc: this.replyBcc
+        bcc: this.replyBcc,
+        notifyUserIds: this.notifyAgents
+          .filter(a => a.kind !== 'contact' && a.id)
+          .map(a => a.id),
+        notifyEmails: this.notifyAgents
+          .map(a => a.email)
+          .filter((e: string) => !!e)
       }
     ).toPromise();
 
@@ -1140,6 +1171,8 @@ async sendReply() {
     this.replyBcc = [];
     this.showCc = false;
     this.showBcc = false;
+    this.notifyAgents = [];
+    this.notifyTo = '';
     setTimeout(() => {
       this.updating = false;
     }, 0);
@@ -1174,7 +1207,9 @@ async sendNote() {
       {
         comment: content,
         isInternal: this.noteIsPrivate,
-        notifyUserIds: this.notifyAgents.map(a => a.id),
+        notifyUserIds: this.notifyAgents
+          .filter(a => a.kind !== 'contact' && a.id)
+          .map(a => a.id),
         notifyEmails: this.notifyAgents
           .map(a => a.email)
           .filter((e: string) => !!e)
@@ -1294,7 +1329,13 @@ updateAllProps() {
         toEmail: this.forwardEmail,
         message: this.forwardText,
         cc: this.fwdCc,
-        bcc: this.fwdBcc
+        bcc: this.fwdBcc,
+        notifyUserIds: this.notifyAgents
+          .filter(a => a.kind !== 'contact' && a.id)
+          .map(a => a.id),
+        notifyEmails: this.notifyAgents
+          .map(a => a.email)
+          .filter((e: string) => !!e)
       }
     ).subscribe({
       next: () => {
@@ -1304,7 +1345,9 @@ updateAllProps() {
         this.fwdBcc = [];
         this.showFwdCc = false;
         this.showFwdBcc = false;
-        this.activeComposerTab = 'reply';
+        this.notifyAgents = [];
+        this.notifyTo = '';
+        this.activeComposerTab = 'note';
         this.composerExpanded = false;
         if (this.forwardEditorRef?.nativeElement)
           this.forwardEditorRef.nativeElement
@@ -1327,23 +1370,61 @@ updateAllProps() {
   // MENTION
   // ─────────────────────────────────────
   searchAgentsForMention(event: any) {
-    const q = event.target.value?.toLowerCase();
+    const q = (event.target.value || '').toLowerCase().replace(/^@/, '').trim();
     if (!q || q.length < 1) {
       this.mentionResults = [];
       return;
     }
-    this.mentionResults = this.agents
+    // Agents: match by name or email
+    const agentMatches = (this.agents || [])
       .filter(a =>
-        a.fullName?.toLowerCase().includes(q))
-      .slice(0, 5);
+        a.fullName?.toLowerCase().includes(q) ||
+        a.email?.toLowerCase().includes(q))
+      .map(a => ({
+        id: a.id,
+        fullName: a.fullName,
+        email: a.email,
+        kind: 'agent'
+      }));
+
+    // Ticket-related contacts (requester + cc/bcc emails)
+    const contactEmails = new Set<string>();
+    const requester = this.ticket?.createdBy;
+    if (requester?.email) contactEmails.add(requester.email);
+    if (this.ticket?.fromEmail) contactEmails.add(this.ticket.fromEmail);
+    (this.getTicketCcList?.() || []).forEach((e: string) => e && contactEmails.add(e));
+    (this.getTicketBccList?.() || []).forEach((e: string) => e && contactEmails.add(e));
+
+    const contactMatches = Array.from(contactEmails)
+      .filter(e => e.toLowerCase().includes(q))
+      .map(e => ({
+        id: 'c:' + e,
+        fullName: e.split('@')[0],
+        email: e,
+        kind: 'contact'
+      }));
+
+    // Dedupe by email, agents first
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const m of [...agentMatches, ...contactMatches]) {
+      const key = (m.email || m.id || '').toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(m);
+    }
+    this.mentionResults = merged.slice(0, 8);
   }
 
   addMention(agent: any) {
     if (!this.notifyAgents.find(
-      a => a.id === agent.id))
+      a => (a.email || a.id) === (agent.email || agent.id)))
       this.notifyAgents.push(agent);
-    this.notifyTo = '';
-    this.mentionResults = [];
+    // Defer the clear so the click's CD pass completes first (avoids NG0100)
+    setTimeout(() => {
+      this.notifyTo = '';
+      this.mentionResults = [];
+    }, 0);
   }
 
   removeNotify(agent: any) {

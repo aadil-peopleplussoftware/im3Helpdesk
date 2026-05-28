@@ -22,6 +22,8 @@ public class EmailPollingService : BackgroundService
       new(@"[^a-z0-9\-]", RegexOptions.Compiled);
   private const long MaxAttachmentBytes = 10 * 1024 * 1024;
 
+  private static readonly EmailHtmlProcessor _htmlProcessor = new();
+
   private readonly IServiceScopeFactory _scopeFactory;
   private readonly IConfiguration _config;
   private readonly ILogger<EmailPollingService> _logger;
@@ -323,19 +325,28 @@ public class EmailPollingService : BackgroundService
     //   }
     // }
 
-    var description = BuildDescription(message);
-    var cutoff = DateTime.UtcNow.AddHours(-1);
-    var isDuplicate = await context.Tickets
-        .IgnoreQueryFilters()
-        .AnyAsync(t =>
-            t.OrganizationId == org.Id &&
-            t.Title == subject &&
-            t.CreatedAt >= cutoff, ct);
+    var (description, inlineParts) = BuildDescriptionEx(message);
 
-    if (isDuplicate)
+    // ── Duplicate detection ──
+    // A true duplicate is the *same* RFC-5322 Message-Id arriving twice
+    // (mail server retry, double-poll race, …). Same subject with a
+    // different body is a brand-new ticket — never collapse on title alone.
+    var inboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty);
+    if (!string.IsNullOrWhiteSpace(inboundMessageId))
     {
-      _logger.LogDebug("Duplicate ticket, skipping: {S}", subject);
-      return;
+      var alreadyIngested = await context.Tickets
+          .IgnoreQueryFilters()
+          .AnyAsync(t =>
+              t.OrganizationId == org.Id &&
+              t.InboundMessageId == inboundMessageId, ct);
+
+      if (alreadyIngested)
+      {
+        _logger.LogDebug(
+            "Duplicate inbound Message-Id, skipping: {Id} (subject: {S})",
+            inboundMessageId, subject);
+        return;
+      }
     }
     var lastNum = await context.Tickets
         .IgnoreQueryFilters()
@@ -356,7 +367,7 @@ public class EmailPollingService : BackgroundService
       FromName = fromName,
       CcEmails = inboundCc.Count > 0 ? string.Join(",", inboundCc) : null,
       BccEmails = inboundBcc.Count > 0 ? string.Join(",", inboundBcc) : null,
-      InboundMessageId = NormalizeMsgId(message.MessageId ?? string.Empty),
+      InboundMessageId = inboundMessageId,
       Category = "General",
       Priority = TicketPriority.Medium,
       Status = TicketStatus.Open,
@@ -376,8 +387,7 @@ public class EmailPollingService : BackgroundService
 
     _logger.LogInformation(
         "âœ… Ticket #TN{N} created for org [{O}]: {S}",
-        ticket.TicketNumber, org.Name, subject);
-    await SaveAttachmentsAsync(message, ticket, null, context, ct);
+        ticket.TicketNumber, org.Name, subject);    await PersistInlineAttachmentsAsync(inlineParts, ticket, null, context, ct);    await SaveAttachmentsAsync(message, ticket, null, context, ct);
     await NotifyAgentsAsync(fromName, subject, ticket, org.Id, context, ct);
   }
 
@@ -625,13 +635,15 @@ public class EmailPollingService : BackgroundService
     var replyCc = ExtractExternalCc(message, fromEmail, org);
     var replyBcc = ExtractExternalBcc(message, fromEmail, org);
 
+    var (commentHtml, replyInlineParts) = BuildDescriptionEx(message);
+
     var comment = new TicketComment
     {
       TicketId = ticketId,
       UserId = user?.Id,                          // null when customer has no account
       FromEmail = user == null ? fromEmail : null,
       FromName = user == null ? fromName : null,
-      Comment = BuildDescription(message),
+      Comment = commentHtml,
       IsInternal = false,
       OrganizationId = org.Id,
       EmailMessageId = inboundMsgId,
@@ -664,7 +676,10 @@ public class EmailPollingService : BackgroundService
     await context.SaveChangesAsync(ct);
 
     if (ticket != null)
+    {
+      await PersistInlineAttachmentsAsync(replyInlineParts, ticket, comment.Id, context, ct);
       await SaveAttachmentsAsync(message, ticket, comment.Id, context, ct);
+    }
 
     _logger.LogInformation(
         "💬 Reply added to ticket {T} from {E} (user: {U})",
@@ -720,6 +735,54 @@ public class EmailPollingService : BackgroundService
     return StripQuotedReply(raw);
   }
 
+  /// <summary>
+  /// Build the rich-text description AND extract any inline (cid:) images
+  /// that need to be persisted alongside the ticket / comment. Uses the
+  /// permissive sanitiser in <see cref="EmailHtmlProcessor"/> so the styles
+  /// the original sender used (highlights, colors, fonts, …) survive the
+  /// round trip back to the browser.
+  /// </summary>
+  private (string Html, List<InlineAttachmentInfo> Inline) BuildDescriptionEx(MimeMessage message)
+  {
+    var uploadDir = Path.Combine(
+        Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+    var result = _htmlProcessor.Build(message, uploadDir);
+    return (result.Html, result.InlineAttachments);
+  }
+
+  /// <summary>
+  /// Persist inline-image rewrites recorded by <see cref="EmailHtmlProcessor"/>
+  /// as regular <see cref="TicketAttachment"/> rows so they show up in the
+  /// ticket's attachment list and can be cleaned up by the recycle-bin
+  /// purger like any other upload.
+  /// </summary>
+  private async Task PersistInlineAttachmentsAsync(
+      List<InlineAttachmentInfo> inline,
+      Ticket ticket,
+      Guid? commentId,
+      ApplicationDbContext context,
+      CancellationToken ct)
+  {
+    if (inline.Count == 0) return;
+
+    foreach (var info in inline)
+    {
+      context.TicketAttachments.Add(new TicketAttachment
+      {
+        TicketId = ticket.Id,
+        CommentId = commentId,
+        FileName = info.FileName,
+        FileUrl = info.FileUrl,
+        ContentType = info.ContentType,
+        FileSize = info.FileSize,
+        UploadedByUserId = ticket.CreatedByUserId,
+        OrganizationId = ticket.OrganizationId
+      });
+    }
+
+    await context.SaveChangesAsync(ct);
+  }
+
   // Regex set for quoted-reply trimming (Freshdesk-style)
   private static readonly Regex GmailQuoteRegex = new(
       @"<blockquote[^>]*class=[""']gmail_quote[^>]*>[\s\S]*",
@@ -736,9 +799,6 @@ public class EmailPollingService : BackgroundService
   private static readonly Regex OnWroteRegex = new(
       @"(<(?:div|p|blockquote)[^>]*>\s*)?On\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{1,2})[\s\S]{0,500}?wrote:\s*<?[\s\S]*",
       RegexOptions.IgnoreCase | RegexOptions.Compiled);
-  private static readonly Regex GenericBlockquoteRegex = new(
-      @"<blockquote[\s\S]*?</blockquote>",
-      RegexOptions.IgnoreCase | RegexOptions.Compiled);
   private static readonly Regex TrailingEmptyRegex = new(
       @"(?:<br\s*/?>|\s|&nbsp;|<p>\s*</p>|<div>\s*</div>)+$",
       RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -753,7 +813,10 @@ public class EmailPollingService : BackgroundService
     html = OutlookAppendRegex.Replace(html, string.Empty);
     html = OutlookDividerRegex.Replace(html, string.Empty);
     html = OnWroteRegex.Replace(html, string.Empty);
-    html = GenericBlockquoteRegex.Replace(html, string.Empty);
+    // NOTE: do NOT strip generic <blockquote> tags — Gmail uses them for
+    // indented / nested content in original bodies too. The targeted
+    // gmail_quote / Outlook / "On … wrote:" matchers above are enough
+    // to remove genuine quoted-reply trails without eating real content.
     html = TrailingEmptyRegex.Replace(html, string.Empty);
     return html.Trim();
   }

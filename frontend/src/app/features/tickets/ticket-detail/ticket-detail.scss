@@ -20,7 +20,7 @@
 
 .td-page {
   padding: 16px 20px;
-  background: var(--fd-bg);
+  background: var(--ui-color-bg-surface);
   min-height: 100%;
 }
 
@@ -570,8 +570,12 @@
   }
 }
 
-.fdc-vis {
+.fdc-vis-wrap {
   margin-left: auto;
+  position: relative;
+}
+
+.fdc-vis {
   font-size: 12px;
   color: var(--fd-sub);
   cursor: pointer;
@@ -584,6 +588,53 @@
   gap: 4px;
   white-space: nowrap;
   &:hover { background: var(--fd-hover); }
+}
+
+.fdc-vis-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  background: var(--ui-color-bg-surface);
+  border: 1px solid var(--fd-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+  padding: 6px;
+  z-index: 50;
+}
+
+.fdc-vis-menu-hdr {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fd-sub);
+  padding: 6px 10px 4px;
+  text-transform: none;
+}
+
+.fdc-vis-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  &:hover { background: var(--fd-hover); }
+  &.sel { background: rgba(59,130,246,.08); }
+  .fdc-vis-ico { font-size: 14px; }
+  .fdc-vis-txt {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    strong { font-size: 13px; font-weight: 600; }
+    small { font-size: 11px; color: var(--fd-sub); }
+  }
+  .fdc-vis-chk { color: #2563eb; font-weight: 700; }
 }
 
 /* Note visibility row */
@@ -658,6 +709,7 @@
 }
 
 .fdc-notify-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -693,12 +745,16 @@
 
 .fdc-mention-dd {
   position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
   background: var(--ui-color-bg-surface);
   border: 1px solid var(--fd-border);
   border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.1);
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
   z-index: 100;
-  min-width: 200px;
+  min-width: 280px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .fdc-m-item {
@@ -706,7 +762,58 @@
   font-size: 13px;
   cursor: pointer;
   color: var(--fd-text);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  gap: 1px;
   &:hover { background: var(--fd-hover); }
+  .fdc-m-name { font-weight: 500; color: var(--fd-text); }
+  .fdc-m-email { font-size: 12px; color: var(--fd-sub); }
+}
+
+/* Conversation collapse pill (Freshdesk-style) */
+.fd-convo-collapse {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 14px 0;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--fd-border);
+    z-index: 0;
+  }
+}
+.fd-convo-collapse-pill {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--fd-border);
+  background: var(--ui-color-bg-surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--fd-accent);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  &:hover { background: var(--fd-hover); }
+  .fd-convo-collapse-ic {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--fd-accent);
+    color: #fff;
+    font-size: 10px;
+  }
 }
 
 /* Toolbar */
@@ -1486,13 +1593,9 @@
    on top of the existing rules so the rest stays intact.
 ════════════════════════════════════════════════════════════ */
 
-/* Page background — soft warm tint */
+/* Page background — white */
 .td-page {
-  background:
-    radial-gradient(1100px 360px at 90% -8%,
-      rgba(99, 102, 241, 0.05) 0%,
-      transparent 60%),
-    var(--fd-bg);
+  background: var(--ui-color-bg-surface);
 }
 
 /* Layout — a touch more breathing room between main + sidebar */

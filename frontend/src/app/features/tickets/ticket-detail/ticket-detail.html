@@ -82,8 +82,7 @@
               <div class="ec-to-row" *ngIf="orgSupportEmail">
                 <span class="ec-to-lbl">To:</span>
                 <span class="ec-to-val">
-                  &quot;{{ orgSupportName || 'Support' }}&quot;
-                  &lt;{{ orgSupportEmail }}&gt;
+                  {{ orgSupportEmail }}
                 </span>
                 <ng-container *ngIf="getTicketCcList().length > 0">
                   <span class="ec-to-lbl ec-cc-lbl">Cc:</span>
@@ -134,8 +133,19 @@
         <!-- ─── CONVERSATION ─── -->
         <div class="fd-convo">
 
+          <!-- Collapse pill (Freshdesk-style) -->
+          <div class="fd-convo-collapse"
+            *ngIf="hiddenConversationsCount > 0">
+            <button type="button"
+              class="fd-convo-collapse-pill"
+              (click)="expandConversations()">
+              <span class="fd-convo-collapse-ic">▾</span>
+              +{{ hiddenConversationsCount }} conversation{{ hiddenConversationsCount === 1 ? '' : 's' }}
+            </button>
+          </div>
+
           <ng-container
-            *ngFor="let c of ticket.comments">
+            *ngFor="let c of visibleComments">
 
             <!-- Public Reply -->
             <div class="fd-reply"
@@ -368,15 +378,43 @@
               ↗ Forward
             </button>
 
-            <!-- Note visibility -->
-            <div class="fdc-vis"
-              *ngIf="activeComposerTab === 'note'"
-              (click)="noteIsPrivate =
-                !noteIsPrivate">
-              🔒 {{ noteIsPrivate
-                ? 'Not visible to contact'
-                : 'Visible to contact' }}
-              <span>▾</span>
+            <!-- Note visibility (dropdown) -->
+            <div class="fdc-vis-wrap"
+              *ngIf="activeComposerTab === 'note'">
+              <button type="button"
+                class="fdc-vis"
+                (click)="noteVisOpen = !noteVisOpen">
+                🔒 {{ noteIsPrivate
+                  ? 'Not visible to contact'
+                  : 'Visible to contact' }}
+                <span>▾</span>
+              </button>
+              <div class="fdc-vis-menu"
+                *ngIf="noteVisOpen">
+                <div class="fdc-vis-menu-hdr">Mark note as</div>
+                <button type="button"
+                  class="fdc-vis-item"
+                  [class.sel]="!noteIsPrivate"
+                  (click)="noteIsPrivate = false; noteVisOpen = false">
+                  <span class="fdc-vis-ico">🌐</span>
+                  <div class="fdc-vis-txt">
+                    <strong>Public</strong>
+                    <small>Visible to contact</small>
+                  </div>
+                  <span class="fdc-vis-chk" *ngIf="!noteIsPrivate">✓</span>
+                </button>
+                <button type="button"
+                  class="fdc-vis-item"
+                  [class.sel]="noteIsPrivate"
+                  (click)="noteIsPrivate = true; noteVisOpen = false">
+                  <span class="fdc-vis-ico">🔒</span>
+                  <div class="fdc-vis-txt">
+                    <strong>Private</strong>
+                    <small>Not visible to contact</small>
+                  </div>
+                  <span class="fdc-vis-chk" *ngIf="noteIsPrivate">✓</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -413,10 +451,7 @@
             <div class="fdc-hdr-row">
               <span class="fdc-hdr-lbl">From&nbsp;:</span>
               <span class="fdc-hdr-val readonly">
-                {{ orgSupportName || 'Support' }}
-                <span class="fdc-hdr-email">
-                  ({{ orgSupportEmail || '—' }})
-                </span>
+                {{ orgSupportEmail || '—' }}
               </span>
             </div>
 
@@ -479,6 +514,8 @@
                   href="javascript:void(0)">Clear</a>
               </span>
             </div>
+
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
 
             <div class="fdc-editor"
               contenteditable="true"
@@ -544,59 +581,7 @@
           <ng-container
             *ngIf="composerExpanded && activeComposerTab === 'note'
               && isAgent">
-            <div class="fdc-note-vis-row">
-              <div class="fdc-nv"
-                [class.sel]="!noteIsPrivate"
-                (click)="noteIsPrivate = false">
-                <span>🌐</span>
-                <div>
-                  <strong>Public</strong>
-                  <small>Visible to contact</small>
-                </div>
-                <span class="fdc-nv-chk"
-                  *ngIf="!noteIsPrivate">✓</span>
-              </div>
-              <div class="fdc-nv"
-                [class.sel]="noteIsPrivate"
-                (click)="noteIsPrivate = true">
-                <span>🔒</span>
-                <div>
-                  <strong>Private</strong>
-                  <small>
-                    Not visible to contact
-                  </small>
-                </div>
-                <span class="fdc-nv-chk"
-                  *ngIf="noteIsPrivate">✓</span>
-              </div>
-            </div>
-            <div class="fdc-to-row">
-              <span class="fdc-lbl">Notify:</span>
-              <div class="fdc-notify-wrap">
-                <span class="fdc-ntag"
-                  *ngFor="let a of notifyAgents">
-                  {{ a.fullName }}
-                  <button type="button"
-                    (click)="removeNotify(a)">
-                    ×
-                  </button>
-                </span>
-                <input class="fdc-mention"
-                  [(ngModel)]="notifyTo"
-                  placeholder="@mention..."
-                  (input)="
-                    searchAgentsForMention(
-                      $event)"/>
-              </div>
-              <div class="fdc-mention-dd"
-                *ngIf="mentionResults.length > 0">
-                <div class="fdc-m-item"
-                  *ngFor="let a of mentionResults"
-                  (click)="addMention(a)">
-                  {{ a.fullName }}
-                </div>
-              </div>
-            </div>
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
             <div class="fdc-editor"
               [class.note-editor-bg]="noteIsPrivate"
               contenteditable="true"
@@ -658,10 +643,7 @@
             <div class="fdc-hdr-row">
               <span class="fdc-hdr-lbl">From&nbsp;:</span>
               <span class="fdc-hdr-val readonly">
-                {{ orgSupportName || 'Support' }}
-                <span class="fdc-hdr-email">
-                  ({{ orgSupportEmail || '—' }})
-                </span>
+                {{ orgSupportEmail || '—' }}
               </span>
             </div>
 
@@ -713,6 +695,8 @@
               </div>
             </div>
 
+            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
+
             <div class="fdc-editor"
               contenteditable="true"
               #forwardEditor
@@ -733,7 +717,7 @@
               <div class="fdc-fr">
                 <button type="button"
                   class="fdc-cancel"
-                  (click)="activeComposerTab='reply'; composerExpanded=false">
+                  (click)="activeComposerTab='note'; composerExpanded=false">
                   Cancel
                 </button>
                 <button type="button"
@@ -983,6 +967,34 @@
        Used by Reply, Note and Forward composers.
        Buttons act on the currently-focused contenteditable.
        ───────────────────────────────────────────── -->
+  <ng-template #notifyRow>
+    <div class="fdc-to-row">
+      <span class="fdc-lbl">Notify:</span>
+      <div class="fdc-notify-wrap">
+        <span class="fdc-ntag"
+          *ngFor="let a of notifyAgents">
+          {{ a.fullName || a.email }}
+          <button type="button"
+            (click)="removeNotify(a)">×</button>
+        </span>
+        <input class="fdc-mention"
+          [(ngModel)]="notifyTo"
+          placeholder="@mention..."
+          (input)="searchAgentsForMention($event)"/>
+        <div class="fdc-mention-dd"
+          *ngIf="mentionResults.length > 0">
+          <div class="fdc-m-item"
+            *ngFor="let a of mentionResults"
+            (mousedown)="$event.preventDefault()"
+            (click)="addMention(a)">
+            <div class="fdc-m-name">{{ a.fullName }}</div>
+            <div class="fdc-m-email">{{ a.email }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+
   <ng-template #editorToolbar>
     <div class="fdc-toolbar">
       <button type="button" class="fdc-tb" title="Bold"

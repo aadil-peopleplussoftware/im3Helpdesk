@@ -250,7 +250,7 @@
   padding: 0 22px;
   height: 60px;
   min-height: 60px;
-  background: var(--ui-color-bg-surface);
+  background: var(--ui-color-bg-page);
   border-bottom: none;
   position: sticky;
   top: 0;
@@ -711,7 +711,7 @@
 .page-content {
   flex: 1;
   overflow: hidden;
-  background: var(--ui-color-bg-surface);
+  background: var(--ui-color-bg-page);
   height: calc(100vh - 60px);
   width: 100%;
 }
