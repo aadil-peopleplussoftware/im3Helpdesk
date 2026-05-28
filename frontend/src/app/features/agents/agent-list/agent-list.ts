@@ -10,6 +10,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../auth/auth.service';
 import { AgentService } from '../../../core/services/agent';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -17,7 +18,7 @@ import { environment } from '../../../../environments/environment';
   standalone: true,
   imports: [
     CommonModule, FormsModule,
-    RouterModule, LayoutComponent
+    RouterModule, LayoutComponent, HasPermissionDirective
   ],
   templateUrl: './agent-list.html',
   styleUrls: ['./agent-list.scss']

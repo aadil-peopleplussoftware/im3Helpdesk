@@ -24,6 +24,7 @@ import { AgentGroupService }
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
@@ -40,7 +41,8 @@ import { ReactionBarComponent } from '../../../shared/components/reaction-bar/re
     ReactiveFormsModule, RouterModule,
     MatProgressSpinnerModule,
     LayoutComponent,
-    ReactionBarComponent
+    ReactionBarComponent,
+    HasPermissionDirective
   ],
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']

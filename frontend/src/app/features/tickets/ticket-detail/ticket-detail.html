@@ -25,12 +25,14 @@
           </span>
           <span class="fd-title-txt">{{ ticket.title }}</span>
           <span class="fd-title-actions">
-            <button class="ab-del"
-              *ngIf="isAgent"
-              type="button"
-              (click)="deleteTicket()">
-              🗑 Delete
-            </button>
+            <ng-container *hasPermission="'tickets:delete'">
+              <button class="ab-del"
+                *ngIf="isAgent"
+                type="button"
+                (click)="deleteTicket()">
+                🗑 Delete
+              </button>
+            </ng-container>
             <div class="fd-viewers-badge"
               *ngIf="uniqueViewers().length > 0"
               [title]="'Viewed by:\n' + uniqueViewerNames()">
@@ -295,12 +297,14 @@
                   *ngIf="canEditNote(c)">
                   <button type="button"
                     class="fr-act-btn"
+                    *hasPermission="'tickets:edit'"
                     title="Edit note (within 1 hour)"
                     (click)="editNote(c)">
                     ✎
                   </button>
                   <button type="button"
                     class="fr-act-btn danger"
+                    *hasPermission="'tickets:delete'"
                     title="Delete note (within 1 hour)"
                     (click)="deleteNote(c)">
                     🗑

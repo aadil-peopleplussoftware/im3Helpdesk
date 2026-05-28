@@ -3,6 +3,7 @@ import { authGuard } from './core/guards/auth.guard';
 import { superAdminGuard } from './core/guards/super-admin-guard';
 import { companyAdminGuard } from './core/guards/company-admin.guard';
 import { setupOrgGuard } from './core/guards/setup-org.guard';
+import { permissionGuard } from './core/guards/permission.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -66,19 +67,19 @@ export const routes: Routes = [
     path: 'contacts',
     loadComponent: () =>
       import('./features/contacts/contacts-page/contacts-page').then(m => m.ContactsPageComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('contacts')]
   },
   {
     path: 'todo',
     loadComponent: () =>
       import('./features/todo/todo-panel/todo-list.component').then(m => m.TodoListComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('todo')]
   },
   {
     path: 'chat',
     loadComponent: () =>
       import('./features/chat/chat-page/chat-page').then(m => m.ChatPageComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('chat')]
   },
   {
     path: 'onboarding',
@@ -90,43 +91,43 @@ export const routes: Routes = [
     path: 'dashboard',
     loadChildren: () =>
       import('./features/dashboard/dashboard.routes').then(m => m.DASHBOARD_ROUTES),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('dashboard')]
   },
   {
     path: 'ai-dashboard',
     loadComponent: () =>
       import('./features/dashboard/ai-dashboard/ai-dashboard').then(m => m.AIDashboardComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('ai-insights')]
   },
   {
     path: 'tickets/create',
     loadComponent: () =>
       import('./features/tickets/ticket-create/ticket-create').then(m => m.TicketCreateComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('tickets')]
   },
   {
     path: 'tickets',
     loadChildren: () =>
       import('./features/tickets/tickets.routes').then(m => m.TICKETS_ROUTES),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('tickets')]
   },
   {
     path: 'agents/groups',
     loadComponent: () =>
       import('./features/agents/agent-groups/agent-groups').then(m => m.AgentGroupsComponent),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('agent-groups')]
   },
   {
     path: 'agents/invite',
     loadComponent: () =>
       import('./features/agents/agent-invite/agent-invite').then(m => m.AgentInviteComponent),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('agents')]
   },
   {
     path: 'agents',
     loadComponent: () =>
       import('./features/agents/agent-list/agent-list').then(m => m.AgentsComponent),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('agents')]
   },
   {
     path: 'profile',
@@ -140,13 +141,21 @@ export const routes: Routes = [
       import('./features/organization/organization-profile/organization-profile').then(
         m => m.OrganizationProfileComponent
       ),
-    canActivate: [authGuard, companyAdminGuard]
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('organization-profile')]
   },
   {
     path: 'holiday-setup',
     loadComponent: () =>
       import('./features/organization/holiday-setup/holiday-setup').then(
         m => m.HolidaySetupComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard, permissionGuard('holiday-setup')]
+  },
+  {
+    path: 'role-rights',
+    loadComponent: () =>
+      import('./features/settings/role-rights/role-rights').then(
+        m => m.RoleRightsComponent
       ),
     canActivate: [authGuard, companyAdminGuard]
   },
@@ -156,19 +165,19 @@ export const routes: Routes = [
       import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
         m => m.RecycleBinPageComponent
       ),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('recycle-bin')]
   },
   {
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications-page/notifications-page').then(m => m.NotificationsPageComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('notifications')]
   },
   {
     path: 'reports',
     loadComponent: () =>
       import('./features/reports/reports-page/reports-page').then(m => m.ReportsComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('reports')]
   },
   {
     path: 'admin',
@@ -211,55 +220,55 @@ export const routes: Routes = [
     path: 'kb/create',
     loadComponent: () =>
       import('./features/knowledge-base/kb-create/kb-create').then(m => m.KbCreateComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('knowledge-base')]
   },
   {
     path: 'kb/edit/:id',
     loadComponent: () =>
       import('./features/knowledge-base/kb-create/kb-create').then(m => m.KbCreateComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('knowledge-base')]
   },
   {
     path: 'kb/:id',
     loadComponent: () =>
       import('./features/knowledge-base/kb-detail/kb-detail').then(m => m.KbDetailComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('knowledge-base')]
   },
   {
     path: 'kb',
     loadComponent: () =>
       import('./features/knowledge-base/kb-list/kb-list').then(m => m.KbListComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('knowledge-base')]
   },
   {
     path: 'insights/heatmap',
     loadComponent: () =>
       import('./features/insights/heatmap/heatmap').then(m => m.HeatmapComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('analytics-heatmap')]
   },
   {
     path: 'settings/templates',
     loadComponent: () =>
       import('./features/settings/ticket-templates/ticket-templates').then(m => m.TicketTemplatesComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('ticket-templates')]
   },
   {
     path: 'settings',
     loadComponent: () =>
       import('./features/settings/settings-page/settings-page').then(m => m.SettingsPageComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('settings')]
   },
   {
     path: 'audit',
     loadComponent: () =>
       import('./features/settings/audit-log/audit-log').then(m => m.AuditLogComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('audit-log')]
   },
   {
     path: 'calendar',
     loadComponent: () =>
       import('./features/calendar/calendar-event/calendar-event').then(m => m.CalendarEventComponent),
-    canActivate: [authGuard]
+    canActivate: [authGuard, permissionGuard('calendar')]
   },
   { path: '**', redirectTo: 'auth/login' }
 ];

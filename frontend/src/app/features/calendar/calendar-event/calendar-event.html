@@ -20,7 +20,7 @@
     </div>
 
     <!-- New Event Button -->
-    <button class="new-event-btn" (click)="openNewEventModal()">
+    <button class="new-event-btn" *hasPermission="'calendar:add'" (click)="openNewEventModal()">
       + New Event
     </button>
 
@@ -159,38 +159,67 @@
 
           <div class="day-num">{{ day.date | date:'d' }}</div>
 
-          <!-- Events (max 3 visible) -->
+          <!-- Events + tickets: max 2 visible, prefer 1 of each when both exist -->
           <div class="day-events">
-            <div class="day-event"
-              *ngFor="let e of day.events.slice(0, 3)"
-              [style.background]="getEventColor(e) + '22'"
-              [style.border-left]="'3px solid ' + getEventColor(e)"
-              [style.color]="getEventColor(e)"
-              [class.completed]="e.isCompleted"
-              [title]="e.title">
-              <span class="de-icon">{{ getTypeIcon(e.type) }}</span>
-              <span class="de-title">{{ e.title }}</span>
-              <span class="de-time" *ngIf="!e.allDay">
-                {{ formatTime(e.startDate) }}
-              </span>
-            </div>
+            <ng-container *ngIf="day.events.length > 0 && day.tickets.length > 0; else singleKind">
+              <!-- Mixed: 1 event + 1 ticket -->
+              <div class="day-event"
+                *ngFor="let e of day.events.slice(0, 1)"
+                [style.background]="getEventColor(e) + '22'"
+                [style.border-left]="'3px solid ' + getEventColor(e)"
+                [style.color]="getEventColor(e)"
+                [class.completed]="e.isCompleted"
+                [title]="e.title">
+                <span class="de-icon">{{ getTypeIcon(e.type) }}</span>
+                <span class="de-title">{{ e.title }}</span>
+                <span class="de-time" *ngIf="!e.allDay">
+                  {{ formatTime(e.startDate) }}
+                </span>
+              </div>
+              <div class="day-event ticket-ev"
+                *ngFor="let t of day.tickets.slice(0, 1)"
+                [title]="t.title">
+                <span class="de-icon">🎫</span>
+                <span class="de-title">#TN{{ t.ticketNumber }}</span>
+                <span class="de-status"
+                  [style.color]="getTicketStatusDisplayColor(t)">
+                  {{ getTicketStatusLabel(t) }}
+                </span>
+              </div>
+            </ng-container>
 
-            <!-- Tickets for the day -->
-            <div class="day-event ticket-ev"
-              *ngFor="let t of day.tickets.slice(0, 2)"
-              [title]="t.title">
-              <span class="de-icon">🎫</span>
-              <span class="de-title">#TN{{ t.ticketNumber }}</span>
-              <span class="de-status"
-                [style.color]="getTicketStatusDisplayColor(t)">
-                {{ getTicketStatusLabel(t) }}
-              </span>
-            </div>
+            <ng-template #singleKind>
+              <!-- Only events -->
+              <div class="day-event"
+                *ngFor="let e of day.events.slice(0, 2)"
+                [style.background]="getEventColor(e) + '22'"
+                [style.border-left]="'3px solid ' + getEventColor(e)"
+                [style.color]="getEventColor(e)"
+                [class.completed]="e.isCompleted"
+                [title]="e.title">
+                <span class="de-icon">{{ getTypeIcon(e.type) }}</span>
+                <span class="de-title">{{ e.title }}</span>
+                <span class="de-time" *ngIf="!e.allDay">
+                  {{ formatTime(e.startDate) }}
+                </span>
+              </div>
+              <!-- Only tickets -->
+              <div class="day-event ticket-ev"
+                *ngFor="let t of day.tickets.slice(0, 2)"
+                [title]="t.title">
+                <span class="de-icon">🎫</span>
+                <span class="de-title">#TN{{ t.ticketNumber }}</span>
+                <span class="de-status"
+                  [style.color]="getTicketStatusDisplayColor(t)">
+                  {{ getTicketStatusLabel(t) }}
+                </span>
+              </div>
+            </ng-template>
 
             <!-- More indicator -->
             <div class="more-indicator"
-              *ngIf="day.events.length + day.tickets.length > 3">
-              +{{ day.events.length + day.tickets.length - 3 }} more
+              *ngIf="day.events.length + day.tickets.length > 2">
+              +{{ day.events.length + day.tickets.length - 2 }} more
             </div>
           </div>
 
@@ -307,6 +336,7 @@
                     {{ e.isCompleted ? '↩' : '✓' }}
                   </button>
                   <button class="ha-btn delete"
+                    *hasPermission="'calendar:delete'"
                     (click)="$event.stopPropagation(); deleteEvent(e)">
                     ×
                   </button>
@@ -345,7 +375,7 @@
       <div class="ag-empty" *ngIf="agendaItems.length === 0">
         <div class="ag-empty-icon">📅</div>
         <div>No upcoming events in next 30 days</div>
-        <button class="new-event-btn sm" (click)="openNewEventModal()">
+        <button class="new-event-btn sm" *hasPermission="'calendar:add'" (click)="openNewEventModal()">
           + Add Event
         </button>
       </div>
@@ -393,6 +423,7 @@
                 {{ e.isCompleted ? '↩' : '✓' }}
               </button>
               <button class="aia-btn delete"
+                *hasPermission="'calendar:delete'"
                 (click)="$event.stopPropagation(); deleteEvent(e)">
                 ×
               </button>
@@ -578,11 +609,13 @@
     </div>
 
     <div class="em-footer">
-      <button class="em-delete"
-        *ngIf="isEditMode"
-        (click)="deleteEventFromModal()">
-        Delete
-      </button>
+      <ng-container *hasPermission="'calendar:delete'">
+        <button class="em-delete"
+          *ngIf="isEditMode"
+          (click)="deleteEventFromModal()">
+          Delete
+        </button>
+      </ng-container>
       <button class="em-remind-btn"
         *ngIf="isEditMode && newEvent.reminderMinutes"
         [disabled]="sendingReminder"
@@ -665,6 +698,7 @@
     <div class="em-footer">
       <button class="em-cancel" (click)="closeModals()">Close</button>
       <button class="em-save"
+        *hasPermission="'calendar:add'"
         (click)="openNewEventModal(selectedDate!)">
         + Add Event
       </button>

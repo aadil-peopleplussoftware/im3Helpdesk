@@ -10,6 +10,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { environment } from '../../../../environments/environment';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import {
   HolidayService,
   HolidayRow,
@@ -43,7 +44,7 @@ interface DraftHoliday {
 @Component({
   selector: 'app-holiday-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent, HasPermissionDirective],
   templateUrl: './holiday-setup.html',
   styleUrls: ['./holiday-setup.scss']
 })

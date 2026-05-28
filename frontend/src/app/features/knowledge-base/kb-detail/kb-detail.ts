@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 import { ToastrService } from 'ngx-toastr';
 
@@ -18,7 +19,7 @@ import { ToastrService } from 'ngx-toastr';
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule,
-    MatButtonModule, MatProgressSpinnerModule, LayoutComponent
+    MatButtonModule, MatProgressSpinnerModule, LayoutComponent, HasPermissionDirective
   ],
   templateUrl: './kb-detail.html',
   styleUrls: ['./kb-detail.scss']

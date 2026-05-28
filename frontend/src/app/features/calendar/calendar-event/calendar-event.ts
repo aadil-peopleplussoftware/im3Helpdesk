@@ -11,6 +11,7 @@ import { ToastrService } from 'ngx-toastr';
 import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 import { OrgContextService } from '../../../core/services/org-context.service';
 
@@ -52,7 +53,7 @@ interface DayCell {
   changeDetection: ChangeDetectionStrategy.Default,
   imports: [
     CommonModule, FormsModule,
-    RouterModule, LayoutComponent
+    RouterModule, LayoutComponent, HasPermissionDirective
   ],
   templateUrl: './calendar-event.html',
   styleUrls: ['./calendar-event.scss']

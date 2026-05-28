@@ -2,7 +2,7 @@
   <button mat-button (click)="router.navigate(['/agents'])">← Agents</button>
   <span>Agent Groups</span>
   <span class="spacer"></span>
-  <button mat-raised-button (click)="showCreateForm = !showCreateForm">
+  <button mat-raised-button *hasPermission="'agent-groups:add'" (click)="showCreateForm = !showCreateForm">
     {{ showCreateForm ? 'Cancel' : '+ New Group' }}
   </button>
   <button mat-button (click)="logout()">Logout</button>
@@ -49,6 +49,7 @@
     <div *ngIf="groups.length === 0" class="empty-state">
       <p>No groups yet. Create Tier 1, Tier 2 groups!</p>
       <button mat-raised-button color="primary"
+        *hasPermission="'agent-groups:add'"
         (click)="showCreateForm = true">
         Create First Group
       </button>
@@ -111,6 +112,7 @@
       <!-- Panel Actions -->
       <mat-action-row>
         <button mat-button color="warn"
+          *hasPermission="'agent-groups:delete'"
           (click)="deleteGroup(group.id)">
           Delete Group
         </button>

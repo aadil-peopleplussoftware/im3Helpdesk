@@ -11,6 +11,7 @@ import { KnowledgeBaseService } from '../../../core/services/knowledge-base';
 import { AuthService } from '../../auth/auth.service';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -18,7 +19,7 @@ import { environment } from '../../../../environments/environment';
   standalone: true,
   imports: [
     CommonModule, FormsModule, RouterModule, ReactiveFormsModule,
-    MatProgressSpinnerModule, LayoutComponent
+    MatProgressSpinnerModule, LayoutComponent, HasPermissionDirective
   ],
   templateUrl: './kb-list.html',
   styleUrls: ['./kb-list.scss']

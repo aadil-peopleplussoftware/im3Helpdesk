@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { AuthService } from '../../auth/auth.service';
 import {
   RecycleBinService,
@@ -14,7 +15,7 @@ import {
 @Component({
   selector: 'app-recycle-bin-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent, HasPermissionDirective],
   templateUrl: './recycle-bin-page.html',
   styleUrls: ['./recycle-bin-page.scss']
 })

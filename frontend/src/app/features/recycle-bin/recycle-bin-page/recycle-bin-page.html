@@ -160,11 +160,13 @@
         <footer class="rb-modal-foot" *ngIf="isCompanyAdmin && detail">
           <ng-container *ngIf="confirmPurgeFor !== detail.id; else confirmRow">
             <button type="button" class="btn-restore"
+                    *hasPermission="'recycle-bin:edit'"
                     [disabled]="acting"
                     (click)="restore(detail.id)">
               <i class="fa-solid fa-rotate-left"></i> Restore Ticket
             </button>
             <button type="button" class="btn-purge"
+                    *hasPermission="'recycle-bin:delete'"
                     [disabled]="acting"
                     (click)="requestPurge(detail.id)">
               <i class="fa-solid fa-trash"></i> Permanent Delete
@@ -180,6 +182,7 @@
                       [disabled]="acting"
                       (click)="cancelPurge()">Cancel</button>
               <button type="button" class="btn-purge-confirm"
+                      *hasPermission="'recycle-bin:delete'"
                       [disabled]="acting"
                       (click)="purge(detail.id)">
                 <i class="fa-solid fa-skull-crossbones"></i>

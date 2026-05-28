@@ -16,10 +16,12 @@
           <option value="90">Last 90 days</option>
         </select>
         <button class="export-btn"
+          *hasPermission="'reports:export'"
           (click)="exportCsv()">
           ↓ CSV
         </button>
         <button class="export-btn pdf"
+          *hasPermission="'reports:export'"
           (click)="exportPdf()">
           ↓ PDF
         </button>

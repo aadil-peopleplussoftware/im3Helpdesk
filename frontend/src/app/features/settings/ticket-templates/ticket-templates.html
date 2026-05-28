@@ -5,6 +5,7 @@
       <p>Create and manage ticket templates for quick ticket creation</p>
     </div>
     <button class="add-btn"
+      *hasPermission="'ticket-templates:add'"
       (click)="showForm = !showForm">
       {{ showForm ? 'Cancel' : '+ New Template' }}
     </button>
@@ -104,7 +105,7 @@
     class="empty-state">
     <div class="empty-icon">📋</div>
     <p>No templates yet.</p>
-    <button class="add-btn" (click)="showForm = true">
+    <button class="add-btn" *hasPermission="'ticket-templates:add'" (click)="showForm = true">
       Create First Template
     </button>
   </div>
@@ -151,6 +152,7 @@
           </td>
           <td>
             <button class="del-btn"
+              *hasPermission="'ticket-templates:delete'"
               (click)="deleteTemplate(t.id)">
               Delete
             </button>

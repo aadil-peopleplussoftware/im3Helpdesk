@@ -95,6 +95,9 @@ public class ApplicationDbContext : DbContext
   public DbSet<HolidayYearSetup> HolidayYearSetups
       => Set<HolidayYearSetup>();
 
+  // ✅ NEW — Role Rights matrix
+  public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -760,6 +763,17 @@ public class ApplicationDbContext : DbContext
       e.HasQueryFilter(h =>
           _isSuperAdmin ||
           h.OrganizationId == _currentTenantId);
+    });
+
+    // ── RolePermission ────────────
+    modelBuilder.Entity<RolePermission>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Module).HasMaxLength(80).IsRequired();
+      e.HasIndex(x => new { x.OrganizationId, x.Role, x.Module }).IsUnique();
+      e.HasQueryFilter(rp =>
+          _isSuperAdmin ||
+          rp.OrganizationId == _currentTenantId);
     });
 
     // ── ChatGroupMember ───────────

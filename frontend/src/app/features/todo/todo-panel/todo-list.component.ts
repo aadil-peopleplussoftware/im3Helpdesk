@@ -9,6 +9,7 @@ import { HttpClient } from '@angular/common/http';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { environment } from '../../../../environments/environment';
 
 export type Priority = 'high' | 'medium' | 'low';
@@ -26,7 +27,8 @@ export interface SubTask {
   imports: [
     CommonModule,
     FormsModule,
-    LayoutComponent
+    LayoutComponent,
+    HasPermissionDirective
   ],
   templateUrl: './todo-list.component.html',
   styleUrls: ['./todo-list.component.scss']

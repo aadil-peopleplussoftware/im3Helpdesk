@@ -83,11 +83,13 @@
         </button>
 
         <button class="icon-btn"
+          *hasPermission="'tickets:export'"
           (click)="exportCsv()">
           ↓ Export
         </button>
 
         <button class="new-btn"
+          *hasPermission="'tickets:add'"
           (click)="router.navigate(
             ['/tickets/create'])">
           + New Ticket
@@ -108,6 +110,7 @@
       </span>
       <button class="bulk-btn todo-btn"
         type="button"
+        *hasPermission="'todo:add'"
         (click)="addSelectedToTodo()">
         📋 Add to To-Do
       </button>
@@ -213,12 +216,14 @@
       <p *ngIf="!hasActiveFilters()">
         Create your first ticket
       </p>
-      <button class="new-btn"
-        *ngIf="!hasActiveFilters()"
-        (click)="router.navigate(
-          ['/tickets/create'])">
-        + New Ticket
-      </button>
+      <ng-container *hasPermission="'tickets:add'">
+        <button class="new-btn"
+          *ngIf="!hasActiveFilters()"
+          (click)="router.navigate(
+            ['/tickets/create'])">
+          + New Ticket
+        </button>
+      </ng-container>
       <button class="clear-btn-lg"
         *ngIf="hasActiveFilters()"
         (click)="clearFilters()">

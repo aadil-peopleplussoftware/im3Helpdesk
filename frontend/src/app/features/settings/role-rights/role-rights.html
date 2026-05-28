@@ -1,0 +1,142 @@
+<app-layout>
+  <div class="rr-page">
+
+    <!-- Header -->
+    <div class="rr-header">
+      <div class="rr-title-block">
+        <h1 class="rr-title">🛡️ Role Rights</h1>
+        <p class="rr-subtitle">
+          Decide what each role can do across every screen. Backend role security
+          stays in place — these settings control which buttons and menus appear
+          for your users.
+        </p>
+      </div>
+      <div class="rr-header-actions">
+        <button type="button"
+                class="rr-btn rr-btn-ghost"
+                [disabled]="isReadOnly || saving()"
+                (click)="resetRole()">
+          ↺ Reset to default
+        </button>
+        <button type="button"
+                class="rr-btn rr-btn-primary"
+                [disabled]="isReadOnly || saving() || loading()"
+                (click)="save()">
+          {{ saving() ? 'Saving…' : '💾 Save changes' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Role tabs -->
+    <div class="rr-role-tabs">
+      <button *ngFor="let r of roles(); trackBy: trackRole"
+              type="button"
+              class="rr-role-tab"
+              [class.active]="selectedRole() === r"
+              [class.readonly]="r === 'SuperAdmin'"
+              (click)="selectRole(r)">
+        <span class="rr-role-icon">{{ roleIcon(r) }}</span>
+        <span class="rr-role-text">
+          <span class="rr-role-name">{{ r }}</span>
+          <small class="rr-role-sub">{{ roleSubtitle(r) }}</small>
+        </span>
+      </button>
+    </div>
+
+    <!-- Read-only banner -->
+    <div *ngIf="isReadOnly" class="rr-banner rr-banner-info">
+      👑 SuperAdmin always has full access. Permissions for this role cannot be changed.
+    </div>
+
+    <!-- Toolbar -->
+    <div class="rr-toolbar">
+      <div class="rr-search">
+        <span class="rr-search-icon">🔍</span>
+        <input type="text"
+               placeholder="Search modules…"
+               [ngModel]="search()"
+               (ngModelChange)="search.set($event)" />
+      </div>
+      <div class="rr-bulk">
+        <span class="rr-bulk-label">Apply to all:</span>
+        <button *ngFor="let a of actions"
+                type="button"
+                class="rr-chip"
+                [disabled]="isReadOnly"
+                (click)="toggleAllForAction(a.key, true)">
+          {{ a.icon }} {{ a.label }}
+        </button>
+        <button type="button"
+                class="rr-chip rr-chip-danger"
+                [disabled]="isReadOnly"
+                (click)="toggleAllForAction('canView', false)">
+          ✖ Clear all
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading()" class="rr-loading">Loading role rights…</div>
+
+    <!-- Matrix -->
+    <div *ngIf="!loading()" class="rr-matrix-wrap">
+      <table class="rr-matrix">
+        <thead>
+          <tr>
+            <th class="rr-th-module">Module</th>
+            <th *ngFor="let a of actions" class="rr-th-action">
+              <span class="rr-th-icon">{{ a.icon }}</span>
+              {{ a.label }}
+            </th>
+            <th class="rr-th-all">All</th>
+          </tr>
+        </thead>
+
+        <ng-container *ngFor="let g of groupedModules(); trackBy: trackGroup">
+          <tbody class="rr-group">
+            <tr class="rr-group-row">
+              <td [attr.colspan]="actions.length + 2" class="rr-group-cell">
+                {{ g[0] }}
+              </td>
+            </tr>
+            <tr *ngFor="let m of g[1]; trackBy: trackModule" class="rr-row">
+              <td class="rr-mod">
+                <span class="rr-mod-icon">{{ m.icon }}</span>
+                <div class="rr-mod-text">
+                  <span class="rr-mod-label">{{ m.label }}</span>
+                  <small class="rr-mod-key">{{ m.key }}</small>
+                </div>
+              </td>
+              <td *ngFor="let a of actions" class="rr-cell">
+                <label class="rr-toggle" [class.disabled]="isReadOnly">
+                  <input type="checkbox"
+                         [checked]="!!currentMatrix[m.key]?.[a.key]"
+                         [disabled]="isReadOnly"
+                         (change)="toggle(m.key, a.key)" />
+                  <span class="rr-toggle-track"></span>
+                </label>
+              </td>
+              <td class="rr-cell rr-cell-all">
+                <button type="button"
+                        class="rr-mini-btn rr-mini-on"
+                        [disabled]="isReadOnly"
+                        (click)="toggleAllForModule(m.key, true)"
+                        title="Grant all on this module">✓</button>
+                <button type="button"
+                        class="rr-mini-btn rr-mini-off"
+                        [disabled]="isReadOnly"
+                        (click)="toggleAllForModule(m.key, false)"
+                        title="Revoke all on this module">✖</button>
+              </td>
+            </tr>
+          </tbody>
+        </ng-container>
+      </table>
+
+      <div *ngIf="groupedModules().length === 0" class="rr-empty">
+        No modules match “{{ search() }}”.
+      </div>
+    </div>
+
+  </div>
+</app-layout>

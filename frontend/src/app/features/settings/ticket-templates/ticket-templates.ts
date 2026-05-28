@@ -4,11 +4,12 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } 
 import { ToastrService } from 'ngx-toastr';
 import { TicketTemplateService } from '../../../core/services/ticket-template';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 
 @Component({
   selector: 'app-ticket-templates',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, HasPermissionDirective],
   templateUrl: './ticket-templates.html',
   styleUrls: ['./ticket-templates.scss']
 })

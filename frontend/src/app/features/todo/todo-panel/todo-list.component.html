@@ -41,6 +41,7 @@
         </div>
         <button class="tl-add-btn"
           type="button"
+          *hasPermission="'todo:add'"
           (click)="addTodo()">
           Add Task
         </button>
@@ -291,6 +292,7 @@
           <div class="tl-actions">
             <button class="tl-del-btn"
               type="button"
+              *hasPermission="'todo:delete'"
               title="Delete"
               (click)="deleteTodo(t.id, $event)">
               🗑

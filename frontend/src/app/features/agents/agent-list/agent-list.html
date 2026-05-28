@@ -20,14 +20,17 @@
             placeholder="Search Users..."/>
         </div>
         <button class="export-btn"
+          *hasPermission="'agents:export'"
           (click)="exportCsv()">
           Export
         </button>
-        <button class="new-btn"
-          *ngIf="isCompanyAdmin"
-          (click)="router.navigate(['/agents/invite'])">
-          New agent
-        </button>
+        <ng-container *hasPermission="'agents:add'">
+          <button class="new-btn"
+            *ngIf="isCompanyAdmin"
+            (click)="router.navigate(['/agents/invite'])">
+            New agent
+          </button>
+        </ng-container>
       </div>
     </div>
 

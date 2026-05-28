@@ -14,6 +14,7 @@ import { ToastrService } from 'ngx-toastr';
 import { AgentGroupService } from '../../../core/services/agent-group';
 import { AgentService } from '../../../core/services/agent';
 import { AuthService } from '../../auth/auth.service';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 
 @Component({
   selector: 'app-agent-groups',
@@ -23,7 +24,8 @@ import { AuthService } from '../../auth/auth.service';
     FormsModule, // 👈 Aur yahan imports array mein add kiya
     MatButtonModule, MatToolbarModule, MatCardModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatProgressSpinnerModule, MatExpansionModule
+    MatProgressSpinnerModule, MatExpansionModule,
+    HasPermissionDirective
   ],
   templateUrl: './agent-groups.html',
   styleUrls: ['./agent-groups.scss']

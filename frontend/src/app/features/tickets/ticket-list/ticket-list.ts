@@ -20,6 +20,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
+import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
@@ -34,7 +35,8 @@ import { OrgContextService } from '../../../core/services/org-context.service';
     FormsModule,
     RouterModule,
     DragDropModule,
-    LayoutComponent
+    LayoutComponent,
+    HasPermissionDirective
   ],
   templateUrl: './ticket-list.html',
   styleUrls: ['./ticket-list.scss'],

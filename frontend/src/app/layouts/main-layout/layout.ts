@@ -29,6 +29,7 @@ import { GlobalCallNotificationService } from '../../core/services/global-call-n
 import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
 import { TopbarContextService } from '../../core/services/topbar-context.service';
 import { OrgContextService } from '../../core/services/org-context.service';
+import { RoleRightsService } from '../../core/services/role-rights.service';
 
 @Component({
   selector: 'app-layout',
@@ -98,6 +99,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/holiday-setup']);
   }
 
+  public goToRoleRights() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/role-rights']);
+  }
+
   public goToRecycleBin() {
     this.showProfileDropdown = false;
     this.router.navigate(['/recycle-bin']);
@@ -118,6 +124,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
   public  topbarCtx      = inject(TopbarContextService);
   private orgContext     = inject(OrgContextService);
+  public  rr             = inject(RoleRightsService);
   isSidebarCollapsed = (() => {
     const saved = localStorage.getItem('im3_sidebar_collapsed');
     // Freshdesk-style compact sidebar by default (only when user has never chosen).
@@ -505,6 +512,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.isSuperAdmin = this.userRole === 'SuperAdmin';
     this.isCustomer = this.userRole === 'Customer';
     this.isCompanyAdmin = this.userRole === 'CompanyAdmin';
+
+    // Load this user's effective permission map (used by UI gates).
+    this.rr.loadMine().subscribe({ error: () => { /* non-fatal */ } });
 
     const savedEmail = localStorage.getItem('im3_email');
     if (savedEmail && savedEmail === this.userEmail) {
@@ -951,5 +961,5 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
   }
 
-  logout() { this.authService.logout(); }
+  logout() { this.rr.clear(); this.authService.logout(); }
 }

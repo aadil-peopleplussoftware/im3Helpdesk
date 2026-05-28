@@ -53,6 +53,7 @@
       <!-- New Post Button -->
       <div class="sidebar-footer">
         <button class="new-post-btn"
+          *hasPermission="'knowledge-base:add'"
           (click)="router.navigate(['/kb/create'])">
           ✏ New Post
         </button>
@@ -115,10 +116,12 @@
               ? 'You have no posts yet'
               : (selectedUserId ? selectedUserName + ' has no posts yet' : 'No posts found') }}
         </h3>
-        <button class="new-post-btn" *ngIf="isMyPostsView"
-          (click)="router.navigate(['/kb/create'])">
-          Create Your First Post
-        </button>
+        <ng-container *hasPermission="'knowledge-base:add'">
+          <button class="new-post-btn" *ngIf="isMyPostsView"
+            (click)="router.navigate(['/kb/create'])">
+            Create Your First Post
+          </button>
+        </ng-container>
       </div>
 
       <!-- ── Posts Feed ── -->
@@ -148,11 +151,13 @@
             <!-- Owner Actions -->
             <div class="post-owner-actions" *ngIf="a.isOwner">
               <button class="action-icon-btn"
+                *hasPermission="'knowledge-base:edit'"
                 title="Edit"
                 (click)="$event.stopPropagation(); router.navigate(['/kb/edit', a.id])">
                 ✏
               </button>
               <button class="action-icon-btn delete"
+                *hasPermission="'knowledge-base:delete'"
                 title="Delete"
                 (click)="deleteArticle(a.id, $event)">
                 🗑

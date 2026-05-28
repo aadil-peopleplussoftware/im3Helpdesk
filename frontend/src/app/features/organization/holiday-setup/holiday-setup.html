@@ -10,7 +10,7 @@
           user's calendar and surface as reminders in the topbar Events badge.
         </p>
       </div>
-      <button type="button" class="hs-btn hs-btn-primary" (click)="toggleNewYearPanel()">
+      <button type="button" class="hs-btn hs-btn-primary" *hasPermission="'holiday-setup:add'" (click)="toggleNewYearPanel()">
         + New Year
       </button>
     </div>
@@ -74,7 +74,7 @@
                 {{ uploadingPdf ? 'Uploading…' : (detail.setup.pdfFileUrl ? 'Replace PDF' : 'Upload PDF') }}
                 <input type="file" accept="application/pdf" hidden (change)="onPdfPicked($event)" />
               </label>
-              <button type="button" class="hs-btn hs-btn-danger" (click)="deleteYear()">
+              <button type="button" class="hs-btn hs-btn-danger" *hasPermission="'holiday-setup:delete'" (click)="deleteYear()">
                 Delete year
               </button>
             </span>
@@ -122,8 +122,8 @@
 
                   <td class="hs-row-actions">
                     <ng-container *ngIf="!row.editing">
-                      <button type="button" class="hs-icon-btn" title="Edit" (click)="editRow(row)">✎</button>
-                      <button type="button" class="hs-icon-btn danger" title="Delete" (click)="deleteRow(row)">🗑</button>
+                      <button type="button" class="hs-icon-btn" *hasPermission="'holiday-setup:edit'" title="Edit" (click)="editRow(row)">✎</button>
+                      <button type="button" class="hs-icon-btn danger" *hasPermission="'holiday-setup:delete'" title="Delete" (click)="deleteRow(row)">🗑</button>
                     </ng-container>
                     <ng-container *ngIf="row.editing">
                       <button type="button" class="hs-icon-btn" title="Save"
@@ -155,7 +155,7 @@
                     </label>
                   </td>
                   <td class="hs-row-actions">
-                    <button type="button" class="hs-btn hs-btn-primary sm" (click)="addRow()">Add</button>
+                    <button type="button" class="hs-btn hs-btn-primary sm" *hasPermission="'holiday-setup:add'" (click)="addRow()">Add</button>
                   </td>
                 </tr>
 

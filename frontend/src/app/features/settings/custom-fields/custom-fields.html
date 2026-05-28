@@ -5,6 +5,7 @@
       <p>Add custom fields to tickets for your organization</p>
     </div>
     <button class="add-btn"
+      *hasPermission="'custom-fields:add'"
       (click)="showForm = !showForm; editingId = ''">
       {{ showForm ? 'Cancel' : '+ New Field' }}
     </button>
@@ -71,6 +72,7 @@
       <div class="empty-icon">⚙</div>
       <p>No custom fields yet.</p>
       <button class="add-btn"
+        *hasPermission="'custom-fields:add'"
         (click)="showForm = true">
         Create First Field
       </button>
@@ -93,8 +95,8 @@
         </div>
       </div>
       <div class="cf-item-actions">
-        <button class="edit-btn" (click)="editField(f)">Edit</button>
-        <button class="del-btn" (click)="deleteField(f.id)">Delete</button>
+        <button class="edit-btn" *hasPermission="'custom-fields:edit'" (click)="editField(f)">Edit</button>
+        <button class="del-btn" *hasPermission="'custom-fields:delete'" (click)="deleteField(f.id)">Delete</button>
       </div>
     </div>
   </div>

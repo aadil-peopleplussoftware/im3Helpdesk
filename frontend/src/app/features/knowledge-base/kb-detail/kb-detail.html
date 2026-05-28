@@ -130,10 +130,13 @@
         <!-- ── Owner Actions ── -->
         <div class="owner-actions" *ngIf="article.isOwner">
           <button class="edit-btn"
+            *hasPermission="'knowledge-base:edit'"
             (click)="router.navigate(['/kb/edit', article.id])">
             ✏ Edit Post
           </button>
-          <button class="del-btn" (click)="deletePost()">
+          <button class="del-btn"
+            *hasPermission="'knowledge-base:delete'"
+            (click)="deletePost()">
             🗑 Delete Post
           </button>
         </div>
