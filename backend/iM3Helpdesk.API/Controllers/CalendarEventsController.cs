@@ -155,7 +155,7 @@ public class CalendarEventsController : ControllerBase
       await SendInviteEmailsAsync(
           ev, attendees,
           creator.FullName,
-          org?.Name ?? "iM3 Helpdesk",
+          org?.Name ?? "DeskMate",
           organizationId);
     }
 
@@ -229,7 +229,7 @@ public class CalendarEventsController : ControllerBase
           {
             await _emailService.SendCalendarEventUpdatedAsync(
                 email, name, ev.Title, ev.StartDate,
-                "updated", org?.Name ?? "iM3 Helpdesk", organizationId);
+                "updated", org?.Name ?? "DeskMate", organizationId);
           }
           catch { }
         });
@@ -246,7 +246,7 @@ public class CalendarEventsController : ControllerBase
       await SendInviteEmailsAsync(
           ev, brandNewAttendees,
           creator.FullName,
-          org?.Name ?? "iM3 Helpdesk", organizationId);
+          org?.Name ?? "DeskMate", organizationId);
     }
 
     return Ok(ev);
@@ -283,7 +283,7 @@ public class CalendarEventsController : ControllerBase
           {
             await _emailService.SendCalendarEventUpdatedAsync(
                 email, name, ev.Title, ev.StartDate,
-                "cancelled", org?.Name ?? "iM3 Helpdesk", organizationId);
+                "cancelled", org?.Name ?? "DeskMate", organizationId);
           }
           catch { }
         });
@@ -350,7 +350,7 @@ public class CalendarEventsController : ControllerBase
         .FirstOrDefaultAsync(o => o.Id == _tenant.OrganizationId);
         var organizationId = org?.Id ?? _tenant.OrganizationId;
 
-    var orgName = org?.Name ?? "iM3 Helpdesk";
+    var orgName = org?.Name ?? "DeskMate";
 
     // Get ticket number if linked
     string? ticketNumber = null;

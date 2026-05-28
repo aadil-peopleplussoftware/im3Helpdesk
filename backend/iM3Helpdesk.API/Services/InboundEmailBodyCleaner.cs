@@ -34,7 +34,7 @@ internal static class InboundEmailBodyCleaner
     "Reply to this email to continue the conversation",
     "This email was sent by",
     "Please do not reply directly unless",
-    "Powered by iM3 Helpdesk",
+    "Powered by DeskMate",
     "New Reply on #TN",
     "From:",
     "Sent:",

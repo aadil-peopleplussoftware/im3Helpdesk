@@ -118,7 +118,7 @@ simulateEmail() {
       `${environment.apiUrl}/Slack/notify`,
       {
         orgId: this.organizationId,
-        message: 'Test notification from iM3 Helpdesk!',
+        message: 'Test notification from DeskMate!',
         ticketTitle: 'Test Ticket',
         status: 'Open'
       }
@@ -146,7 +146,7 @@ simulateEmail() {
       `${environment.apiUrl}/Slack/teams/notify`,
       {
         orgId: this.organizationId,
-        message: 'Test notification from iM3 Helpdesk!',
+        message: 'Test notification from DeskMate!',
         ticketTitle: 'Test Ticket',
         status: 'Open'
       }

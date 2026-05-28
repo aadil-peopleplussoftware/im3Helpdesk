@@ -1,0 +1,38 @@
+<div class="rxn-bar" [class.rxn-bar--compact]="compact">
+
+  <!-- Existing reaction chips -->
+  <button *ngFor="let r of summary"
+          type="button"
+          class="rxn-chip"
+          [class.is-mine]="r.mine"
+          [title]="r.mine ? 'You reacted — click to remove' : 'Click to react'"
+          (click)="toggleChip(r.key, $event)">
+    <span class="rxn-chip-emoji">{{ r.emoji }}</span>
+    <span class="rxn-chip-count">{{ r.count }}</span>
+  </button>
+
+  <!-- Trigger + picker -->
+  <div class="rxn-wrap"
+       (mouseenter)="openPicker()"
+       (mouseleave)="closePicker()">
+    <button type="button"
+            class="rxn-trigger"
+            title="React"
+            (click)="togglePicker($event)">
+      <span class="rxn-trigger-face">🙂</span>
+      <span class="rxn-trigger-plus">+</span>
+    </button>
+
+    <div class="rxn-picker" *ngIf="pickerOpen" role="menu">
+      <button *ngFor="let r of reactions"
+              type="button"
+              role="menuitem"
+              class="rxn-picker-btn"
+              [title]="r.label"
+              (click)="pick(r, $event)">
+        <span class="rxn-picker-emoji">{{ r.emoji }}</span>
+      </button>
+    </div>
+  </div>
+
+</div>

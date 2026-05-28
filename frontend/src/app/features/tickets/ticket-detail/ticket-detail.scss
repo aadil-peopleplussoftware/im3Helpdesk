@@ -22,6 +22,10 @@
   padding: 16px 20px;
   background: var(--ui-color-bg-surface);
   min-height: 100%;
+  /* Scoped font for the ticket-detail content only.
+     Applied here (not on :host) because <app-layout> is the host's root child;
+     putting font-family on :host would cascade into the sidebar/topbar. */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Loading */
@@ -568,11 +572,6 @@
     border-bottom-color: var(--ui-color-primary-hover);
     font-weight: 500;
   }
-  &.active-voice {
-    color: var(--ui-color-danger, #ef4444);
-    border-bottom-color: var(--ui-color-danger, #ef4444);
-    font-weight: 500;
-  }
 }
 
 .fdc-vis-wrap {
@@ -1002,257 +1001,6 @@
   color: var(--fd-text);
   background: transparent;
   &::placeholder { color: var(--fd-muted); }
-}
-
-/* ════════════════════════════════════════
-   VOICE NOTE (mic button + recorder panel)
-════════════════════════════════════════ */
-.fdc-mic {
-  background: none;
-  border: none;
-  &.is-recording {
-    color: var(--ui-color-danger, #ef4444);
-    background: rgba(239, 68, 68, 0.12);
-    animation: fdc-mic-pulse 1.4s ease-in-out infinite;
-  }
-  &:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-}
-@keyframes fdc-mic-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-  50%      { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-}
-
-.fdc-vn-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-top: 1px solid var(--fd-border);
-  background: linear-gradient(
-    90deg,
-    rgba(239, 68, 68, 0.06),
-    rgba(239, 68, 68, 0.02)
-  );
-  color: var(--fd-text);
-  font-size: 13px;
-}
-.fdc-vn-dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: var(--ui-color-danger, #ef4444);
-  animation: fdc-vn-pulse 1.2s ease-in-out infinite;
-  &.is-paused {
-    background: var(--fd-muted);
-    animation: none;
-  }
-}
-@keyframes fdc-vn-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.45; transform: scale(0.7); }
-}
-.fdc-vn-label { font-weight: 600; }
-.fdc-vn-time {
-  font-variant-numeric: tabular-nums;
-  color: var(--fd-sub);
-  font-weight: 500;
-}
-.fdc-vn-wave {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  flex: 1 1 auto;
-  height: 18px;
-  i {
-    width: 3px;
-    background: var(--ui-color-danger, #ef4444);
-    border-radius: 2px;
-    animation: fdc-vn-wave 1s ease-in-out infinite;
-  }
-  i:nth-child(1) { height: 30%; animation-delay: 0s; }
-  i:nth-child(2) { height: 60%; animation-delay: 0.15s; }
-  i:nth-child(3) { height: 100%; animation-delay: 0.3s; }
-  i:nth-child(4) { height: 60%; animation-delay: 0.45s; }
-  i:nth-child(5) { height: 30%; animation-delay: 0.6s; }
-  &.is-paused i { animation: none; opacity: 0.4; }
-}
-@keyframes fdc-vn-wave {
-  0%, 100% { transform: scaleY(0.4); }
-  50%      { transform: scaleY(1); }
-}
-.fdc-vn-actions {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-}
-.fdc-vn-btn {
-  border: 1px solid var(--fd-border);
-  background: var(--ui-color-bg-surface, #fff);
-  border-radius: 999px;
-  width: 32px; height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--fd-text);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  &:hover { background: var(--fd-hover); }
-  &.cancel:hover {
-    color: var(--ui-color-danger, #ef4444);
-    border-color: var(--ui-color-danger, #ef4444);
-  }
-  &.stop {
-    background: var(--ui-color-success, #22c55e);
-    color: #fff;
-    border-color: transparent;
-    &:hover { filter: brightness(0.95); }
-  }
-}
-.fdc-vn-error {
-  padding: 6px 14px;
-  background: rgba(239, 68, 68, 0.08);
-  color: var(--ui-color-danger, #ef4444);
-  font-size: 12px;
-  border-top: 1px solid var(--fd-border);
-}
-
-/* Pending voice-note chip variant (compact, blue tint) */
-.fdc-pf.is-voice {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-/* Voice composer tab — standalone voice-only sender */
-.fdc-voice-vis {
-  display: flex;
-  gap: 8px;
-  padding: 10px 14px 0;
-  flex-wrap: wrap;
-}
-.fdc-voice-vis-opt {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px solid var(--fd-border);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--fd-sub);
-  background: var(--ui-color-bg-surface, #fff);
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  input { display: none; }
-  &:hover { background: var(--fd-hover); }
-  &.sel {
-    color: var(--ui-color-danger, #ef4444);
-    border-color: var(--ui-color-danger, #ef4444);
-    background: rgba(239, 68, 68, 0.06);
-  }
-}
-
-.fdc-voice-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 32px 16px;
-}
-.fdc-voice-mic {
-  width: 72px; height: 72px;
-  border-radius: 50%;
-  border: none;
-  background: var(--ui-color-danger, #ef4444);
-  color: #fff;
-  font-size: 28px;
-  cursor: pointer;
-  box-shadow:
-    0 4px 14px rgba(239, 68, 68, 0.35),
-    0 0 0 6px rgba(239, 68, 68, 0.12);
-  transition: transform 0.15s, box-shadow 0.15s;
-  &:hover {
-    transform: scale(1.04);
-    box-shadow:
-      0 6px 18px rgba(239, 68, 68, 0.45),
-      0 0 0 10px rgba(239, 68, 68, 0.12);
-  }
-  &:active { transform: scale(0.97); }
-}
-.fdc-voice-hint {
-  font-size: 13px;
-  color: var(--fd-muted);
-}
-
-.fdc-voice-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background: rgba(59, 130, 246, 0.05);
-  border-top: 1px solid var(--fd-border);
-  .fdc-voice-ic { font-size: 18px; }
-  audio {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 36px;
-  }
-  .fdc-voice-dur {
-    font-variant-numeric: tabular-nums;
-    color: var(--fd-sub);
-    font-size: 12px;
-  }
-  .fdc-voice-redo {
-    border: 1px solid var(--fd-border);
-    background: var(--ui-color-bg-surface, #fff);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    color: var(--fd-sub);
-    cursor: pointer;
-    &:hover {
-      background: var(--fd-hover);
-      color: var(--fd-text);
-    }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
-}
-
-.fdc-send.voice-btn {
-  background: var(--ui-color-danger, #ef4444);
-  color: #fff;
-  &:hover:not(:disabled) { filter: brightness(0.95); }
-}
-
-/* Inline audio player chip in the conversation thread */
-.att-audio {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border: 1px solid var(--fd-border);
-  border-radius: 10px;
-  background: var(--ui-color-bg-surface, #fff);
-  max-width: 360px;
-  audio {
-    height: 32px;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .att-ic { font-size: 16px; }
-  .att-audio-dl {
-    text-decoration: none;
-    color: var(--fd-sub);
-    font-size: 14px;
-    padding: 2px 6px;
-    border-radius: 6px;
-    &:hover {
-      background: var(--fd-hover);
-      color: var(--fd-text);
-    }
-  }
 }
 
 /* ════════════════════════════════════════
@@ -2687,9 +2435,24 @@ textarea:focus-visible,
 .ec-to-row,
 .fr-recipients { font-size: 11.5px; }
 
+/* ════════════════════════════════════════════════════════════
+   Reaction bar footer (Teams-style hover reveal)
+════════════════════════════════════════════════════════════ */
+.fr-footer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px 14px 4px;
+  border-top: 1px dashed transparent;
+  min-height: 32px;
+}
 
-
-
+/* CSS custom property crosses Angular view encapsulation, so this controls
+   the trigger opacity inside <app-reaction-bar>. */
+.fd-reply { --rxn-show: 0; }
+.fd-reply:hover { --rxn-show: 1; }
+.fd-reply:hover .fr-footer { border-top-color: var(--fd-border); }
 
 
 

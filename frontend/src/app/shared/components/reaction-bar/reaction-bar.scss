@@ -1,0 +1,158 @@
+/* ══════════════════════════════════════════
+   Reaction Bar — Microsoft Teams style
+══════════════════════════════════════════ */
+
+:host {
+  display: inline-block;
+}
+
+.rxn-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Existing reaction chips ── */
+.rxn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--ui-color-bg-subtle, #f3f4f6);
+  border: 1px solid var(--ui-color-border, #e5e7eb);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--ui-color-text-secondary, #4b5563);
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  font-family: inherit;
+
+  &:hover {
+    background: var(--ui-color-bg-hover, #eef2f7);
+    transform: translateY(-1px);
+  }
+
+  &.is-mine {
+    background: var(--ui-color-primary-soft, #e6f0ff);
+    border-color: var(--ui-color-primary, #2563eb);
+    color: var(--ui-color-primary, #2563eb);
+    font-weight: 600;
+  }
+}
+
+.rxn-chip-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.rxn-chip-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Trigger ── */
+.rxn-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rxn-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 28px;
+  height: 24px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px dashed var(--ui-color-border, #e5e7eb);
+  color: var(--ui-color-text-muted, #6b7280);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0;
+
+  &:hover {
+    background: var(--ui-color-bg-hover, #eef2f7);
+    border-color: var(--ui-color-primary, #2563eb);
+    color: var(--ui-color-primary, #2563eb);
+  }
+}
+
+.rxn-trigger-face { font-size: 13px; line-height: 1; }
+.rxn-trigger-plus { font-size: 11px; font-weight: 700; line-height: 1; }
+
+/* Non-compact: trigger always visible */
+.rxn-bar:not(.rxn-bar--compact) .rxn-trigger { opacity: 1; }
+
+/* Compact: reveal trigger on parent message hover.
+   Parent (.fd-reply) toggles --rxn-show via hover. */
+.rxn-bar--compact .rxn-trigger {
+  opacity: var(--rxn-show, 0);
+}
+.rxn-bar--compact .rxn-wrap:hover .rxn-trigger { opacity: 1; }
+
+/* ── Picker popover ── */
+.rxn-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--ui-color-bg-surface, #fff);
+  border: 1px solid var(--ui-color-border, #e5e7eb);
+  border-radius: 999px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  z-index: 50;
+  animation: rxn-pop 0.14s ease-out;
+  white-space: nowrap;
+}
+
+.rxn-picker::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 14px;
+  border: 6px solid transparent;
+  border-top-color: var(--ui-color-bg-surface, #fff);
+  filter: drop-shadow(0 1px 0 var(--ui-color-border, #e5e7eb));
+}
+
+.rxn-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: background 0.12s, transform 0.12s;
+
+  &:hover {
+    background: var(--ui-color-bg-hover, #eef2f7);
+    transform: scale(1.25);
+  }
+}
+
+.rxn-picker-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+@keyframes rxn-pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

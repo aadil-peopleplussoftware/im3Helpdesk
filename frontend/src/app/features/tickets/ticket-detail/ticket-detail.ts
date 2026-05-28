@@ -29,6 +29,7 @@ import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { TopbarContextService } from '../../../core/services/topbar-context.service';
 import { OrgContextService } from '../../../core/services/org-context.service';
+import { ReactionBarComponent } from '../../../shared/components/reaction-bar/reaction-bar';
 
 @Component({
   selector: 'app-ticket-detail',
@@ -38,7 +39,8 @@ import { OrgContextService } from '../../../core/services/org-context.service';
     CommonModule, FormsModule,
     ReactiveFormsModule, RouterModule,
     MatProgressSpinnerModule,
-    LayoutComponent 
+    LayoutComponent,
+    ReactionBarComponent
   ],
   templateUrl: './ticket-detail.html',
   styleUrls: ['./ticket-detail.scss']
@@ -99,7 +101,7 @@ export class TicketDetailComponent
   // ─── Composer ────────────────────────
   // ✅ single variable controls tabs
   activeComposerTab:
-    'reply' | 'note' | 'forward' | 'voice' = 'note';
+    'reply' | 'note' | 'forward' = 'note';
 
   /** Composer starts collapsed (small one-line input). Expands on click. */
   composerExpanded = false;
@@ -115,46 +117,6 @@ export class TicketDetailComponent
   forwardText = '';
   pendingFiles: File[] = [];
   attachments: any[] = [];
-
-  // ── Voice note recording ───────────────────
-  /** True while the mic is active and recording. */
-  isRecording = false;
-  /** True when the user has paused the active recording. */
-  isRecordingPaused = false;
-  /** Elapsed recording duration in seconds (drives the live timer). */
-  recordingSeconds = 0;
-  /** Last recorder error, surfaced inline so the user sees what went wrong. */
-  recordingError = '';
-  private mediaRecorder: MediaRecorder | null = null;
-  private recordingStream: MediaStream | null = null;
-  private recordedChunks: Blob[] = [];
-  private recordingTimer: any = null;
-  /**
-   * Marks the composer tab that owned the active recording so that, when the
-   * user stops/cancels, we restore focus into the correct editor and avoid
-   * leaking a recording across tabs. Public so the template can highlight
-   * only the mic button belonging to the active tab.
-   */
-  recordingOwnerTab: 'reply' | 'note' | 'forward' | 'voice' | null = null;
-
-  /**
-   * Recording destination — `attachment` queues the file into `pendingFiles`
-   * for the Reply/Note/Forward send paths; `voice` keeps it in a dedicated
-   * single-slot `voiceFile` that the Voice tab sends on its own.
-   */
-  private recordingTarget: 'attachment' | 'voice' = 'attachment';
-
-  // ── Voice-only tab state ─────────────────────
-  /** The captured voice clip waiting to be sent from the Voice tab. */
-  voiceFile: File | null = null;
-  /** Duration (seconds) of `voiceFile` for the preview chip. */
-  voiceDuration = 0;
-  /** Object URL used as the preview `<audio src>`; revoked when cleared. */
-  voicePreviewUrl: string | null = null;
-  /** Public (false) sends as a customer-visible reply; true = private note. */
-  voiceIsPrivate = false;
-  /** True while the voice clip is being uploaded. */
-  voiceSending = false;
 
   // ── Reply Cc / Bcc ──────────────────
   showCc = false;
@@ -500,25 +462,12 @@ export class TicketDetailComponent
 
   getFileIcon(type: string): string {
     if (type?.startsWith('image/')) return '🖼';
-    if (type?.startsWith('audio/')) return '🎤';
     if (type?.includes('pdf')) return '📄';
     if (type?.includes('word')) return '📝';
     if (type?.includes('excel') ||
         type?.includes('sheet')) return '📊';
     if (type?.includes('zip')) return '🗜';
     return '📎';
-  }
-
-  /**
-   * True for any attachment whose MIME or file name indicates an audio
-   * recording. Used by the conversation thread to render an inline
-   * `<audio>` player (WhatsApp-style voice note) instead of a plain chip.
-   */
-  isAudioAttachment(a: any): boolean {
-    const t = String(a?.contentType || '').toLowerCase();
-    if (t.startsWith('audio/')) return true;
-    const name = String(a?.fileName || '').toLowerCase();
-    return /\.(webm|ogg|mp3|m4a|wav|aac)$/.test(name);
   }
 
   formatFileSize(bytes: number): string {
@@ -668,12 +617,6 @@ export class TicketDetailComponent
   }
 
   ngOnDestroy() {
-    // Make sure the mic is released if the user navigates away mid-recording.
-    if (this.isRecording) {
-      try { this.cancelRecording(); } catch { /* ignore */ }
-    }
-    this.cleanupRecording();
-    this.clearVoiceTake();
     this.destroy$.next();
     this.destroy$.complete();
     this.topbarCtx.clear();
@@ -1116,275 +1059,6 @@ loadTicket() {
     this.pendingFiles.splice(index, 1);
   }
 
-  // ── Voice note (WhatsApp-style) ─────────────────────────
-  /** mm:ss formatting for the live recording timer + pending chip label. */
-  formatRecordingTime(seconds: number): string {
-    const s = Math.max(0, Math.floor(seconds || 0));
-    const mm = Math.floor(s / 60).toString().padStart(2, '0');
-    const ss = (s % 60).toString().padStart(2, '0');
-    return `${mm}:${ss}`;
-  }
-
-  /** Best-effort MIME pick — first one the browser actually supports. */
-  private pickAudioMime(): string {
-    const candidates = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/ogg',
-      'audio/mp4',
-    ];
-    // MediaRecorder may not exist in older browsers; guard before isTypeSupported.
-    const MR: any = (window as any).MediaRecorder;
-    if (!MR?.isTypeSupported) return '';
-    for (const m of candidates) {
-      try { if (MR.isTypeSupported(m)) return m; } catch { /* ignore */ }
-    }
-    return '';
-  }
-
-  /** Start mic recording for the currently active composer tab. */
-  async startRecording(target: 'attachment' | 'voice' = 'attachment') {
-    if (this.isRecording) return;
-    this.recordingError = '';
-    this.recordingTarget = target;
-    // Voice tab: clear any previous take before starting a new one.
-    if (target === 'voice') this.clearVoiceTake();
-    // Browser support guard.
-    if (!navigator.mediaDevices?.getUserMedia ||
-        typeof (window as any).MediaRecorder === 'undefined') {
-      this.recordingError =
-        'Voice recording is not supported in this browser.';
-      this.showToast('error', this.recordingError);
-      return;
-    }
-    try {
-      this.recordingStream =
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (err: any) {
-      this.recordingError =
-        err?.name === 'NotAllowedError'
-          ? 'Microphone permission was denied.'
-          : 'Could not access the microphone.';
-      this.showToast('error', this.recordingError);
-      return;
-    }
-
-    const mime = this.pickAudioMime();
-    try {
-      this.mediaRecorder = mime
-        ? new MediaRecorder(this.recordingStream, { mimeType: mime })
-        : new MediaRecorder(this.recordingStream);
-    } catch {
-      this.stopRecordingTracks();
-      this.recordingError = 'Failed to start the recorder.';
-      this.showToast('error', this.recordingError);
-      return;
-    }
-
-    this.recordedChunks = [];
-    this.mediaRecorder.ondataavailable = (e: BlobEvent) => {
-      if (e.data && e.data.size > 0) this.recordedChunks.push(e.data);
-    };
-
-    // Capture the tab that "owns" this recording so cancel/stop are scoped.
-    this.recordingOwnerTab = this.activeComposerTab;
-    this.recordingSeconds = 0;
-    this.isRecordingPaused = false;
-    this.isRecording = true;
-    // Re-render and start the ticking timer.
-    this.recordingTimer = setInterval(() => {
-      if (!this.isRecordingPaused) this.recordingSeconds++;
-      this.cdr.markForCheck();
-    }, 1000);
-
-    try {
-      // 250ms timeslice keeps chunks small + reliable across browsers.
-      this.mediaRecorder.start(250);
-    } catch {
-      this.cleanupRecording();
-      this.recordingError = 'Failed to start the recorder.';
-      this.showToast('error', this.recordingError);
-    }
-  }
-
-  /** Toggle pause/resume during an active recording. */
-  togglePauseRecording() {
-    const rec = this.mediaRecorder;
-    if (!rec || !this.isRecording) return;
-    try {
-      if (this.isRecordingPaused) {
-        rec.resume();
-        this.isRecordingPaused = false;
-      } else {
-        rec.pause();
-        this.isRecordingPaused = true;
-      }
-    } catch { /* some browsers throw on pause/resume — ignore */ }
-  }
-
-  /** Stop recording and attach the resulting clip to pendingFiles. */
-  stopRecording() {
-    const rec = this.mediaRecorder;
-    if (!rec || !this.isRecording) return;
-    const seconds = this.recordingSeconds;
-    const target = this.recordingTarget;
-    rec.onstop = () => {
-      try {
-        const mime = rec.mimeType || 'audio/webm';
-        const ext = mime.includes('ogg') ? 'ogg'
-                  : mime.includes('mp4') ? 'm4a'
-                  : 'webm';
-        const blob = new Blob(this.recordedChunks, { type: mime });
-        // Guard against empty/zero-length recordings (e.g. user stopped instantly).
-        if (blob.size > 0) {
-          const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const file = new File(
-            [blob],
-            `voice-note-${stamp}.${ext}`,
-            { type: mime, lastModified: Date.now() }
-          );
-          // Surface the duration on the File for the pending chip label.
-          try { (file as any).durationSeconds = seconds; } catch { /* readonly safe */ }
-          if (target === 'voice') {
-            // Dedicated Voice tab — single-slot preview, no auto-send.
-            this.clearVoiceTake();
-            this.voiceFile = file;
-            this.voiceDuration = seconds;
-            this.voicePreviewUrl = URL.createObjectURL(blob);
-          } else {
-            this.pendingFiles.push(file);
-            this.showToast('success', 'Voice note attached');
-          }
-        }
-      } finally {
-        this.cleanupRecording();
-        this.cdr.markForCheck();
-      }
-    };
-    try { rec.stop(); } catch { this.cleanupRecording(); }
-  }
-
-  /** Discard the active recording without attaching anything. */
-  cancelRecording() {
-    const rec = this.mediaRecorder;
-    if (!rec || !this.isRecording) {
-      this.cleanupRecording();
-      return;
-    }
-    rec.onstop = () => {
-      this.recordedChunks = [];
-      this.cleanupRecording();
-      this.cdr.markForCheck();
-    };
-    try { rec.stop(); } catch { this.cleanupRecording(); }
-  }
-
-  /** Stop the live mic tracks so the browser's red record indicator goes away. */
-  private stopRecordingTracks() {
-    if (this.recordingStream) {
-      try { this.recordingStream.getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
-      this.recordingStream = null;
-    }
-  }
-
-  /** Tear down all recording state (called on stop, cancel, error, destroy). */
-  private cleanupRecording() {
-    if (this.recordingTimer) {
-      clearInterval(this.recordingTimer);
-      this.recordingTimer = null;
-    }
-    this.stopRecordingTracks();
-    this.mediaRecorder = null;
-    this.recordedChunks = [];
-    this.isRecording = false;
-    this.isRecordingPaused = false;
-    this.recordingSeconds = 0;
-    this.recordingOwnerTab = null;
-  }
-
-  /** Label for a queued voice-note chip (mm:ss · KB). */
-  voiceNoteLabel(f: File): string {
-    const dur = (f as any).durationSeconds;
-    const base = dur != null
-      ? `Voice note · ${this.formatRecordingTime(dur)}`
-      : 'Voice note';
-    return base;
-  }
-
-  /** True for pending files we created from the mic recorder. */
-  isPendingVoiceNote(f: File): boolean {
-    return String(f?.type || '').startsWith('audio/')
-      || /\.(webm|ogg|m4a|mp3|wav|aac)$/i.test(f?.name || '');
-  }
-
-  /** Discard the captured Voice-tab take and revoke its preview URL. */
-  clearVoiceTake() {
-    if (this.voicePreviewUrl) {
-      try { URL.revokeObjectURL(this.voicePreviewUrl); } catch { /* ignore */ }
-    }
-    this.voicePreviewUrl = null;
-    this.voiceFile = null;
-    this.voiceDuration = 0;
-  }
-
-  /**
-   * Send the captured Voice-tab clip as a standalone comment.
-   * Creates a comment first (so we get a `commentId`), then uploads the
-   * audio file against it. Honours `voiceIsPrivate` so an agent can drop
-   * a private internal voice note as well.
-   */
-  async sendVoiceNote() {
-    if (!this.voiceFile) {
-      this.showToast('error', 'Record a voice note first');
-      return;
-    }
-    if (this.voiceSending || this.isRecording) return;
-    this.voiceSending = true;
-    try {
-      const res: any = await this.http.post(
-        `${environment.apiUrl}/Tickets/${this.ticketId}/comments`,
-        {
-          comment: '🎤 Voice note',
-          isInternal: this.voiceIsPrivate,
-          notifyUserIds: this.notifyAgents
-            .filter(a => a.kind !== 'contact' && a.id)
-            .map(a => a.id),
-          notifyEmails: this.notifyAgents
-            .map(a => a.email)
-            .filter((e: string) => !!e)
-        }
-      ).toPromise();
-
-      const commentId = res?.commentId;
-      if (!commentId) throw new Error('No commentId returned');
-
-      const fd = new FormData();
-      fd.append('file', this.voiceFile);
-      await this.http.post(
-        environment.baseUrl +
-        `/api/Attachments/upload` +
-        `/${this.ticketId}` +
-        `?commentId=${commentId}`,
-        fd
-      ).toPromise();
-
-      this.clearVoiceTake();
-      this.notifyAgents = [];
-      this.notifyTo = '';
-      this.composerExpanded = false;
-      this.showToast('success', 'Voice note sent');
-      this.loadTicket();
-      this.loadAttachments();
-      this.loadTimeline();
-    } catch {
-      this.showToast('error', 'Failed to send voice note');
-    } finally {
-      this.voiceSending = false;
-      this.cdr.markForCheck();
-    }
-  }
-
   // ── Cc / Bcc handlers (reply) ──────────────
   private isValidEmail(v: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -1476,12 +1150,10 @@ loadTicket() {
   }
 
   /** Expand composer when user clicks the collapsed input/tabs. */
-  expandComposer(tab?: 'reply' | 'note' | 'forward' | 'voice') {
+  expandComposer(tab?: 'reply' | 'note' | 'forward') {
     if (tab) this.activeComposerTab = tab;
     this.composerExpanded = true;
     // Focus the editor of the selected tab after Angular renders.
-    // Voice tab has no contenteditable — skip focus.
-    if (this.activeComposerTab === 'voice') return;
     setTimeout(() => {
       const ref =
         this.activeComposerTab === 'reply' ? this.replyEditorRef
@@ -1719,7 +1391,7 @@ updateAllProps() {
     ).subscribe({
       next: (res: any) => {
         const commentId = res?.commentId;
-        // Upload any queued attachments (incl. voice notes) against the
+        // Upload any queued attachments against the
         // forward comment so they appear in the conversation thread.
         const pending = [...this.pendingFiles];
         const uploads: Promise<any>[] = [];

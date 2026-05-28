@@ -95,7 +95,7 @@ public interface IEmailService
       string to,
       string fullName,
       string verificationToken,
-      string orgName = "iM3 Helpdesk",
+      string orgName = "DeskMate",
       Guid? organizationId = null);
  
   Task SendWelcomeEmailAsync(
@@ -108,7 +108,7 @@ public interface IEmailService
       string to,
       string fullName,
       string resetToken,
-      string orgName = "iM3 Helpdesk",
+      string orgName = "DeskMate",
       Guid? organizationId = null);
  
   Task SendAgentInviteAsync(
@@ -221,7 +221,7 @@ public class EmailService : IEmailService
         FirstNonEmpty(
             organization.SmtpFromName,
             organization.Name,
-            "iM3 Helpdesk")!);
+            "DeskMate")!);
   }
  
   private SmtpProfile? BuildFallbackSmtpProfile()
@@ -252,7 +252,7 @@ public class EmailService : IEmailService
         fromEmail,
         FirstNonEmpty(
             smtp["FromName"],
-            "iM3 Helpdesk")!);
+            "DeskMate")!);
   }
  
   private async Task<SmtpProfile?> ResolveSmtpProfileAsync(
@@ -433,7 +433,7 @@ public class EmailService : IEmailService
       string to,
       string fullName,
       string verificationToken,
-      string orgName = "iM3 Helpdesk",
+      string orgName = "DeskMate",
       Guid? organizationId = null)
   {
     // Read base URL from config, fallback to localhost
@@ -495,7 +495,7 @@ public class EmailService : IEmailService
   {
     var content = $@"
 <h2 style='color:#1a1f36;font-size:20px;margin:0 0 6px'>
-  🎉 Welcome to iM3 Helpdesk!
+  🎉 Welcome to DeskMate!
 </h2>
 <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
   Hi <strong>{fullName}</strong>,
@@ -527,12 +527,12 @@ public class EmailService : IEmailService
  
 <p style='font-size:12px;color:#9ca3af;
   text-align:center;margin:0'>
-  iM3 Helpdesk Support Team
+  DeskMate Support Team
 </p>";
  
     await SendAsync(
         to,
-        $"🎉 Welcome to iM3 Helpdesk — {companyName}",
+        $"🎉 Welcome to DeskMate — {companyName}",
         content,
         organizationId: organizationId);
   }
@@ -544,7 +544,7 @@ public class EmailService : IEmailService
       string to,
       string fullName,
       string resetToken,
-      string orgName = "iM3 Helpdesk",
+      string orgName = "DeskMate",
       Guid? organizationId = null)
   {
     var baseUrl = _config["AppSettings:BaseUrl"]
@@ -623,7 +623,7 @@ public class EmailService : IEmailService
   Hi <strong>{agentName}</strong>,
   you have been invited to join
   <strong>{orgName}</strong> as a support agent
-  on iM3 Helpdesk.
+  on DeskMate.
 </p>
  
 <div style='background:#f9fafb;border:1px solid #e5e7eb;
@@ -663,7 +663,7 @@ public class EmailService : IEmailService
       padding:14px 32px;border-radius:8px;
       text-decoration:none;font-size:15px;
       font-weight:600;display:inline-block'>
-    🚀 Login to iM3 Helpdesk
+    🚀 Login to DeskMate
   </a>
 </div>
  
@@ -676,12 +676,12 @@ public class EmailService : IEmailService
  
 <p style='font-size:12px;color:#9ca3af;
   text-align:center;margin:0'>
-  {orgName} · iM3 Helpdesk
+  {orgName} · DeskMate
 </p>";
  
     await SendAsync(
         to,
-        $"🎧 You're invited to join {orgName} on iM3 Helpdesk",
+        $"🎧 You're invited to join {orgName} on DeskMate",
         content,
         organizationId: organizationId);
   }
@@ -1138,7 +1138,7 @@ public class EmailService : IEmailService
 </div>";
     await SendAsync(
         to,
-        "🔐 Your iM3 Helpdesk Login OTP",
+        "🔐 Your DeskMate Login OTP",
         content,
         organizationId: organizationId);
   }
@@ -1412,7 +1412,7 @@ public class EmailService : IEmailService
   <meta charset='UTF-8'/>
   <meta name='viewport'
     content='width=device-width,initial-scale=1.0'/>
-  <title>iM3 Helpdesk</title>
+  <title>DeskMate</title>
 </head>
 <body style='margin:0;padding:0;
   background-color:#f3f4f6;
@@ -1441,7 +1441,7 @@ public class EmailService : IEmailService
                     <span style='color:white;
                       font-size:20px;font-weight:700;
                       letter-spacing:-0.5px'>
-                      ⚡ iM3 Helpdesk
+                      ⚡ DeskMate
                     </span>
                   </td>
                   <td align='right'>
@@ -1476,7 +1476,7 @@ public class EmailService : IEmailService
                 color:#9ca3af;line-height:1.6'>
                 This email was sent by
                 <strong>{orgName}</strong>
-                via iM3 Helpdesk.<br/>
+                via DeskMate.<br/>
                 Please do not reply directly unless
                 responding to a ticket.
               </p>
@@ -1484,7 +1484,7 @@ public class EmailService : IEmailService
                 color:#d1d5db'>
                 Powered by
                 <strong style='color:#2563eb'>
-                  iM3 Helpdesk
+                  DeskMate
                 </strong>
               </p>
             </td>
