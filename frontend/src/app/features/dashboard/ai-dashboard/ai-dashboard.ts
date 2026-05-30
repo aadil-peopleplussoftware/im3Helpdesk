@@ -37,7 +37,8 @@ export class AIDashboardComponent
 
   activeTab:
     'tide' | 'insights' |
-    'duplicates' | 'summary' = 'tide';
+    'duplicates' | 'summary' |
+    'hotTopics' = 'tide';
 
   // ── Tide ────────────────────────────
   tideData: any = null;
@@ -62,6 +63,11 @@ export class AIDashboardComponent
   summaryLoading = false;
   recentTickets: any[] = [];
 
+  // ── Hot Topics ──────────────────────
+  hotTopicsData: any = null;
+  hotTopicsLoading = true;
+  hotTopicsChart: Chart | null = null;
+
   private readonly BASE = environment.baseUrl;
 
   ngOnInit() {
@@ -69,6 +75,7 @@ export class AIDashboardComponent
     this.loadInsights();
     this.loadDuplicates();
     this.loadRecentTickets();
+    this.loadHotTopics();
   }
 
   ngAfterViewInit() {}
@@ -80,6 +87,9 @@ export class AIDashboardComponent
     if (t === 'tide')
       setTimeout(() =>
         this.renderTideChart(), 300);
+    if (t === 'hotTopics')
+      setTimeout(() =>
+        this.renderHotTopicsChart(), 300);
   }
 
   // ── TIDE ────────────────────────────
@@ -393,5 +403,111 @@ export class AIDashboardComponent
 
   navigateToTicket(id: string) {
     this.router.navigate(['/tickets', id]);
+  }
+
+  // ── HOT TOPICS ───────────────────────
+  loadHotTopics() {
+    this.hotTopicsLoading = true;
+    this.http.get<any>(
+      `${this.BASE}/api/AIFeatures/hot-topics`
+    ).subscribe({
+      next: (d) => {
+        this.hotTopicsData = d;
+        this.hotTopicsLoading = false;
+        this.cdr.detectChanges();
+        if (this.activeTab === 'hotTopics')
+          setTimeout(() =>
+            this.renderHotTopicsChart(), 300);
+      },
+      error: () => {
+        this.hotTopicsLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  renderHotTopicsChart() {
+    try { this.hotTopicsChart?.destroy(); }
+    catch {}
+    this.hotTopicsChart = null;
+
+    const cats =
+      this.hotTopicsData?.topCategories || [];
+    if (!cats.length) return;
+
+    const canvas = document.getElementById(
+      'hotTopicsChart') as HTMLCanvasElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.hotTopicsChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: cats.map((c: any) => c.label),
+        datasets: [
+          {
+            label: 'Last 30 days',
+            data: cats.map((c: any) => c.count),
+            backgroundColor:
+              'rgba(59, 130, 246, 0.85)',
+            borderRadius: 6
+          },
+          {
+            label: 'Previous 30 days',
+            data: cats.map(
+              (c: any) => c.previousCount),
+            backgroundColor:
+              'rgba(148, 163, 184, 0.55)',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 12 } }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+  }
+
+  getTrendIcon(trend: string): string {
+    if (trend === 'up') return '📈';
+    if (trend === 'down') return '📉';
+    return '➖';
+  }
+
+  getTrendClass(trend: string): string {
+    if (trend === 'up') return 'tr-up';
+    if (trend === 'down') return 'tr-down';
+    return 'tr-flat';
+  }
+
+  keywordSize(count: number,
+              max: number): string {
+    if (!max) return '14px';
+    const pct = count / max;
+    const px = 13 + Math.round(pct * 18);
+    return `${px}px`;
+  }
+
+  maxKeywordCount(): number {
+    const kws =
+      this.hotTopicsData?.topKeywords || [];
+    if (!kws.length) return 1;
+    return Math.max(
+      ...kws.map((k: any) => k.count));
   }
 }

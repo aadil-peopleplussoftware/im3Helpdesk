@@ -909,7 +909,7 @@ loadTicket() {
     const email = this.senderEmail();
     this.forwardPrefillHtml =
       `<p>Please take a look at ticket ` +
-      `<a href="javascript:void(0)">#${num}</a> ` +
+      `<strong>#${num}</strong> ` +
       `raised by <strong>${name}</strong>` +
       (email ? ` (<a href="mailto:${email}">${email}</a>)` : '') +
       `.</p>`;
@@ -1321,10 +1321,7 @@ async sendReply() {
   if (!content || content === '<br>') return;
   if (this.updating) return;
 
-  // ✅ Use setTimeout to avoid ExpressionChanged
-  setTimeout(() => {
-    this.updating = true;
-  }, 0);
+  this.updating = true;
 
   try {
     const res: any = await this.http.post(
@@ -1368,19 +1365,21 @@ async sendReply() {
     this.showBcc = false;
     this.notifyAgents = [];
     this.notifyTo = '';
+
     setTimeout(() => {
       this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('success', 'Reply sent!');
+      this.loadTicket();
+      this.loadAttachments();
+      this.loadTimeline();
     }, 0);
-
-    this.showToast('success', 'Reply sent!');
-    this.loadTicket();
-    this.loadAttachments();
-    this.loadTimeline();
   } catch {
     setTimeout(() => {
       this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('error', 'Reply failed');
     }, 0);
-    this.showToast('error', 'Reply failed');
   }
 }
 
@@ -1393,7 +1392,7 @@ async sendNote() {
   if (!content || content === '<br>') return;
   if (this.updating) return;
 
-  setTimeout(() => { this.updating = true; }, 0);
+  this.updating = true;
 
   try {
     const res: any = await this.http.post(
@@ -1439,17 +1438,18 @@ async sendNote() {
 
     setTimeout(() => {
       this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('success', 'Note added!');
+      this.loadTicket();
+      this.loadAttachments();
+      this.loadTimeline();
     }, 0);
-
-    this.showToast('success', 'Note added!');
-    this.loadTicket();
-    this.loadAttachments();
-    this.loadTimeline();
   } catch {
     setTimeout(() => {
       this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('error', 'Note failed');
     }, 0);
-    this.showToast('error', 'Note failed');
   }
 }
 
@@ -1457,7 +1457,7 @@ updateAllProps() {
   if (this.updating) return;
   if (!this.ticket) return;
 
-  setTimeout(() => { this.updating = true; }, 0);
+  this.updating = true;
 
   const base = `${environment.apiUrl}/Tickets/${this.ticketId}`;
 
@@ -1492,14 +1492,20 @@ updateAllProps() {
   }
 
   Promise.all(calls).then(() => {
-    setTimeout(() => { this.updating = false; }, 0);
-    this.showToast('success', 'Updated successfully!');
-    this.loadTicket();
-    this.loadTimeline();
+    setTimeout(() => {
+      this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('success', 'Updated successfully!');
+      this.loadTicket();
+      this.loadTimeline();
+    }, 0);
   }).catch(() => {
-    setTimeout(() => { this.updating = false; }, 0);
-    this.showToast('error', 'Update failed');
-    this.loadTicket();
+    setTimeout(() => {
+      this.updating = false;
+      this.cdr.detectChanges();
+      this.showToast('error', 'Update failed');
+      this.loadTicket();
+    }, 0);
   });
 }
 
@@ -1571,18 +1577,23 @@ updateAllProps() {
           if (this.forwardEditorRef?.nativeElement)
             this.forwardEditorRef.nativeElement
               .innerHTML = '';
-          this.forwarding = false;
-          this.showToast('success',
-            'Forwarded successfully!');
-          this.loadTicket();
-          this.loadAttachments();
-          this.loadTimeline();
+          setTimeout(() => {
+            this.forwarding = false;
+            this.cdr.detectChanges();
+            this.showToast('success', 'Forwarded successfully!');
+            this.loadTicket();
+            this.loadAttachments();
+            this.loadTimeline();
+          }, 0);
         });
       },
       error: (err) => {
-        this.forwarding = false;
-        this.showToast('error',
-          err.error?.message || 'Forward failed');
+        setTimeout(() => {
+          this.forwarding = false;
+          this.cdr.detectChanges();
+          this.showToast('error',
+            err.error?.message || 'Forward failed');
+        }, 0);
       }
     });
   }

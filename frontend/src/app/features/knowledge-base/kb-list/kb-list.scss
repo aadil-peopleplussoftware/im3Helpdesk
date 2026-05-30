@@ -393,6 +393,32 @@
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  &.system-av {
+    background: linear-gradient(135deg, var(--ui-color-primary), var(--ui-color-primary-hover));
+    font-size: 18px;
+  }
+}
+
+.post-author.system-author {
+  cursor: default;
+  &:hover .author-name { color: var(--ui-color-text-primary); }
+}
+
+.system-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 
 .author-name {

@@ -70,9 +70,6 @@ public class HolidayPostWorker : BackgroundService
     return DateOnly.FromDateTime(istNow);
   }
 
-  private static string BotEmail(Guid orgId)
-    => $"holiday-bot-{orgId:N}@im3.local";
-
   private static string BotDisplayName(string orgName)
     => $"{orgName} Announcements";
 
@@ -145,27 +142,6 @@ For any urgent help-desk queries during the holiday, please continue using the p
             .AnyAsync(a => a.OrganizationId == org.Id && a.Title == title, ct);
         if (already) continue;
 
-        // Ensure bot user exists.
-        var botEmail = BotEmail(org.Id);
-        var bot = await db.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.OrganizationId == org.Id && u.Email == botEmail, ct);
-
-        if (bot == null)
-        {
-          bot = new User
-          {
-            FullName = BotDisplayName(org.Name),
-            Email = botEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N")),
-            OrganizationId = org.Id,
-            IsEmailVerified = true,
-            Role = UserRole.Customer
-          };
-          db.Users.Add(bot);
-          await db.SaveChangesAsync(ct);
-        }
-
         var article = new KbArticle
         {
           Title = title,
@@ -179,7 +155,9 @@ For any urgent help-desk queries during the holiday, please continue using the p
           MediaUrl = "",
           MediaType = "none",
           OrganizationId = org.Id,
-          CreatedByUserId = bot.Id,
+          CreatedByUserId = null,
+          AuthorType = "System",
+          SystemAuthorLabel = BotDisplayName(org.Name),
           CreatedAt = DateTime.UtcNow
         };
 

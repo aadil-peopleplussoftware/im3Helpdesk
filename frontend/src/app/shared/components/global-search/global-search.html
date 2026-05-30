@@ -25,7 +25,7 @@
     </div>
 
     <div *ngIf="results.articles?.length > 0">
-      <div class="result-section">Knowledge Base</div>
+      <div class="result-section">MateBoard</div>
       <div class="result-item"
         *ngFor="let a of results.articles"
         (mousedown)="navigate('article', a.id)">
