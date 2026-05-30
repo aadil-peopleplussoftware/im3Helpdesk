@@ -229,6 +229,9 @@
 
             <!-- Public Reply -->
             <div class="fd-reply"
+              [class.is-forward]="c.source === 'forward'"
+              [class.is-inbound]="c.source === 'email'"
+              [class.is-agent-reply]="c.source !== 'email' && c.source !== 'forward'"
               *ngIf="!c.isInternal">
               <div class="fr-header">
                 <div class="fr-av is-clickable"
@@ -591,12 +594,10 @@
                 {{ ticket.fromEmail || ticket.createdBy?.email }}
               </span>
               <span class="fdc-hdr-right">
-                <a class="fdc-link"
-                  (click)="showCc = !showCc"
-                  href="javascript:void(0)">Cc</a>
-                <a class="fdc-link"
-                  (click)="showBcc = !showBcc"
-                  href="javascript:void(0)">Bcc</a>
+                <button type="button" class="fdc-link"
+                  (click)="showCc = !showCc">Cc</button>
+                <button type="button" class="fdc-link"
+                  (click)="showBcc = !showBcc">Bcc</button>
               </span>
             </div>
 
@@ -616,9 +617,8 @@
                   placeholder="Add Cc and press Enter"/>
               </div>
               <span class="fdc-hdr-right">
-                <a class="fdc-link"
-                  (click)="replyCc=[]; showCc=false"
-                  href="javascript:void(0)">Clear</a>
+                <button type="button" class="fdc-link"
+                  (click)="replyCc=[]; showCc=false">Clear</button>
               </span>
             </div>
 
@@ -638,9 +638,8 @@
                   placeholder="Add Bcc and press Enter"/>
               </div>
               <span class="fdc-hdr-right">
-                <a class="fdc-link"
-                  (click)="replyBcc=[]; showBcc=false"
-                  href="javascript:void(0)">Clear</a>
+                <button type="button" class="fdc-link"
+                  (click)="replyBcc=[]; showBcc=false">Clear</button>
               </span>
             </div>
 
@@ -783,12 +782,10 @@
                 [(ngModel)]="forwardEmail"
                 placeholder=""/>
               <span class="fdc-hdr-right">
-                <a class="fdc-link"
-                  (click)="showFwdCc = !showFwdCc"
-                  href="javascript:void(0)">Cc</a>
-                <a class="fdc-link"
-                  (click)="showFwdBcc = !showFwdBcc"
-                  href="javascript:void(0)">Bcc</a>
+                <button type="button" class="fdc-link"
+                  (click)="showFwdCc = !showFwdCc">Cc</button>
+                <button type="button" class="fdc-link"
+                  (click)="showFwdBcc = !showFwdBcc">Bcc</button>
               </span>
             </div>
 

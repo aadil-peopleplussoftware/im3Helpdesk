@@ -92,7 +92,7 @@ public class RoleRightsController : ControllerBase
     // Configuration
     new("ticket-templates",     "Ticket Templates",      "Configuration","📝"),
     new("custom-fields",        "Custom Fields",         "Configuration","🧩"),
-    new("ticket-masters",       "Ticket Masters",        "Configuration","🏷️"),
+    new("ticket-masters",       "Ticket Configuration",  "Configuration","🏷️"),
     new("settings",             "Workspace Settings",    "Configuration","⚙️"),
     new("organization-profile", "Organization Profile",  "Configuration","🏢"),
     new("holiday-setup",        "Holiday Setup",         "Configuration","🎉"),

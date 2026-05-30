@@ -1,4 +1,4 @@
-using iM3Helpdesk.API.Common.Helpers;
+﻿using iM3Helpdesk.API.Common.Helpers;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
@@ -172,11 +172,11 @@ public class TicketsController : TicketsControllerBase
     );
   }
 
-  // ─────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // GET /api/Tickets/calendar?start=YYYY-MM-DD&end=YYYY-MM-DD
   // Tickets for calendar range: includes items where CreatedAt OR UpdatedAt
   // OR LastActivityAt falls within the given IST date range.
-  // ─────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("calendar")]
   public async Task<IActionResult> GetCalendarTickets(
       [FromQuery] DateOnly start,
@@ -633,7 +633,7 @@ public class TicketsController : TicketsControllerBase
     return Ok(new { message = "Moved to recycle bin" });
   }
 
-  // ── DETECT DUPLICATES ──────────────────
+  // â”€â”€ DETECT DUPLICATES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpGet("{id}/duplicates")]
   public async Task<IActionResult>
       GetDuplicates(Guid id)
@@ -709,7 +709,7 @@ public class TicketsController : TicketsControllerBase
         .ToList());
   }
 
-  // ── MERGE TICKETS ──────────────────────
+  // â”€â”€ MERGE TICKETS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   [HttpPost("{id}/merge")]
   public async Task<IActionResult> Merge(
       Guid id,
@@ -758,10 +758,10 @@ public class TicketsController : TicketsControllerBase
           TicketId = duplicate.Id,
           UserId = userId,
           Comment =
-                $"🔀 This ticket has been " +
+                $"ðŸ”€ This ticket has been " +
                 $"merged into " +
                 $"<strong>#TN{original.TicketNumber}" +
-                $"</strong> — " +
+                $"</strong> â€” " +
                 $"<em>{original.Title}</em>. " +
                 $"Please follow up on the " +
                 $"original ticket.",
@@ -777,7 +777,7 @@ public class TicketsController : TicketsControllerBase
           TicketId = original.Id,
           UserId = userId,
           Comment =
-                $"🔀 Ticket " +
+                $"ðŸ”€ Ticket " +
                 $"<strong>#TN{duplicate.TicketNumber}" +
                 $"</strong> has been merged " +
                 $"into this ticket.",
@@ -833,7 +833,7 @@ public class TicketsController : TicketsControllerBase
     });
   }
 
-  // ── Helpers ────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   private static List<string> GetWords(
       string text)
   {
@@ -882,596 +882,11 @@ public class TicketsController : TicketsControllerBase
     return Ok(logs);
   }
 
-  [HttpPut("{id}/status")]
-  public async Task<IActionResult> UpdateStatus(
-      Guid id, [FromBody] UpdateStatusDto dto)
-  {
-    var ticket = await _context.Tickets
-        .Include(t => t.CreatedBy)
-        .FirstOrDefaultAsync(t => t.Id == id);
+  // Status / Comments / Assign / Group / Priority / Type / Tags / LogTime /
+  // Forward endpoints moved to TicketStatusController, TicketCommentsController,
+  // TicketAssignmentsController (master refactor #21). Duplicates here caused
+  // AmbiguousMatchException -> 500 -> CORS preflight failures.
 
-    if (ticket == null) return NotFound();
-    var statusStr = dto.Status?.Trim() ?? "";
-    if (!TryParseTicketStatus(
-        statusStr, out var newStatus))
-      return BadRequest(new
-      {
-        message = $"Invalid status: {statusStr}"
-      });
-
-    if (!await IsMasterValueAllowedAsync(
-        TicketStatusField,
-        newStatus.ToString()))
-    {
-      return BadRequest(new
-      {
-        message = $"Status {newStatus} is not active in ticket master"
-      });
-    }
-
-    ticket.Status = newStatus;
-    ticket.UpdatedAt = DateTime.UtcNow;
-
-    if ((newStatus == TicketStatus.Resolved ||
-         newStatus == TicketStatus.ResolvedOnBeta) &&
-        !ticket.ResolvedAt.HasValue)
-      ticket.ResolvedAt = DateTime.UtcNow;
-
-    await _context.SaveChangesAsync();
-
-    var userId = GetUserId();
-    if (userId != Guid.Empty)
-    {
-      await _notificationService.CreateActivityAsync(
-          userId, ticket.OrganizationId,
-          "StatusChanged",
-          $"Status → {newStatus}: {ticket.Title}",
-          "Ticket", ticket.Id);
-    }
-
-    if (ticket.CreatedBy?.Email != null)
-    {
-      try
-      {
-        var html = $@"
-        <div style='font-family:Arial;max-width:600px'>
-          <p>Your ticket <strong>{ticket.Title}</strong>
-          (#TN{ticket.TicketNumber}) status has been 
-          updated to <strong>{newStatus}</strong>.</p>
-        </div>";
-        await _emailService.SendAsync(
-            ticket.CreatedBy.Email,
-            $"Ticket #{ticket.TicketNumber} Status: {newStatus}",
-            html,
-            organizationId: ticket.OrganizationId);
-      }
-      catch (Exception ex)
-      {
-        _logger.LogWarning(ex, "Status email failed");
-      }
-    }
-    return Ok(new { message = "Status updated" });
-  }
-
-  [HttpPost("{id}/comments")]
-  public async Task<IActionResult> AddComment(
-      Guid id,
-      [FromBody] AddCommentDto dto)
-  {
-    var ticket = await _context.Tickets
-        .Include(t => t.CreatedBy)
-        .FirstOrDefaultAsync(t => t.Id == id);
-
-    if (ticket == null) return NotFound();
-
-    var userId = GetUserId();
-    if (userId == Guid.Empty) return Unauthorized();
-
-    var agent = await _context.Users
-        .IgnoreQueryFilters()
-        .FirstOrDefaultAsync(u => u.Id == userId);
-
-    // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
-    var commentMsgIds = await _context.TicketComments
-        .Where(c => c.TicketId == id &&
-                    !string.IsNullOrEmpty(c.EmailMessageId))
-        .OrderBy(c => c.CreatedAt)
-        .Select(c => c.EmailMessageId!)
-        .ToListAsync();
-
-    var referenceChain = new List<string>();
-    if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
-      referenceChain.Add(ticket.InboundMessageId);
-    referenceChain.AddRange(commentMsgIds);
-
-    // In-Reply-To = most recent message in the chain
-    var lastMsgId = referenceChain.LastOrDefault();
-
-    // ── Resolve notified users (notes AND replies) ──
-    string? notifiedTo = null;
-    var notifyMailList = new List<string>();
-    var notifyUserIds = new List<Guid>();
-    if (dto.NotifyUserIds is { Count: > 0 })
-    {
-      var users = await _context.Users
-          .Where(u => dto.NotifyUserIds.Contains(u.Id))
-          .Select(u => new { u.Id, u.Email })
-          .ToListAsync();
-      notifyMailList.AddRange(users.Select(u => u.Email));
-      notifyUserIds.AddRange(users.Select(u => u.Id));
-    }
-    if (dto.NotifyEmails is { Count: > 0 })
-      notifyMailList.AddRange(dto.NotifyEmails);
-    notifyMailList = notifyMailList
-        .Where(e => !string.IsNullOrWhiteSpace(e))
-        .Select(e => e.Trim())
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToList();
-    if (notifyMailList.Count > 0)
-      notifiedTo = string.Join(",", notifyMailList);
-
-    var ccList = (dto.Cc ?? new List<string>())
-        .Where(e => !string.IsNullOrWhiteSpace(e))
-        .Select(e => e.Trim()).ToList();
-    var bccList = (dto.Bcc ?? new List<string>())
-        .Where(e => !string.IsNullOrWhiteSpace(e))
-        .Select(e => e.Trim()).ToList();
-
-    var comment = new TicketComment
-    {
-      TicketId = id,
-      UserId = userId,
-      Comment = dto.Comment,
-      IsInternal = dto.IsInternal,
-      Source = "web",
-      OrganizationId =
-            _tenantService.OrganizationId!.Value,
-      Cc = ccList.Count > 0 ? string.Join(",", ccList) : null,
-      Bcc = bccList.Count > 0 ? string.Join(",", bccList) : null,
-      NotifiedTo = notifiedTo,
-      InReplyTo = !dto.IsInternal ? lastMsgId : null,
-      References = !dto.IsInternal && referenceChain.Count > 0
-          ? string.Join(" ", referenceChain) : null
-    };
-
-    _context.TicketComments.Add(comment);
-
-    // Update ticket activity time
-    ticket.LastActivityAt = DateTime.UtcNow;
-    ticket.UpdatedAt = DateTime.UtcNow;
-
-    await _context.SaveChangesAsync();
-
-    // ✅ Send email if public reply
-    if (!dto.IsInternal)
-    {
-      var replyTo = !string.IsNullOrWhiteSpace(ticket.FromEmail)
-          ? ticket.FromEmail.Trim()
-          : ticket.CreatedBy?.Email;
-      if (!string.IsNullOrWhiteSpace(replyTo))
-      {
-        try
-        {
-          var outboundMsgId = await _emailService.SendReplyAsync(
-              replyTo,
-              ticket.Title,
-              dto.Comment,
-              $"#TN{ticket.TicketNumber}",
-              agent?.FullName ?? "Support",
-              agent?.Signature ?? "",
-              ticket.OrganizationId,
-              cc: ccList,
-              bcc: bccList,
-              inReplyTo: lastMsgId,
-              references: referenceChain);
-
-          if (!string.IsNullOrEmpty(outboundMsgId))
-          {
-            comment.EmailMessageId = outboundMsgId;
-            await _context.SaveChangesAsync();
-          }
-        }
-        catch (Exception ex)
-        {
-          _logger.LogWarning(ex,
-              "Reply email failed");
-        }
-      }
-    }
-
-    // ✅ Notify mentioned agents for private notes
-    if (dto.IsInternal && notifyMailList.Count > 0)
-    {
-      foreach (var em in notifyMailList)
-      {
-        try
-        {
-          await _emailService.SendAsync(
-              em,
-              $"🔒 Note on #TN{ticket.TicketNumber}: {ticket.Title}",
-              $"<p><strong>{agent?.FullName ?? "Agent"}</strong> added a private note:</p>" +
-              $"<blockquote style='border-left:3px solid #f59e0b;padding:8px 12px;background:#fff7ed'>{dto.Comment}</blockquote>",
-              organizationId: ticket.OrganizationId,
-              ticketNumberTag: $"#TN{ticket.TicketNumber}");
-        }
-        catch (Exception ex)
-        {
-          _logger.LogWarning(ex, "Note notify email failed for {Email}", em);
-        }
-      }
-    }
-
-    // ✅ In-app notification for every mentioned user (note or reply)
-    if (notifyUserIds.Count > 0)
-    {
-      var actorName = agent?.FullName ?? "An agent";
-      var kindLabel = dto.IsInternal ? "private note" : "reply";
-      foreach (var uid in notifyUserIds.Distinct())
-      {
-        if (uid == userId) continue; // don't notify self
-        try
-        {
-          await _notificationService.CreateAsync(
-              uid,
-              ticket.OrganizationId,
-              "You were mentioned",
-              $"{actorName} mentioned you in a {kindLabel} on #TN{ticket.TicketNumber}: {ticket.Title}",
-              "info", ticket.Id);
-        }
-        catch (Exception ex)
-        {
-          _logger.LogWarning(ex, "Mention notification failed for {UserId}", uid);
-        }
-      }
-    }
-
-    await _notificationService.CreateActivityAsync(
-        userId,
-        _tenantService.OrganizationId!.Value,
-        dto.IsInternal ? "NoteAdded" : "Commented",
-        dto.IsInternal
-            ? "Added a private note"
-            : "Replied to customer",
-        "Ticket", id);
-
-    return Ok(new
-    {
-      commentId = comment.Id,
-      message = "Comment added"
-    });
-  }
-
-  [HttpPut("{id}/assign")]
-  public async Task<IActionResult> AssignTicket(
-      Guid id, [FromBody] AssignTicketDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    ticket.AssignedToUserId = dto.AgentId;
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    var userId = GetUserId();
-    if (userId != Guid.Empty)
-    {
-      await _notificationService.CreateActivityAsync(
-          userId, ticket.OrganizationId,
-          "Assigned",
-          $"Ticket assigned: {ticket.Title}",
-          "Ticket", ticket.Id);
-
-      if (dto.AgentId.HasValue)
-      {
-        await _notificationService.CreateAsync(
-            dto.AgentId.Value,
-            ticket.OrganizationId,
-            "Ticket Assigned",
-            $"You have been assigned: {ticket.Title}",
-            "info", ticket.Id);
-
-        // Send email to agent
-        var agent = await _context.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u =>
-                u.Id == dto.AgentId.Value);
-
-        if (agent?.Email != null)
-        {
-          try
-          {
-            var html = $@"
-<div style='font-family:Arial;max-width:600px'>
-  <p>Hi {agent.FullName},</p>
-  <p>Ticket <strong>{ticket.Title}</strong>
-  (#TN{ticket.TicketNumber}) has been assigned to you.
-  </p>
-</div>";
-            await _emailService.SendAsync(
-                agent.Email,
-                $"Ticket Assigned: #{ticket.TicketNumber}",
-                html,
-                organizationId:ticket.OrganizationId);
-          }
-          catch (Exception ex)
-          {
-            _logger.LogWarning(ex,
-                "Assign email failed");
-          }
-        }
-      }
-    }
-
-    return Ok(new
-    {
-      message = "Ticket assigned successfully"
-    });
-  }
-
-
-  [HttpPut("{id}/group")]
-  public async Task<IActionResult> UpdateGroup(
-      Guid id, [FromBody] UpdateGroupDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    ticket.AgentGroupId =
-        dto.AgentGroupId == Guid.Empty
-            ? null : dto.AgentGroupId;
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    var userId = GetUserId();
-    if (userId != Guid.Empty)
-    {
-      await _notificationService.CreateActivityAsync(
-          userId,
-          _tenantService.OrganizationId!.Value,
-          "GroupChanged",
-          $"Group updated: {ticket.Title}",
-          "Ticket", ticket.Id);
-    }
-
-    return Ok(new { message = "Group updated" });
-  }
-
-
-  [HttpPut("{id}/priority")]
-  public async Task<IActionResult> UpdatePriority(
-      Guid id, [FromBody] UpdatePriorityDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    if (!TryParseTicketPriority(
-        dto.Priority, out var newP))
-      return BadRequest();
-
-    if (!await IsMasterValueAllowedAsync(
-        TicketPriorityField,
-        newP.ToString()))
-    {
-      return BadRequest(new
-      {
-        message = $"Priority {newP} is not active in ticket master"
-      });
-    }
-
-    ticket.Priority = newP;
-    ticket.UpdatedAt = DateTime.UtcNow;
-    ticket.SlaDeadline = _slaService
-        .CalculateSlaDeadline(
-            ticket.Priority, ticket.CreatedAt);
-    ticket.SlaStatus = _slaService
-        .GetSlaStatus(
-            ticket.SlaDeadline, ticket.Status);
-
-    await _context.SaveChangesAsync();
-    return Ok(new { message = "Priority updated" });
-  }
-
-
-  [HttpPut("{id}/type")]
-  public async Task<IActionResult> UpdateType(
-      Guid id, [FromBody] UpdateTypeDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    var normalizedTicketType = dto.TicketType.Trim();
-    if (!await IsMasterValueAllowedAsync(
-        TicketTypeField,
-        normalizedTicketType))
-    {
-      return BadRequest(new
-      {
-        message = $"Ticket Type {normalizedTicketType} is not active in ticket master"
-      });
-    }
-
-    ticket.TicketType = normalizedTicketType;
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-    return Ok(new { message = "Type updated" });
-  }
-
-
-  [HttpPut("{id}/tags")]
-  public async Task<IActionResult> UpdateTags(
-      Guid id, [FromBody] UpdateTagsDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    ticket.Tags = string.Join(",",
-        dto.Tags
-            .Select(t => t.Trim().ToLower())
-            .Where(t => !string.IsNullOrEmpty(t))
-            .Distinct());
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    return Ok(new
-    {
-      message = "Tags updated",
-      tags = ticket.Tags
-    });
-  }
-
-
-  [HttpPut("{id}/log-time")]
-  public async Task<IActionResult> LogTime(
-      Guid id, [FromBody] LogTimeDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FindAsync(id);
-    if (ticket == null) return NotFound();
-
-    ticket.TimeSpentMinutes += dto.Minutes;
-    ticket.LastActivityAt = DateTime.UtcNow;
-    ticket.UpdatedAt = DateTime.UtcNow;
-    await _context.SaveChangesAsync();
-
-    var userId = GetUserId();
-    if (userId != Guid.Empty)
-    {
-      await _notificationService.CreateActivityAsync(
-          userId, ticket.OrganizationId,
-          "TimeLogged",
-          $"Logged {dto.Minutes} min: {ticket.Title}",
-          "Ticket", ticket.Id);
-    }
-
-    return Ok(new
-    {
-      message = "Time logged",
-      totalMinutes = ticket.TimeSpentMinutes,
-      totalHours = Math.Round(
-            ticket.TimeSpentMinutes / 60.0, 1)
-    });
-  }
-
-
-  [HttpPost("{id}/forward")]
-  public async Task<IActionResult> ForwardTicket(
-      Guid id,
-      [FromBody] ForwardTicketDto dto)
-  {
-    var ticket = await _context.Tickets
-        .FirstOrDefaultAsync(t => t.Id == id);
-    if (ticket == null) return NotFound();
-
-    if (string.IsNullOrEmpty(dto.ToEmail))
-      return BadRequest(new
-      {
-        message = "Email is required"
-      });
-
-    try
-    {
-      // Identify the forwarding agent for both the From header
-      // (display name) and a visible attribution line in the body.
-      var agentId = GetUserId();
-      var agent = await _context.Users
-          .Where(u => u.Id == agentId)
-          .Select(u => new { u.FullName, u.Email })
-          .FirstOrDefaultAsync();
-      var agentName = agent?.FullName ?? "Support";
-
-      var html = $@"
-<div style='font-family:Arial;max-width:600px'>
-  <p style='color:#374151;font-size:13px;margin:0 0 12px'>
-    Forwarded by <strong>{System.Net.WebUtility.HtmlEncode(agentName)}</strong>
-  </p>
-  <p>A support ticket has been forwarded to you:</p>
-  <h3>{ticket.Title}</h3>
-  <p><strong>Ticket ID:</strong>
-    #TN{ticket.TicketNumber}</p>
-  <hr/>
-  <div>{dto.Message ?? ticket.Description}</div>
-</div>";
-
-      // ── Threading: anchor on Ticket.InboundMessageId, then chain through comments ──
-      var commentMsgIds = await _context.TicketComments
-          .Where(c => c.TicketId == id &&
-                      !string.IsNullOrEmpty(c.EmailMessageId))
-          .OrderBy(c => c.CreatedAt)
-          .Select(c => c.EmailMessageId!)
-          .ToListAsync();
-
-      var referenceChain = new List<string>();
-      if (!string.IsNullOrWhiteSpace(ticket.InboundMessageId))
-        referenceChain.Add(ticket.InboundMessageId);
-      referenceChain.AddRange(commentMsgIds);
-      var lastMsgId = referenceChain.LastOrDefault();
-
-      var outboundMsgId = await _emailService.SendForwardAsync(
-          dto.ToEmail,
-          $"[Forwarded] {ticket.Title}" +
-          $" #TN{ticket.TicketNumber}",
-          html,
-          organizationId: ticket.OrganizationId,
-          cc: dto.Cc,
-          bcc: dto.Bcc,
-          inReplyTo: lastMsgId,
-          references: referenceChain,
-          fromDisplayName: agentName);
-
-      // ── Persist forward as a visible conversation entry ──
-      var ccCsv = (dto.Cc != null && dto.Cc.Count > 0)
-          ? string.Join(",", dto.Cc
-              .Where(e => !string.IsNullOrWhiteSpace(e))
-              .Select(e => e.Trim()))
-          : null;
-      var bccCsv = (dto.Bcc != null && dto.Bcc.Count > 0)
-          ? string.Join(",", dto.Bcc
-              .Where(e => !string.IsNullOrWhiteSpace(e))
-              .Select(e => e.Trim()))
-          : null;
-
-      var forwardComment = new TicketComment
-      {
-        TicketId = id,
-        UserId = agentId,
-        Comment = dto.Message ?? ticket.Description ?? string.Empty,
-        IsInternal = false,
-        Source = "forward",
-        OrganizationId = ticket.OrganizationId,
-        NotifiedTo = dto.ToEmail,
-        Cc = string.IsNullOrEmpty(ccCsv) ? null : ccCsv,
-        Bcc = string.IsNullOrEmpty(bccCsv) ? null : bccCsv,
-        EmailMessageId = outboundMsgId,
-        InReplyTo = lastMsgId,
-        References = referenceChain.Count > 0
-            ? string.Join(" ", referenceChain) : null
-      };
-      _context.TicketComments.Add(forwardComment);
-
-      ticket.LastActivityAt = DateTime.UtcNow;
-      ticket.UpdatedAt = DateTime.UtcNow;
-      await _context.SaveChangesAsync();
-
-      return Ok(new
-      {
-        message = "Forwarded successfully",
-        commentId = forwardComment.Id
-      });
-    }
-    catch (Exception ex)
-    {
-      _logger.LogError(ex, "Forward failed");
-      return StatusCode(500, new
-      {
-        message = "Forward failed"
-      });
-    }
-  }
 
   [HttpPost("{id}/view")]
   public async Task<IActionResult> RecordView(Guid id)

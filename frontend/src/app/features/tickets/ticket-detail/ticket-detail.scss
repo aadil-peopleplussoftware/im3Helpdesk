@@ -1593,6 +1593,10 @@
     font-size: 12px;
     text-decoration: none;
     cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
     &:hover { text-decoration: underline; }
   }
 }
@@ -2190,6 +2194,61 @@ textarea:focus-visible,
     p:last-child { margin-bottom: 0; }
     a { color: var(--ui-color-primary); text-decoration: underline; }
   }
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONVERSATION VARIANTS — color-coded
+   Agent Reply  → cool blue tint (default agent outgoing)
+   Forward      → soft purple tint
+   Inbound Email→ light green tint (from customer/sender)
+   Note         → peach (handled below)
+════════════════════════════════════════════════════════════ */
+.fd-reply.is-agent-reply {
+  background: linear-gradient(180deg, #f1f7ff 0%, #e6efff 100%);
+  border-color: #cfdcf2;
+  border-left: 4px solid var(--ui-color-primary, #2563eb);
+  box-shadow:
+    0 1px 2px rgba(37, 99, 235, 0.08),
+    0 1px 0 rgba(37, 99, 235, 0.06);
+  &:hover {
+    box-shadow:
+      0 4px 16px rgba(37, 99, 235, 0.18),
+      0 1px 0 rgba(37, 99, 235, 0.08);
+  }
+  .fr-header { border-bottom: 1px dashed rgba(37, 99, 235, 0.18); background: transparent; }
+  .fr-via { color: var(--ui-color-primary); font-weight: 600; }
+}
+
+.fd-reply.is-forward {
+  background: linear-gradient(180deg, #f6f1ff 0%, #ede3ff 100%);
+  border-color: #d6c4f5;
+  border-left: 4px solid #7c3aed;
+  box-shadow:
+    0 1px 2px rgba(124, 58, 237, 0.10),
+    0 1px 0 rgba(124, 58, 237, 0.06);
+  &:hover {
+    box-shadow:
+      0 4px 16px rgba(124, 58, 237, 0.22),
+      0 1px 0 rgba(124, 58, 237, 0.08);
+  }
+  .fr-header { border-bottom: 1px dashed rgba(124, 58, 237, 0.25); background: transparent; }
+  .fr-via { color: #7c3aed; font-weight: 600; }
+}
+
+.fd-reply.is-inbound {
+  background: linear-gradient(180deg, #f0fbf3 0%, #e3f6e9 100%);
+  border-color: #b9e3c5;
+  border-left: 4px solid var(--ui-color-success, #16a34a);
+  box-shadow:
+    0 1px 2px rgba(22, 163, 74, 0.08),
+    0 1px 0 rgba(22, 163, 74, 0.06);
+  &:hover {
+    box-shadow:
+      0 4px 16px rgba(22, 163, 74, 0.18),
+      0 1px 0 rgba(22, 163, 74, 0.08);
+  }
+  .fr-header { border-bottom: 1px dashed rgba(22, 163, 74, 0.22); background: transparent; }
+  .fr-via { color: var(--ui-color-success, #16a34a); font-weight: 600; }
 }
 
 /* ════════════════════════════════════════════════════════════

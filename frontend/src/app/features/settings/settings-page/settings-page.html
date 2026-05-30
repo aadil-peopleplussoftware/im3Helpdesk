@@ -25,11 +25,19 @@
         </div>
         <!-- General Settings -->
         <div *ngIf="activeTab === 'settings'" class="settings-pane">
-          <h2>Appearance & Preferences</h2>
-          <p class="pane-desc">Customize your helpdesk experience</p>
+          <header class="pane-header">
+            <h2>Appearance & Preferences</h2>
+            <p class="pane-desc">Customize your helpdesk experience and organization defaults</p>
+          </header>
 
-          <div class="pane-section">
-            <h3>Themes</h3>
+          <section class="pane-section">
+            <header class="section-header">
+              <span class="section-icon">🎨</span>
+              <div class="section-text">
+                <h3>Theme</h3>
+                <p class="section-desc">Choose your preferred color scheme</p>
+              </div>
+            </header>
             <div class="themes-grid">
               <div class="theme-card"
                 *ngFor="let t of themes"
@@ -45,8 +53,16 @@
                 <span class="theme-name">{{ t.name }}</span>
               </div>
             </div>
+          </section>
 
-            <h3>Icon Style</h3>
+          <section class="pane-section">
+            <header class="section-header">
+              <span class="section-icon">✨</span>
+              <div class="section-text">
+                <h3>Icon Style</h3>
+                <p class="section-desc">Pick the icon set used across the app</p>
+              </div>
+            </header>
             <div class="icon-style-grid">
               <button type="button"
                 class="icon-style-card"
@@ -118,69 +134,69 @@
                 <span class="icon-style-name">{{ s.name }}</span>
               </button>
             </div>
+          </section>
 
-            <div class="sidebar-pos-row">
-              <div class="sidebar-pos-label">Sidebar position</div>
-              <div class="sidebar-pos-options">
-                <button type="button"
-                  class="sidebar-pos-btn"
-                  [class.active]="settingsSidebarPosition === 'left'"
-                  (click)="setSettingsSidebarPosition('left')">
-                  Left
-                </button>
-                <button type="button"
-                  class="sidebar-pos-btn"
-                  [class.active]="settingsSidebarPosition === 'right'"
-                  (click)="setSettingsSidebarPosition('right')">
-                  Right
-                </button>
-                <button type="button"
-                  class="sidebar-pos-btn"
-                  [class.active]="settingsSidebarPosition === 'top'"
-                  (click)="setSettingsSidebarPosition('top')">
-                  Top
-                </button>
-                <button type="button"
-                  class="sidebar-pos-btn"
-                  [class.active]="settingsSidebarPosition === 'bottom'"
-                  (click)="setSettingsSidebarPosition('bottom')">
-                  Bottom
-                </button>
+          <section class="pane-section">
+            <header class="section-header">
+              <span class="section-icon">📐</span>
+              <div class="section-text">
+                <h3>Layout</h3>
+                <p class="section-desc">Where the settings sidebar should sit</p>
+              </div>
+            </header>
+            <div class="row-control">
+              <div class="row-label">
+                <div class="row-title">Sidebar position</div>
+                <div class="row-desc">Applies only to the Settings page</div>
+              </div>
+              <div class="row-actions">
+                <div class="chip-group">
+                  <button type="button"
+                    class="chip"
+                    [class.active]="settingsSidebarPosition === 'left'"
+                    (click)="setSettingsSidebarPosition('left')">Left</button>
+                  <button type="button"
+                    class="chip"
+                    [class.active]="settingsSidebarPosition === 'right'"
+                    (click)="setSettingsSidebarPosition('right')">Right</button>
+                  <button type="button"
+                    class="chip"
+                    [class.active]="settingsSidebarPosition === 'top'"
+                    (click)="setSettingsSidebarPosition('top')">Top</button>
+                  <button type="button"
+                    class="chip"
+                    [class.active]="settingsSidebarPosition === 'bottom'"
+                    (click)="setSettingsSidebarPosition('bottom')">Bottom</button>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div class="pane-divider"></div>
-
-          <div class="pane-section">
-            <h3>Notifications</h3>
+          <section class="pane-section">
+            <header class="section-header">
+              <span class="section-icon"></span>
+              <div class="section-text">
+                <h3>Notifications</h3>
+                <p class="section-desc">How you want to be alerted</p>
+              </div>
+            </header>
             <div class="toggle-item">
               <div class="toggle-left">
-                <div class="toggle-title">
-                  Email Notifications
-                </div>
-                <div class="toggle-desc">
-                  Receive email for ticket updates
-                </div>
+                <div class="toggle-title">Email Notifications</div>
+                <div class="toggle-desc">Receive email for ticket updates</div>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox"
-                  [(ngModel)]="emailNotifications"/>
+                <input type="checkbox" [(ngModel)]="emailNotifications"/>
                 <span class="toggle-slider"></span>
               </label>
             </div>
             <div class="toggle-item">
               <div class="toggle-left">
-                <div class="toggle-title">
-                  Browser Notifications
-                </div>
-                <div class="toggle-desc">
-                  Show desktop push notifications
-                </div>
+                <div class="toggle-title">Browser Notifications</div>
+                <div class="toggle-desc">Show desktop push notifications</div>
               </div>
               <label class="toggle-switch">
-                <input type="checkbox"
-                  [(ngModel)]="browserNotifications"/>
+                <input type="checkbox" [(ngModel)]="browserNotifications"/>
                 <span class="toggle-slider"></span>
               </label>
             </div>
@@ -188,45 +204,50 @@
               (click)="saveNotifications()">
               Save Notifications
             </button>
-          </div>
+          </section>
 
-          <div class="pane-divider"></div>
-
-          <div class="pane-section">
-            <h3>Language</h3>
-            <div class="toggle-item">
-              <div class="toggle-title">Display Language</div>
-              <select [(ngModel)]="language"
-                class="lang-select">
-                <option *ngFor="let l of languages"
-                  [value]="l.code">
-                  {{ l.name }}
-                </option>
-              </select>
+          <section class="pane-section">
+            <header class="section-header">
+              <span class="section-icon">🌍</span>
+              <div class="section-text">
+                <h3>Language</h3>
+                <p class="section-desc">Display language for the UI</p>
+              </div>
+            </header>
+            <div class="row-control">
+              <div class="row-label">
+                <div class="row-title">Display Language</div>
+                <div class="row-desc">Affects buttons, labels and messages</div>
+              </div>
+              <div class="row-actions">
+                <select [(ngModel)]="language" class="lang-select">
+                  <option *ngFor="let l of languages" [value]="l.code">{{ l.name }}</option>
+                </select>
+                <button class="pane-save-btn small"
+                  (click)="saveLanguage()">Save</button>
+              </div>
             </div>
-            <button class="pane-save-btn"
-              (click)="saveLanguage()">
-              Save Language
-            </button>
-          </div>
+          </section>
 
-          <div class="pane-divider"></div>
-
-          <div class="pane-section danger-section">
-            <h3>Danger Zone</h3>
+          <section class="pane-section danger-section">
+            <header class="section-header">
+              <span class="section-icon">⚠️</span>
+              <div class="section-text">
+                <h3>Danger Zone</h3>
+                <p class="section-desc">Irreversible actions — proceed with care</p>
+              </div>
+            </header>
             <div class="toggle-item">
-              <div>
+              <div class="toggle-left">
                 <div class="toggle-title">Clear Local Data</div>
-                <div class="toggle-desc">
-                  Clear cache and logout
-                </div>
+                <div class="toggle-desc">Clear cache and logout</div>
               </div>
               <button class="danger-btn"
                 (click)="clearData()">
                 Clear & Logout
               </button>
             </div>
-          </div>
+          </section>
         </div>
 
         <!-- Notifications -->

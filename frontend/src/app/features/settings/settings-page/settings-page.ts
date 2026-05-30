@@ -64,7 +64,7 @@ export class SettingsPageComponent implements OnInit {
     { id: 'templates', label: 'Ticket Templates', icon: '\u{1F4CB}' },
     { id: 'groups', label: 'Agent Groups', icon: '\u{1F465}' },
     { id: 'custom-fields', label: 'Custom Fields', icon: '\u2699' },
-    { id: 'ticket-masters', label: 'Ticket Masters', icon: '\u{1F4CA}' },
+    { id: 'ticket-masters', label: 'Ticket Configuration', icon: '\u{1F4CA}' },
     { id: 'audit', label: 'Audit Log', icon: '\u{1F50D}' },
     { id: 'integrations', label: 'Integrations', icon: '\u{1F517}' },
     { id: 'whatsapp', label: 'WhatsApp', icon: '\u{1F4AC}' },

@@ -936,6 +936,326 @@ public class AIFeaturesController : ControllerBase
         ? (double)intersection / union
         : 0;
   }
+
+  // ════════════════════════════════════
+  // 5. HOT TOPICS  (kya ticket zada aa raha he)
+  // What kind of tickets are surging?
+  // Compares last 30d vs previous 30d.
+  // ════════════════════════════════════
+  [HttpGet("hot-topics")]
+  public async Task<IActionResult> GetHotTopics()
+  {
+    var orgId = _tenant.OrganizationId!.Value;
+    var now = DateTime.UtcNow;
+    var last30 = now.AddDays(-30);
+    var prev30 = now.AddDays(-60);
+
+    var tickets = await _context.Tickets
+        .AsNoTracking()
+        .Where(t =>
+            t.OrganizationId == orgId &&
+            t.CreatedAt >= prev30)
+        .Select(t => new
+        {
+          t.Id,
+          t.Title,
+          t.Category,
+          t.TicketType,
+          t.Priority,
+          t.Tags,
+          t.Status,
+          t.CreatedAt,
+          t.ResolvedAt
+        })
+        .ToListAsync();
+
+    var current = tickets
+        .Where(t => t.CreatedAt >= last30)
+        .ToList();
+    var previous = tickets
+        .Where(t =>
+            t.CreatedAt >= prev30 &&
+            t.CreatedAt < last30)
+        .ToList();
+
+    // Helper to build top-N with trend
+    List<object> TopWithTrend<TKey>(
+        Func<dynamic, TKey> selector,
+        int take = 7)
+    {
+      var curMap = current
+          .GroupBy(t => selector(t))
+          .ToDictionary(g => g.Key!, g => g.Count());
+      var prevMap = previous
+          .GroupBy(t => selector(t))
+          .ToDictionary(g => g.Key!, g => g.Count());
+
+      return curMap
+          .OrderByDescending(kv => kv.Value)
+          .Take(take)
+          .Select(kv =>
+          {
+            var prevCount = prevMap.TryGetValue(
+                kv.Key, out var p) ? p : 0;
+            double change = prevCount > 0
+                ? (kv.Value - prevCount) /
+                  (double)prevCount * 100
+                : (kv.Value > 0 ? 100 : 0);
+            string trend = change > 15 ? "up"
+                : change < -15 ? "down"
+                : "flat";
+            double sharePct = current.Count > 0
+                ? Math.Round(
+                    kv.Value /
+                    (double)current.Count * 100, 1)
+                : 0;
+            return (object)new
+            {
+              label = kv.Key?.ToString() ?? "(none)",
+              count = kv.Value,
+              previousCount = prevCount,
+              changePct = Math.Round(change, 1),
+              trend,
+              sharePct
+            };
+          })
+          .ToList();
+    }
+
+    var topCategories = TopWithTrend(
+        t => string.IsNullOrWhiteSpace(
+                (string)t.Category)
+            ? "Uncategorized"
+            : (string)t.Category);
+
+    var topTypes = TopWithTrend(
+        t => (string)t.TicketType);
+
+    var topPriorities = TopWithTrend(
+        t => ((TicketPriority)t.Priority).ToString());
+
+    // Tag splitting (comma-separated)
+    var tagCur = current
+        .SelectMany(t => (t.Tags ?? "")
+            .Split(',', StringSplitOptions
+                .RemoveEmptyEntries)
+            .Select(x => x.Trim().ToLower())
+            .Where(x => x.Length > 0))
+        .GroupBy(x => x)
+        .ToDictionary(g => g.Key, g => g.Count());
+    var tagPrev = previous
+        .SelectMany(t => (t.Tags ?? "")
+            .Split(',', StringSplitOptions
+                .RemoveEmptyEntries)
+            .Select(x => x.Trim().ToLower())
+            .Where(x => x.Length > 0))
+        .GroupBy(x => x)
+        .ToDictionary(g => g.Key, g => g.Count());
+
+    var topTags = tagCur
+        .OrderByDescending(kv => kv.Value)
+        .Take(10)
+        .Select(kv =>
+        {
+          var pc = tagPrev.TryGetValue(
+              kv.Key, out var p) ? p : 0;
+          double change = pc > 0
+              ? (kv.Value - pc) /
+                (double)pc * 100
+              : (kv.Value > 0 ? 100 : 0);
+          return new
+          {
+            label = kv.Key,
+            count = kv.Value,
+            previousCount = pc,
+            changePct = Math.Round(change, 1),
+            trend = change > 15 ? "up"
+                : change < -15 ? "down" : "flat"
+          };
+        })
+        .ToList();
+
+    // Keyword extraction from titles
+    var stopWords = new HashSet<string>(
+        new[] {
+          "the","and","for","with","from","this",
+          "that","have","has","not","but","you",
+          "your","our","are","was","were","will",
+          "can","cannot","cant","please","help",
+          "need","issue","problem","support",
+          "ticket","tickets","new","old","get",
+          "got","when","how","what","why","who",
+          "about","into","onto","over","under",
+          "still","just","also","very","much",
+          "more","less","than","then","there",
+          "their","they","them","its","it's",
+          "doesnt","doesn't","didnt","didn't",
+          "isnt","isn't","wont","won't",
+          "regarding","kindly"
+        });
+
+    var wordCounts = current
+        .SelectMany(t => (t.Title ?? "")
+            .ToLowerInvariant()
+            .Split(new[] {
+              ' ', ',', '.', '!', '?', '-', '_',
+              '/', ':', ';', '(', ')', '[', ']',
+              '"', '\'', '\n', '\r', '\t'
+            }, StringSplitOptions
+                .RemoveEmptyEntries)
+            .Where(w =>
+                w.Length >= 4 &&
+                !stopWords.Contains(w) &&
+                !w.All(char.IsDigit)))
+        .GroupBy(w => w)
+        .Select(g => new
+        {
+          word = g.Key,
+          count = g.Count()
+        })
+        .OrderByDescending(x => x.count)
+        .Take(20)
+        .ToList();
+
+    // Resolution time per category
+    // (which category is slowest?)
+    var resByCategory = current
+        .Where(t => t.ResolvedAt.HasValue)
+        .GroupBy(t => string.IsNullOrWhiteSpace(
+                t.Category)
+            ? "Uncategorized" : t.Category)
+        .Where(g => g.Count() >= 2)
+        .Select(g => new
+        {
+          label = g.Key,
+          count = g.Count(),
+          avgHours = Math.Round(
+              g.Average(t =>
+                  (t.ResolvedAt!.Value -
+                   t.CreatedAt).TotalHours), 1)
+        })
+        .OrderByDescending(x => x.avgHours)
+        .Take(7)
+        .ToList();
+
+    // AI narrative insights
+    var aiInsights = new List<object>();
+
+    if (topCategories.Any())
+    {
+      dynamic c = topCategories.First();
+      aiInsights.Add(new
+      {
+        type = "info",
+        icon = "🏷️",
+        text =
+          $"\"{c.label}\" is the most common " +
+          $"category ({c.count} tickets, " +
+          $"{c.sharePct}% of total)."
+      });
+    }
+
+    var surging = topCategories
+        .Cast<dynamic>()
+        .Where(c => c.trend == "up" &&
+                    c.changePct >= 30)
+        .OrderByDescending(c => c.changePct)
+        .FirstOrDefault();
+    if (surging != null)
+    {
+      aiInsights.Add(new
+      {
+        type = "warning",
+        icon = "📈",
+        text =
+          $"\"{surging.label}\" tickets are " +
+          $"surging — up {surging.changePct}% " +
+          $"vs previous month. " +
+          $"Investigate root cause."
+      });
+    }
+
+    var dropping = topCategories
+        .Cast<dynamic>()
+        .Where(c => c.trend == "down" &&
+                    c.changePct <= -30)
+        .OrderBy(c => c.changePct)
+        .FirstOrDefault();
+    if (dropping != null)
+    {
+      aiInsights.Add(new
+      {
+        type = "positive",
+        icon = "📉",
+        text =
+          $"\"{dropping.label}\" tickets " +
+          $"dropped {Math.Abs(dropping.changePct)}% " +
+          $"— recent fixes working."
+      });
+    }
+
+    if (resByCategory.Any())
+    {
+      var slowest = resByCategory.First();
+      aiInsights.Add(new
+      {
+        type = "critical",
+        icon = "⏰",
+        text =
+          $"\"{slowest.label}\" tickets take " +
+          $"longest to resolve " +
+          $"(avg {slowest.avgHours}h). " +
+          $"Consider a KB article or " +
+          $"automation."
+      });
+    }
+
+    if (wordCounts.Any())
+    {
+      var topKw = wordCounts.First();
+      aiInsights.Add(new
+      {
+        type = "info",
+        icon = "🔑",
+        text =
+          $"Keyword \"{topKw.word}\" appears " +
+          $"in {topKw.count} ticket titles — " +
+          $"a likely recurring theme."
+      });
+    }
+
+    var totalChange = previous.Count > 0
+        ? Math.Round(
+            (current.Count - previous.Count) /
+            (double)previous.Count * 100, 1)
+        : 0;
+
+    return Ok(new
+    {
+      period = new
+      {
+        currentStart = last30,
+        currentEnd = now,
+        previousStart = prev30,
+        previousEnd = last30
+      },
+      totals = new
+      {
+        currentCount = current.Count,
+        previousCount = previous.Count,
+        changePct = totalChange,
+        trend = totalChange > 15 ? "up"
+            : totalChange < -15 ? "down" : "flat"
+      },
+      topCategories,
+      topTicketTypes = topTypes,
+      topPriorities,
+      topTags,
+      topKeywords = wordCounts,
+      slowestCategories = resByCategory,
+      aiInsights
+    });
+  }
 }
 
 // DTOs

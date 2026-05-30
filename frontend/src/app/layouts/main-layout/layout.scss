@@ -67,32 +67,54 @@
 .sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   height: 60px;
   min-height: 60px;
   padding: 0 18px;
   background: var(--ui-color-bg-page);
   border-bottom: none;
   flex-shrink: 0;
+  text-decoration: none;
+  user-select: none;
 
   .logo-icon {
-    width: 28px;
-    height: 28px;
-    background: var(--ui-color-primary);
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    color: var(--ui-color-bg-surface);
-    font-weight: bold;
+    background: color-mix(in srgb,
+      var(--ui-color-primary) 14%,
+      transparent);
+    color: var(--ui-color-primary);
+    flex-shrink: 0;
+    transition: transform 0.2s ease,
+                background 0.2s ease;
+
+    svg {
+      width: 28px;
+      height: 28px;
+      display: block;
+    }
+
+    &:hover {
+      transform: translateY(-1px);
+      background: color-mix(in srgb,
+        var(--ui-color-primary) 22%,
+        transparent);
+    }
   }
 
   .logo-text {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
-    color: var(--ui-color-text-primary);
+    line-height: 1;
     letter-spacing: -0.3px;
+    color: var(--ui-color-text-primary);
+    text-decoration: none;
+    text-shadow: none;
+    border: 0;
   }
 }
 
@@ -575,15 +597,16 @@
 /* ── Profile incomplete notification dot ── */
 .profile-incomplete-dot {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
+  top: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #f97316;
   border: 2px solid var(--ui-color-bg-surface);
   z-index: 10;
   animation: profile-dot-pulse 2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes profile-dot-pulse {
@@ -592,13 +615,17 @@
 }
 
 .u-av {
-  width: 30px; height: 30px; border-radius: 50%;
-  color: var(--ui-color-bg-surface); font-size: 11px; font-weight: 700;
+  width: 34px; height: 34px; border-radius: 50%;
+  color: #fff; font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0.3px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; overflow: hidden;
   box-shadow: 0 0 0 2px var(--ui-color-bg-surface), 0 0 0 3px var(--ui-color-primary);
+  text-transform: uppercase;
+  user-select: none;
+  line-height: 1;
 
-  .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+  .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 }
 
 .profile-dropdown {

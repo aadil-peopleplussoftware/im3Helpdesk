@@ -284,13 +284,13 @@ $red-bg:      var(--ui-color-danger-bg);
 
 /* ── Settings Pane ── */
 .settings-pane {
-  background: $white;
-  border-radius: 10px;
-  padding: 28px;
-  border: 1px solid $slate-200;
+  background: transparent;
+  border-radius: 0;
+  padding: 8px 4px 24px;
+  border: none;
 
   h2 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     color: $slate-900;
     letter-spacing: -0.3px;
@@ -304,22 +304,130 @@ $red-bg:      var(--ui-color-danger-bg);
   margin-bottom: 24px;
 }
 
-.pane-section { margin-bottom: 4px; }
-
-.pane-section h3 {
-  font-size: 13px;
-  font-weight: 700;
-  color: $slate-500;
-  margin-bottom: 14px;
-  margin-top: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.pane-header {
+  margin-bottom: 8px;
 }
 
-.pane-divider {
-  height: 1px;
-  background: $slate-100;
-  margin: 20px 0;
+/* Each section is now a self-contained card with its own header. */
+.pane-section {
+  margin: 0 0 16px;
+  padding: 20px 22px;
+  background: $white;
+  border: 1px solid $slate-100;
+  border-radius: 12px;
+  transition: border-color .15s, box-shadow .15s;
+
+  &:hover {
+    border-color: $slate-200;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border-radius: 10px;
+  background: $accent-bg;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.section-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.section-text h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: $slate-900;
+  margin: 0 0 2px;
+  text-transform: none;
+  letter-spacing: -0.2px;
+}
+
+.section-desc {
+  font-size: 12.5px;
+  color: $slate-400;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Row control: label on the left, action(s) on the right. */
+.row-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  flex-wrap: wrap;
+}
+
+.row-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: $slate-900;
+}
+
+.row-desc {
+  font-size: 12px;
+  color: $slate-400;
+  margin-top: 2px;
+}
+
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Chip group (used for sidebar position). */
+.chip-group {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  background: $slate-50;
+  border: 1px solid $slate-100;
+  border-radius: 999px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  border: none;
+  background: transparent;
+  color: $slate-600;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s, color .15s, box-shadow .15s;
+  font-family: inherit;
+
+  &:hover { color: $slate-900; }
+
+  &.active {
+    background: $white;
+    color: $accent;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+  }
 }
 
 /* ── Themes Grid ── */
@@ -566,16 +674,34 @@ input:checked ~ .toggle-slider::before {
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity .15s;
 
   &:hover { background: var(--ui-color-text-secondary); }
+
+  &.small {
+    margin-top: 0;
+    padding: 7px 14px;
+    font-size: 12.5px;
+    border-radius: 7px;
+  }
+
+  &:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
 }
 
 /* ── Danger Zone ── */
-.danger-section h3 {
-  color: $red !important;
-  text-transform: none;
-  font-size: 13.5px;
+.danger-section {
+  border-color: var(--ui-color-danger-bg) !important;
+
+  .section-icon {
+    background: $red-bg;
+  }
+
+  .section-text h3 {
+    color: $red;
+  }
 }
 
 .danger-btn {

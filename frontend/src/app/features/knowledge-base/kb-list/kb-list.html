@@ -145,13 +145,20 @@
 
           <!-- Post Header -->
           <div class="post-header">
-            <div class="post-author" (click)="selectUser({userId: a.createdByUserId, userName: a.createdBy})">
+            <div class="post-author"
+              [class.system-author]="a.authorType === 'System'"
+              (click)="a.authorType !== 'System' && selectUser({userId: a.createdByUserId, userName: a.createdBy})">
               <div class="author-av"
-                [style.background]="getAvatarColor(a.createdBy)">
-                {{ getInitials(a.createdBy) }}
+                [class.system-av]="a.authorType === 'System'"
+                [style.background]="a.authorType === 'System' ? null : getAvatarColor(a.createdBy)">
+                <ng-container *ngIf="a.authorType === 'System'">★</ng-container>
+                <ng-container *ngIf="a.authorType !== 'System'">{{ getInitials(a.createdBy) }}</ng-container>
               </div>
               <div class="author-info">
-                <div class="author-name">{{ a.createdBy }}</div>
+                <div class="author-name">
+                  {{ a.createdBy }}
+                  <span class="system-chip" *ngIf="a.authorType === 'System'">Official</span>
+                </div>
                 <div class="post-meta">
                   <span class="cat-chip">{{ a.category }}</span>
                   <span class="post-time">

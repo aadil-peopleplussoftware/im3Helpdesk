@@ -55,14 +55,23 @@ export class RoleRightsService {
   loadMine(): Observable<MineResponse> {
     return this.http.get<MineResponse>(`${this.base}/me`).pipe(
       tap(resp => {
-        this.isSuperAdminFlag.set(!!resp?.isSuperAdmin);
-        this.myPermissions.set(resp?.permissions || {});
-        this.loaded.set(true);
-        this.inFlight = null;
+        // Defer the signal writes so they don't flip values inside an
+        // active change-detection pass — that would surface as
+        // ExpressionChangedAfterItHasBeenCheckedError (NG0100) in any
+        // template that gates UI on `roleRights.can(...)` or the
+        // `*hasPermission` directive.
+        queueMicrotask(() => {
+          this.isSuperAdminFlag.set(!!resp?.isSuperAdmin);
+          this.myPermissions.set(resp?.permissions || {});
+          this.loaded.set(true);
+          this.inFlight = null;
+        });
       }),
       catchError(() => {
-        this.loaded.set(true);
-        this.inFlight = null;
+        queueMicrotask(() => {
+          this.loaded.set(true);
+          this.inFlight = null;
+        });
         return of({ isSuperAdmin: false, permissions: {} } as MineResponse);
       })
     );

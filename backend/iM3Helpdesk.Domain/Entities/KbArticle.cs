@@ -13,7 +13,11 @@ public class KbArticle : IMustHaveTenant
   public bool IsPublished { get; set; } = false;
   public int ViewCount { get; set; } = 0;
   public Guid OrganizationId { get; set; }
-  public Guid CreatedByUserId { get; set; }
+  public Guid? CreatedByUserId { get; set; }
+  /// <summary>"User" (default) or "System" for org-generated auto posts.</summary>
+  public string AuthorType { get; set; } = "User";
+  /// <summary>Display label when AuthorType=System, e.g. "Tech Mahindra Celebrations".</summary>
+  public string SystemAuthorLabel { get; set; } = string.Empty;
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
   public DateTime? UpdatedAt { get; set; }
   public string MediaUrl { get; set; } = string.Empty;

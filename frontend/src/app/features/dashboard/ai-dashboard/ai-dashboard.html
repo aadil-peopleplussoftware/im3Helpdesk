@@ -44,6 +44,13 @@
         <span class="tab-ic">✨</span>
         Ticket Summary
       </button>
+      <button type="button"
+        class="ai-tab"
+        [class.active]="activeTab==='hotTopics'"
+        (click)="setTab('hotTopics')">
+        <span class="tab-ic">🔥</span>
+        Hot Topics
+      </button>
     </div>
   </div>
 
@@ -730,6 +737,185 @@
           </button>
 
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       TAB 5: HOT TOPICS (kya zada aa raha he)
+  ═════════════════════════════════ -->
+  <div class="tab-panel"
+    *ngIf="activeTab === 'hotTopics'">
+
+    <div class="tab-loading"
+      *ngIf="hotTopicsLoading">
+      <div class="ai-spinner"></div>
+      <p>Analyzing trending ticket topics…</p>
+    </div>
+
+    <div *ngIf="!hotTopicsLoading && hotTopicsData">
+
+      <!-- Header summary -->
+      <div class="ht-hero">
+        <div class="ht-hero-icon">🔥</div>
+        <div class="ht-hero-body">
+          <h3>What's trending right now</h3>
+          <p>
+            <strong>{{ hotTopicsData.totals.currentCount }}</strong>
+            tickets in the last 30 days
+            <span class="ht-pill"
+              [class]="getTrendClass(hotTopicsData.totals.trend)">
+              {{ getTrendIcon(hotTopicsData.totals.trend) }}
+              {{ hotTopicsData.totals.changePct }}%
+              vs previous month
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <!-- AI Insights cards -->
+      <div class="ht-insights"
+        *ngIf="hotTopicsData.aiInsights?.length">
+        <div class="ht-insight-card"
+          *ngFor="let ins of hotTopicsData.aiInsights"
+          [class]="getInsightTypeClass(ins.type)">
+          <div class="ht-ins-icon">{{ ins.icon }}</div>
+          <div class="ht-ins-text">{{ ins.text }}</div>
+        </div>
+      </div>
+
+      <!-- Categories chart + table -->
+      <div class="ht-grid">
+
+        <div class="ht-card ht-chart-card">
+          <h4>🏷️ Top Categories (current vs previous)</h4>
+          <div class="ht-chart-wrap">
+            <canvas id="hotTopicsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="ht-card">
+          <h4>📦 Top Ticket Types</h4>
+          <table class="ht-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th class="num">Count</th>
+                <th class="num">Share</th>
+                <th class="num">Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of hotTopicsData.topTicketTypes">
+                <td>{{ r.label }}</td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{{ r.sharePct }}%</td>
+                <td class="num"
+                  [class]="getTrendClass(r.trend)">
+                  {{ getTrendIcon(r.trend) }}
+                  {{ r.changePct }}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ht-card">
+          <h4>⚡ Priority Mix</h4>
+          <table class="ht-table">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th class="num">Count</th>
+                <th class="num">Share</th>
+                <th class="num">Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of hotTopicsData.topPriorities">
+                <td>
+                  <span class="pr-chip"
+                    [class]="getPriorityClass(r.label)">
+                    {{ r.label }}
+                  </span>
+                </td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{{ r.sharePct }}%</td>
+                <td class="num"
+                  [class]="getTrendClass(r.trend)">
+                  {{ getTrendIcon(r.trend) }}
+                  {{ r.changePct }}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ht-card">
+          <h4>🏷️ Top Tags</h4>
+          <div class="ht-tag-list"
+            *ngIf="hotTopicsData.topTags?.length;
+              else noTags">
+            <span class="ht-tag"
+              *ngFor="let t of hotTopicsData.topTags"
+              [class]="getTrendClass(t.trend)">
+              {{ t.label }}
+              <em>{{ t.count }}</em>
+              <small>{{ getTrendIcon(t.trend) }}</small>
+            </span>
+          </div>
+          <ng-template #noTags>
+            <div class="ht-empty">No tags yet.</div>
+          </ng-template>
+        </div>
+
+        <div class="ht-card">
+          <h4>🔑 Keyword Themes (from titles)</h4>
+          <div class="ht-keywords"
+            *ngIf="hotTopicsData.topKeywords?.length;
+              else noKw">
+            <span class="ht-kw"
+              *ngFor="let k of hotTopicsData.topKeywords"
+              [style.font-size]="
+                keywordSize(k.count, maxKeywordCount())">
+              {{ k.word }}
+              <em>{{ k.count }}</em>
+            </span>
+          </div>
+          <ng-template #noKw>
+            <div class="ht-empty">
+              Need more ticket data to detect keywords.
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="ht-card">
+          <h4>⏰ Slowest Categories (avg resolution)</h4>
+          <table class="ht-table"
+            *ngIf="hotTopicsData.slowestCategories?.length;
+              else noSlow">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="num">Resolved</th>
+                <th class="num">Avg hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of hotTopicsData.slowestCategories">
+                <td>{{ r.label }}</td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{{ r.avgHours }}h</td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noSlow>
+            <div class="ht-empty">
+              Not enough resolved tickets yet.
+            </div>
+          </ng-template>
+        </div>
+
       </div>
     </div>
   </div>

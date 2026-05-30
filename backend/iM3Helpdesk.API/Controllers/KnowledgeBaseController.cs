@@ -83,9 +83,11 @@ public class KnowledgeBaseController : ControllerBase
       a.UpdatedAt,
       a.MediaUrl,
       a.MediaType,
-      CreatedBy = a.CreatedBy!.FullName,
+      CreatedBy = a.AuthorType == "System" ? a.SystemAuthorLabel : (a.CreatedBy != null ? a.CreatedBy.FullName : "Unknown"),
       CreatedByUserId = a.CreatedByUserId,
-      IsOwner = userId.HasValue && a.CreatedByUserId == userId.Value,
+      AuthorType = a.AuthorType,
+      SystemAuthorLabel = a.SystemAuthorLabel,
+      IsOwner = userId.HasValue && a.CreatedByUserId.HasValue && a.CreatedByUserId.Value == userId.Value,
       LikeCount = a.Reactions.Count(r => r.ReactionType == "like"),
       DislikeCount = a.Reactions.Count(r => r.ReactionType == "dislike"),
       CommentCount = a.Comments.Count,
@@ -134,9 +136,11 @@ public class KnowledgeBaseController : ControllerBase
       article.UpdatedAt,
       article.MediaUrl,
       article.MediaType,
-      CreatedBy = article.CreatedBy!.FullName,
+      CreatedBy = article.AuthorType == "System" ? article.SystemAuthorLabel : (article.CreatedBy != null ? article.CreatedBy.FullName : "Unknown"),
       CreatedByUserId = article.CreatedByUserId,
-      IsOwner = userId.HasValue && article.CreatedByUserId == userId.Value,
+      AuthorType = article.AuthorType,
+      SystemAuthorLabel = article.SystemAuthorLabel,
+      IsOwner = userId.HasValue && article.CreatedByUserId.HasValue && article.CreatedByUserId.Value == userId.Value,
       LikeCount = article.Reactions.Count(r => r.ReactionType == "like"),
       DislikeCount = article.Reactions.Count(r => r.ReactionType == "dislike"),
       MyReaction = userId.HasValue
@@ -609,8 +613,8 @@ public class KnowledgeBaseController : ControllerBase
   {
     var users = await _context.KbArticles
         .Include(a => a.CreatedBy)
-        .Where(a => a.IsPublished)
-        .GroupBy(a => a.CreatedByUserId)
+        .Where(a => a.IsPublished && a.CreatedByUserId != null)
+        .GroupBy(a => a.CreatedByUserId!.Value)
         .Select(g => new
         {
           UserId = g.Key,
@@ -663,9 +667,11 @@ public class KnowledgeBaseController : ControllerBase
       a.UpdatedAt,
       a.MediaUrl,
       a.MediaType,
-      CreatedBy = a.CreatedBy!.FullName,
+      CreatedBy = a.AuthorType == "System" ? a.SystemAuthorLabel : (a.CreatedBy != null ? a.CreatedBy.FullName : "Unknown"),
       CreatedByUserId = a.CreatedByUserId,
-      IsOwner = currentUserId.HasValue && a.CreatedByUserId == currentUserId.Value,
+      AuthorType = a.AuthorType,
+      SystemAuthorLabel = a.SystemAuthorLabel,
+      IsOwner = currentUserId.HasValue && a.CreatedByUserId.HasValue && a.CreatedByUserId.Value == currentUserId.Value,
       LikeCount = a.Reactions.Count(r => r.ReactionType == "like"),
       DislikeCount = a.Reactions.Count(r => r.ReactionType == "dislike"),
       CommentCount = a.Comments.Count,
@@ -711,8 +717,10 @@ public class KnowledgeBaseController : ControllerBase
       a.UpdatedAt,
       a.MediaUrl,
       a.MediaType,
-      CreatedBy = a.CreatedBy!.FullName,
+      CreatedBy = a.AuthorType == "System" ? a.SystemAuthorLabel : (a.CreatedBy != null ? a.CreatedBy.FullName : "Unknown"),
       CreatedByUserId = a.CreatedByUserId,
+      AuthorType = a.AuthorType,
+      SystemAuthorLabel = a.SystemAuthorLabel,
       IsOwner = true,
       LikeCount = a.Reactions.Count(r => r.ReactionType == "like"),
       DislikeCount = a.Reactions.Count(r => r.ReactionType == "dislike"),
