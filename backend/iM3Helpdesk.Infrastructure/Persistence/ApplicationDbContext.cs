@@ -43,6 +43,8 @@ public class ApplicationDbContext : DbContext
       => Set<KbArticle>();
   public DbSet<KbReaction> KbReactions
       => Set<KbReaction>();
+  public DbSet<CommentReaction> CommentReactions
+      => Set<CommentReaction>();
   public DbSet<KbComment> KbComments
       => Set<KbComment>();
   public DbSet<TicketTemplate> TicketTemplates
@@ -66,6 +68,8 @@ public class ApplicationDbContext : DbContext
       => Set<TicketCustomFieldValue>();
   public DbSet<TicketViewer> TicketViewers
       => Set<TicketViewer>();
+  public DbSet<TicketWatcher> TicketWatchers
+      => Set<TicketWatcher>();
   public DbSet<EmailNotificationSetting>
       EmailNotificationSettings
       => Set<EmailNotificationSetting>();
@@ -363,6 +367,28 @@ public class ApplicationDbContext : DbContext
               DeleteBehavior.Restrict);
     });
 
+    // ── CommentReaction ─────────────
+    modelBuilder.Entity<CommentReaction>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.HasIndex(x => new { x.CommentId, x.UserId })
+          .IsUnique();
+      e.Property(x => x.ReactionType)
+          .HasMaxLength(20)
+          .HasDefaultValue("like");
+      e.HasQueryFilter(r =>
+          _isSuperAdmin ||
+          r.OrganizationId == _currentTenantId);
+      e.HasOne(r => r.Comment)
+          .WithMany()
+          .HasForeignKey(r => r.CommentId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasOne(r => r.User)
+          .WithMany()
+          .HasForeignKey(r => r.UserId)
+          .OnDelete(DeleteBehavior.Restrict);
+    });
+
     // ── KbReaction ────────────────
     modelBuilder.Entity<KbReaction>(e =>
     {
@@ -572,6 +598,23 @@ public class ApplicationDbContext : DbContext
         x.UserId
       });
     });
+
+        // ── TicketWatcher ─────────────
+        modelBuilder.Entity<TicketWatcher>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new
+            {
+                x.TicketId,
+                x.UserId
+            }).IsUnique();
+            e.HasIndex(x => x.TicketId);
+            e.HasIndex(x => x.UserId);
+            e.HasQueryFilter(w =>
+                    _isSuperAdmin ||
+                    w.OrganizationId ==
+                            _currentTenantId);
+        });
 
     // ── EmailNotificationSetting ──
     modelBuilder.Entity<

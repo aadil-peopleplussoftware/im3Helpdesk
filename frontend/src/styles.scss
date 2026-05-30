@@ -96,19 +96,23 @@ body.theme-eclipse,
 /* Toastr */
 .toast-container {
   position: fixed !important;
-  top: 72px !important;
-  right: 16px !important;
+  top: 56px !important;
+  right: auto !important;
   bottom: auto !important;
-  left: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%);
   width: auto !important;
   max-width: 420px;
   pointer-events: none;
   z-index: 99999 !important;
 }
 
-.toast-container.toast-top-right {
-  top: 72px !important;
-  right: 16px !important;
+.toast-container.toast-top-right,
+.toast-container.toast-top-center {
+  top: 56px !important;
+  right: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%);
 }
 
 .ngx-toastr {
@@ -161,7 +165,22 @@ body.theme-eclipse,
 }
 
 .toast-container .toast-close-button {
-  display: none !important;
+  position: absolute;
+  right: 10px;
+  top: 46%;
+  transform: translateY(-50%);
+  border: 1px solid var(--ui-color-border) !important;
+  border-radius: 999px;
+  background: var(--ui-color-bg-surface) !important;
+  color: var(--ui-color-text-secondary) !important;
+  font-size: 18px !important;
+  font-weight: 600;
+  opacity: 1 !important;
+  line-height: 1;
+  width: 26px;
+  height: 26px;
+  padding: 0 !important;
+  text-shadow: none !important;
 }
 
 // Left circular status icon

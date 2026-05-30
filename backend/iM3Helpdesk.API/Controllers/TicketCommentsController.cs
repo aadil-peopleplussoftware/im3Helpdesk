@@ -6,6 +6,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace iM3Helpdesk.API.Controllers;
 
@@ -17,6 +18,7 @@ public class TicketCommentsController : TicketsControllerBase
     private readonly ICurrentTenantService _tenantService;
     private readonly INotificationService _notificationService;
     private readonly IEmailService _emailService;
+    private readonly IWebHostEnvironment _env;
     private readonly ILogger<TicketCommentsController> _logger;
 
     public TicketCommentsController(
@@ -24,13 +26,151 @@ public class TicketCommentsController : TicketsControllerBase
         ICurrentTenantService tenantService,
         INotificationService notificationService,
         IEmailService emailService,
+        IWebHostEnvironment env,
         ILogger<TicketCommentsController> logger)
         : base(context)
     {
         _tenantService = tenantService;
         _notificationService = notificationService;
         _emailService = emailService;
+        _env = env;
         _logger = logger;
+    }
+
+    [HttpPut("{id}/comments/{commentId}")]
+    public async Task<IActionResult> UpdateComment(
+        Guid id,
+        Guid commentId,
+        [FromBody] UpdateCommentDto dto)
+    {
+        var userId = GetUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value
+            ?? User.FindFirst("role")?.Value;
+        var isAgent = roleClaim is "Agent" or "CompanyAdmin" or "SuperAdmin";
+        if (!isAgent) return Forbid();
+
+        var comment = await _context.TicketComments
+            .Include(c => c.Ticket)
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.TicketId == id);
+
+        if (comment == null) return NotFound();
+        if (!comment.IsInternal || comment.Source == "system")
+            return BadRequest(new { message = "Only private notes can be edited" });
+
+        if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
+            return BadRequest(new { message = "Note can only be edited within 1 hour" });
+
+        var trimmed = (dto.Comment ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return BadRequest(new { message = "Comment is required" });
+
+        var html = trimmed
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n")
+            .Replace("\n", "<br>");
+
+        comment.Comment = html;
+        comment.IsInternal = true;
+
+        if (comment.Ticket != null)
+        {
+            comment.Ticket.UpdatedAt = DateTime.UtcNow;
+            comment.Ticket.LastActivityAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        if (comment.Ticket != null)
+        {
+            await _notificationService.CreateActivityAsync(
+                userId,
+                comment.Ticket.OrganizationId,
+                "NoteUpdated",
+                "Updated a private note",
+                "Ticket",
+                comment.Ticket.Id);
+
+            await NotifyWatchersAndAssigneeAsync(
+                comment.Ticket,
+                userId,
+                "Ticket note updated",
+                $"A private note was updated on #TN{comment.Ticket.TicketNumber}: {comment.Ticket.Title}");
+        }
+
+        return Ok(new { message = "Comment updated" });
+    }
+
+    [HttpDelete("{id}/comments/{commentId}")]
+    public async Task<IActionResult> DeleteComment(
+        Guid id,
+        Guid commentId)
+    {
+        var userId = GetUserId();
+        if (userId == Guid.Empty) return Unauthorized();
+
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value
+            ?? User.FindFirst("role")?.Value;
+        var isAgent = roleClaim is "Agent" or "CompanyAdmin" or "SuperAdmin";
+        if (!isAgent) return Forbid();
+
+        var comment = await _context.TicketComments
+            .Include(c => c.Ticket)
+            .FirstOrDefaultAsync(c => c.Id == commentId && c.TicketId == id);
+
+        if (comment == null) return NotFound();
+        if (!comment.IsInternal || comment.Source == "system")
+            return BadRequest(new { message = "Only private notes can be deleted" });
+
+        if (DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromHours(1))
+            return BadRequest(new { message = "Note can only be deleted within 1 hour" });
+
+        var attachments = await _context.TicketAttachments
+            .Where(a => a.CommentId == commentId)
+            .ToListAsync();
+
+        foreach (var attachment in attachments)
+        {
+            var filePath = Path.Combine(
+                _env.WebRootPath ?? "wwwroot",
+                attachment.FileUrl.TrimStart('/'));
+
+            if (System.IO.File.Exists(filePath))
+                System.IO.File.Delete(filePath);
+        }
+
+        if (attachments.Count > 0)
+            _context.TicketAttachments.RemoveRange(attachments);
+
+        _context.TicketComments.Remove(comment);
+
+        if (comment.Ticket != null)
+        {
+            comment.Ticket.UpdatedAt = DateTime.UtcNow;
+            comment.Ticket.LastActivityAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        if (comment.Ticket != null)
+        {
+            await _notificationService.CreateActivityAsync(
+                userId,
+                comment.Ticket.OrganizationId,
+                "NoteDeleted",
+                "Deleted a private note",
+                "Ticket",
+                comment.Ticket.Id);
+
+            await NotifyWatchersAndAssigneeAsync(
+                comment.Ticket,
+                userId,
+                "Ticket note deleted",
+                $"A private note was deleted on #TN{comment.Ticket.TicketNumber}: {comment.Ticket.Title}");
+        }
+
+        return Ok(new { message = "Comment deleted" });
     }
 
     [HttpPost("{id}/comments")]
@@ -214,10 +354,81 @@ public class TicketCommentsController : TicketsControllerBase
                 : "Replied to customer",
             "Ticket", id);
 
+        await NotifyWatchersAndAssigneeAsync(
+            ticket,
+            userId,
+            dto.IsInternal ? "New private note" : "New ticket reply",
+            dto.IsInternal
+                ? $"A private note was added on #TN{ticket.TicketNumber}: {ticket.Title}"
+                : $"A reply was added on #TN{ticket.TicketNumber}: {ticket.Title}");
+
         return Ok(new
         {
             commentId = comment.Id,
             message = "Comment added"
         });
+    }
+
+    private async Task NotifyWatchersAndAssigneeAsync(
+        Ticket ticket,
+        Guid actorUserId,
+        string title,
+        string message)
+    {
+        var recipients = new HashSet<Guid>();
+        if (ticket.AssignedToUserId.HasValue)
+            recipients.Add(ticket.AssignedToUserId.Value);
+
+        var watcherIds = await _context.TicketWatchers
+            .Where(w => w.TicketId == ticket.Id)
+            .Select(w => w.UserId)
+            .ToListAsync();
+
+        foreach (var watcherId in watcherIds)
+            recipients.Add(watcherId);
+
+        recipients.Remove(actorUserId);
+        if (recipients.Count == 0) return;
+
+        foreach (var recipientId in recipients)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(
+                    recipientId,
+                    ticket.OrganizationId,
+                    title,
+                    message,
+                    "info",
+                    ticket.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Watcher notification failed for {UserId}", recipientId);
+            }
+        }
+
+        var emailRecipients = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => recipients.Contains(u.Id) && !string.IsNullOrWhiteSpace(u.Email))
+            .Select(u => new { u.Email })
+            .ToListAsync();
+
+        foreach (var recipient in emailRecipients)
+        {
+            try
+            {
+                await _emailService.SendAsync(
+                    recipient.Email!,
+                    title,
+                    $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
+                    organizationId: ticket.OrganizationId,
+                    ticketNumberTag: $"#TN{ticket.TicketNumber}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Watcher email failed for {Email}", recipient.Email);
+            }
+        }
     }
 }

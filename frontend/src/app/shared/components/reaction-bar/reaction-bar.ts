@@ -1,9 +1,9 @@
 import {
-  Component, Input, ChangeDetectionStrategy,
-  ChangeDetectorRef, inject, HostListener, ElementRef
+  Component, Input, OnInit, OnChanges, SimpleChanges,
+  ChangeDetectionStrategy, ChangeDetectorRef, inject, ElementRef, HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactionService, ReactionKey } from './reaction.service';
+import { ReactionService, ReactionKey, ReactionState } from './reaction.service';
 
 interface ReactionDef {
   key: ReactionKey;
@@ -14,16 +14,10 @@ interface ReactionDef {
 /**
  * Microsoft Teams-style reaction bar.
  *
+ * Reactions are stored in the backend DB and are visible to all users.
+ *
  * Usage:
  *   <app-reaction-bar [targetId]="c.id"></app-reaction-bar>
- *
- * Behavior:
- *  - Hover the bar → 6-emoji picker fades in (like Teams).
- *  - Click an emoji → toggles the current user's reaction.
- *    Only one reaction per user per target (clicking again removes it).
- *  - Existing reactions render as small chips with count.
- *  - Persistence: localStorage today via {@link ReactionService}; can be
- *    swapped to an HTTP backend by changing only that service.
  */
 @Component({
   selector: 'app-reaction-bar',
@@ -33,7 +27,7 @@ interface ReactionDef {
   templateUrl: './reaction-bar.html',
   styleUrls: ['./reaction-bar.scss']
 })
-export class ReactionBarComponent {
+export class ReactionBarComponent implements OnInit, OnChanges {
   private svc = inject(ReactionService);
   private cdr = inject(ChangeDetectorRef);
   private host = inject(ElementRef<HTMLElement>);
@@ -54,21 +48,52 @@ export class ReactionBarComponent {
 
   pickerOpen = false;
 
+  private counts: Partial<Record<ReactionKey, number>> = {};
+  private myReaction: ReactionKey | null = null;
+
   get targetKey(): string {
     return String(this.targetId);
   }
 
+  ngOnInit(): void {
+    this.loadReactions();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['targetId'] && !changes['targetId'].firstChange) {
+      this.counts = {};
+      this.myReaction = null;
+      this.loadReactions();
+    }
+  }
+
+  private loadReactions(): void {
+    if (!this.targetId) return;
+    this.svc.load(this.targetKey).subscribe({
+      next: (state: ReactionState) => {
+        this.counts = state.counts;
+        this.myReaction = state.myReaction;
+        this.cdr.markForCheck();
+      },
+      error: () => { /* non-critical — leave counts empty */ }
+    });
+  }
+
+  private applyState(state: ReactionState): void {
+    this.counts = state.counts;
+    this.myReaction = state.myReaction;
+    this.cdr.markForCheck();
+  }
+
   /** Reactions chip list (key → count) for this target. */
   get summary(): Array<{ key: ReactionKey; emoji: string; count: number; mine: boolean }> {
-    const counts = this.svc.getCounts(this.targetKey);
-    const mine = this.svc.getMyReaction(this.targetKey);
     return this.reactions
-      .filter(r => (counts[r.key] ?? 0) > 0)
+      .filter(r => (this.counts[r.key] ?? 0) > 0)
       .map(r => ({
         key: r.key,
         emoji: r.emoji,
-        count: counts[r.key] ?? 0,
-        mine: mine === r.key,
+        count: this.counts[r.key] ?? 0,
+        mine: this.myReaction === r.key,
       }));
   }
 
@@ -87,16 +112,20 @@ export class ReactionBarComponent {
 
   pick(r: ReactionDef, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.svc.toggle(this.targetKey, r.key);
     this.pickerOpen = false;
-    this.cdr.markForCheck();
+    this.svc.toggle(this.targetKey, r.key).subscribe({
+      next: state => this.applyState(state),
+      error: () => { /* keep current state on error */ }
+    });
   }
 
   /** Click an existing chip to remove your reaction (if it was yours). */
   toggleChip(key: ReactionKey, ev: MouseEvent): void {
     ev.stopPropagation();
-    this.svc.toggle(this.targetKey, key);
-    this.cdr.markForCheck();
+    this.svc.toggle(this.targetKey, key).subscribe({
+      next: state => this.applyState(state),
+      error: () => { /* keep current state on error */ }
+    });
   }
 
   @HostListener('document:click', ['$event'])

@@ -14,14 +14,77 @@
         <button type="button" class="td-tb-icon td-tb-back"
           title="Back to tickets"
           (click)="goBackToList()">
-          <span aria-hidden="true">←</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M9.75 3.5L5.25 8L9.75 12.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.75 8H13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
         </button>
-        <button type="button" class="td-tb-icon td-tb-star"
-          [class.is-on]="starred"
-          [title]="starred ? 'Unstar' : 'Star'"
-          (click)="toggleStar()">
-          <span aria-hidden="true">{{ starred ? '★' : '☆' }}</span>
-        </button>
+        <div class="td-tb-watchers" (click)="$event.stopPropagation()">
+          <button type="button" class="td-tb-icon td-tb-star"
+            [class.is-on]="starred"
+            [title]="starred ? 'Watching this ticket' : 'Watchers'"
+            (click)="toggleStar($event)">
+            <span aria-hidden="true">{{ starred ? '★' : '☆' }}</span>
+          </button>
+          <div class="tbw-popover"
+            *ngIf="watcherPopoverOpen"
+            (click)="$event.stopPropagation()">
+            <div class="tbw-head">
+              <div class="tbw-title">Watchers ({{ watchers.length }})</div>
+              <button type="button" class="tbw-add-me"
+                [disabled]="isMeWatcher() || watcherBusyUserId === 'me'"
+                (click)="addMeWatcher($event)">
+                + Add me
+              </button>
+            </div>
+
+            <div class="tbw-search-wrap">
+              <input
+                type="text"
+                class="tbw-search"
+                placeholder="Search agents to add"
+                [(ngModel)]="watcherQuery"
+                (click)="$event.stopPropagation()" />
+            </div>
+
+            <div class="tbw-list" *ngIf="watchers.length > 0">
+              <div class="tbw-row"
+                *ngFor="let w of watchers; trackBy: trackById">
+                <span class="tbw-avatar"
+                  [style.color]="getAvatarColor(w.fullName || w.email)">
+                  {{ getInitials(w.fullName || w.email) }}
+                </span>
+                <span class="tbw-meta">
+                  <span class="tbw-name">{{ w.fullName || 'Unknown' }}</span>
+                  <span class="tbw-email">{{ w.email }}</span>
+                </span>
+                <button
+                  type="button"
+                  class="tbw-remove"
+                  [disabled]="watcherBusyUserId === w.userId"
+                  (click)="removeWatcherById(w.userId, $event)">
+                  Remove
+                </button>
+              </div>
+            </div>
+
+            <div class="tbw-empty" *ngIf="watchers.length === 0 && !watcherLoading">
+              No watchers yet.
+            </div>
+
+            <div class="tbw-candidates" *ngIf="watcherCandidates().length > 0">
+              <div class="tbw-candidate-title">Add agents</div>
+              <button type="button"
+                class="tbw-candidate"
+                *ngFor="let a of watcherCandidates(); trackBy: trackById"
+                [disabled]="watcherBusyUserId === a.id"
+                (click)="addWatcherById(a.id, $event)">
+                <span>{{ a.fullName }}</span>
+                <small>{{ a.email }}</small>
+              </button>
+            </div>
+          </div>
+        </div>
         <div class="td-tb-group">
           <button type="button" class="td-tb-btn"
             title="Reply ( r )"
@@ -45,7 +108,7 @@
           </button>
           <ng-container *hasPermission="'tickets:delete'">
             <button type="button" class="td-tb-btn td-tb-btn--danger"
-              *ngIf="ticket && isAgent"
+              *ngIf="ticket && canDeleteTicket()"
               title="Delete ticket"
               (click)="deleteTicket()">
               <span class="td-tb-ic" aria-hidden="true">🗑</span> Delete
@@ -56,17 +119,36 @@
       <div class="td-topbar-right">
         <div class="td-tb-viewers"
           *ngIf="ticket && uniqueViewers().length > 0"
-          [title]="'Viewed in last hour:\n' + uniqueViewerNames()">
-          <span class="tbv-chip"
-            *ngFor="let v of uniqueViewers() | slice:0:3; trackBy: trackById"
-            [style.background]="getAvatarColor(v.userName)"
-            [title]="v.userName">
-            {{ getInitials(v.userName) }}
+          [title]="'Recent viewers:\n' + uniqueViewerDetails()"
+          (mouseenter)="openViewerPopover($event)"
+          (mouseleave)="closeViewerPopover()">
+          <span class="tbv-chip tbv-count"
+            [class.is-blink]="recentViewersCount() > 0"
+            [title]="recentViewersCount() + ' viewed recently'"
+            (click)="toggleViewerPopover($event)">
+            {{ uniqueViewers().length }}
           </span>
-          <span class="tbv-chip tbv-more"
-            *ngIf="uniqueViewers().length > 3">
-            +{{ uniqueViewers().length - 3 }}
-          </span>
+
+          <div class="tbv-popover"
+            *ngIf="viewerPopoverOpen"
+            (click)="$event.stopPropagation()">
+            <div class="tbv-popover-hd">Recent Viewers ({{ uniqueViewers().length }})</div>
+            <button type="button"
+              class="tbv-popover-row"
+              *ngFor="let v of uniqueViewers(); trackBy: trackById"
+              (click)="openViewerContact(v, $event)">
+              <span class="tbv-popover-av"
+                [style.color]="getAvatarColor(v.userName)">
+                {{ getInitials(v.userName) }}
+              </span>
+              <span class="tbv-popover-meta">
+                <span class="tbv-popover-name">{{ v.userName || 'Unknown' }}</span>
+                <span class="tbv-popover-seen">
+                  Seen {{ v.viewedAt | date:'dd MMM yyyy, hh:mm a':tz }}
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
         <button type="button" class="td-tb-btn td-tb-btn--ghost"
           [class.is-active]="activityPanelOpen"
@@ -106,19 +188,21 @@
       <!-- LEFT MAIN -->
       <div class="fd-main">
 
-        <!-- Original Email — title sits inside the same card -->
+        <!-- ── Sticky ticket title ── -->
+        <div class="fd-sticky-title">
+          <span class="fd-mail-ic"
+            [class.is-system]="!isEmailTicket()"
+            [title]="isEmailTicket()
+              ? 'Created from inbound email'
+              : 'Created in the system'"
+            aria-hidden="true">
+            {{ isEmailTicket() ? '✉' : '🎫' }}
+          </span>
+          <h1 class="fd-sticky-title-text">{{ ticket.title }}</h1>
+        </div>
+
+        <!-- Original Email card (no title here anymore) -->
         <div class="fd-email-card">
-          <div class="ec-title-row">
-            <span class="fd-mail-ic"
-              [class.is-system]="!isEmailTicket()"
-              [title]="isEmailTicket()
-                ? 'Created from inbound email'
-                : 'Created in the system'"
-              aria-hidden="true">
-              {{ isEmailTicket() ? '✉' : '🎫' }}
-            </span>
-            <h1 class="ec-title">{{ ticket.title }}</h1>
-          </div>
           <div class="ec-header">
             <div class="ec-av is-clickable"
               role="button"
@@ -404,7 +488,7 @@
                     <button type="button"
                       class="fr-menu-item is-danger"
                       [disabled]="deletingNoteId === c.id"
-                      (click)="deleteNote(c); closeNoteMenu()">
+                      (click)="deleteNote(c)">
                       <span class="fr-menu-ic" aria-hidden="true">🗑</span>
                       {{ deletingNoteId === c.id ? 'Deleting…' : 'Delete' }}
                     </button>
@@ -931,10 +1015,7 @@
               <input class="fds-tag-in"
                 [(ngModel)]="newTag"
                 placeholder="Add tag..."
-                (keyup.enter)="stageAddTag()"/>
-              <button type="button"
-                class="fds-tag-btn"
-                (click)="stageAddTag()">+</button>
+                (keydown.enter)="$event.preventDefault(); stageAddTag()"/>
             </div>
           </div>
 
@@ -979,7 +1060,8 @@
           <div class="fds-grp" *ngIf="isAgent">
             <div class="fds-lbl">GROUP</div>
             <select class="fds-sel"
-              [(ngModel)]="selectedGroupId">
+              [(ngModel)]="selectedGroupId"
+              (ngModelChange)="onGroupChanged()">
               <option value="">No Group</option>
               <option *ngFor="let g of groups"
                 [value]="g.id">{{ g.name }}</option>
@@ -992,7 +1074,7 @@
             <select class="fds-sel"
               [(ngModel)]="selectedAgentId">
               <option value="">Unassigned</option>
-              <option *ngFor="let a of agents"
+              <option *ngFor="let a of getAssignableAgents()"
                 [value]="a.id">
                 {{ a.fullName }}
               </option>

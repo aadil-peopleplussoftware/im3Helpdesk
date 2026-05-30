@@ -99,21 +99,8 @@ public class TicketsController : TicketsControllerBase
         .Include(t => t.AssignedTo)
         .AsSplitQuery()
         .AsQueryable();
-    if (roleClaim == "Agent")
-    {
-      var groupIds = await _context
-          .AgentGroupMembers
-          .AsNoTracking()
-          .Where(m => m.UserId == userId)
-          .Select(m => m.AgentGroupId)
-          .ToListAsync();
-
-      query = query.Where(t =>
-          t.AssignedToUserId == userId ||
-          t.AssignedToUserId == null ||
-          (t.AgentGroupId != null &&
-           groupIds.Contains(t.AgentGroupId.Value)));
-    }
+    // Freshdesk-style visibility: agents can see all tickets in their org.
+    // Assignment/group is ownership metadata, not list visibility gate.
     var tickets = await query
         .OrderByDescending(t => t.CreatedAt)
         .Take(500)
@@ -205,22 +192,7 @@ public class TicketsController : TicketsControllerBase
         .AsSplitQuery()
         .AsQueryable();
 
-    if (roleClaim == "Agent")
-    {
-      var groupIds = await _context
-          .AgentGroupMembers
-          .AsNoTracking()
-          .Where(m => m.UserId == userId)
-          .Select(m => m.AgentGroupId)
-          .ToListAsync();
-
-      query = query.Where(t =>
-          t.AssignedToUserId == userId ||
-          t.AssignedToUserId == null ||
-          (t.AgentGroupId != null &&
-           groupIds.Contains(t.AgentGroupId.Value)));
-    }
-    else if (string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase))
+    if (string.Equals(roleClaim, "Customer", StringComparison.OrdinalIgnoreCase))
     {
       query = query.Where(t => t.CreatedByUserId == userId);
     }
@@ -599,6 +571,12 @@ public class TicketsController : TicketsControllerBase
         $"Ticket updated: {ticket.Title}",
         "Ticket", ticket.Id);
 
+    await NotifyWatchersAndAssigneeAsync(
+      ticket,
+      userId,
+      "Ticket updated",
+      $"Details were updated on #TN{ticket.TicketNumber}: {ticket.Title}");
+
     return Ok(new { message = "Updated successfully" });
   }
 
@@ -938,6 +916,267 @@ public class TicketsController : TicketsControllerBase
         .ToListAsync();
 
     return Ok(viewers);
+  }
+
+  [HttpGet("{id}/watchers")]
+  public async Task<IActionResult> GetWatchers(Guid id)
+  {
+    var ticket = await _context.Tickets
+        .AsNoTracking()
+        .FirstOrDefaultAsync(t => t.Id == id);
+    if (ticket == null) return NotFound();
+
+    var watcherRows = await _context.TicketWatchers
+        .AsNoTracking()
+        .Where(w => w.TicketId == id)
+        .ToListAsync();
+
+    var userIds = watcherRows
+        .Select(w => w.UserId)
+        .Distinct()
+        .ToList();
+
+    var users = await _context.Users
+        .IgnoreQueryFilters()
+        .AsNoTracking()
+        .Where(u => userIds.Contains(u.Id))
+        .Select(u => new
+        {
+          u.Id,
+          u.FullName,
+          u.Email,
+          u.PhotoUrl
+        })
+        .ToListAsync();
+
+    var userMap = users.ToDictionary(u => u.Id, u => u);
+
+    var watchers = watcherRows
+        .Select(w =>
+        {
+          userMap.TryGetValue(w.UserId, out var u);
+          return new
+          {
+            w.UserId,
+            FullName = u?.FullName ?? "Unknown",
+            Email = u?.Email ?? string.Empty,
+            PhotoUrl = u?.PhotoUrl,
+            w.CreatedAt
+          };
+        })
+        .OrderBy(x => x.FullName)
+        .ToList();
+
+    return Ok(watchers);
+  }
+
+  [HttpPost("{id}/watchers/me")]
+  public async Task<IActionResult> AddMeAsWatcher(Guid id)
+  {
+    var ticket = await _context.Tickets
+        .FirstOrDefaultAsync(t => t.Id == id);
+    if (ticket == null) return NotFound();
+
+    var userId = GetUserId();
+    if (userId == Guid.Empty) return Unauthorized();
+
+    var already = await _context.TicketWatchers
+        .AnyAsync(w => w.TicketId == id && w.UserId == userId);
+    if (already)
+      return Ok(new { message = "Already watching" });
+
+    _context.TicketWatchers.Add(new TicketWatcher
+    {
+      TicketId = id,
+      UserId = userId,
+      OrganizationId = ticket.OrganizationId,
+      CreatedAt = DateTime.UtcNow
+    });
+
+    try
+    {
+      await _context.SaveChangesAsync();
+    }
+    catch (DbUpdateException)
+    {
+      return Ok(new { message = "Already watching" });
+    }
+
+    await _notificationService.CreateActivityAsync(
+        userId,
+        ticket.OrganizationId,
+        "WatcherAdded",
+        "Started watching this ticket",
+        "Ticket",
+        id);
+
+    return Ok(new { message = "Now watching ticket" });
+  }
+
+  [HttpPost("{id}/watchers")]
+  public async Task<IActionResult> AddWatcher(
+      Guid id,
+      [FromBody] AddWatcherDto dto)
+  {
+    if (dto.UserId == Guid.Empty)
+      return BadRequest(new { message = "UserId is required" });
+
+    var ticket = await _context.Tickets
+        .FirstOrDefaultAsync(t => t.Id == id);
+    if (ticket == null) return NotFound();
+
+    var actorId = GetUserId();
+    if (actorId == Guid.Empty) return Unauthorized();
+
+    var targetUser = await _context.Users
+        .IgnoreQueryFilters()
+        .AsNoTracking()
+        .FirstOrDefaultAsync(u =>
+            u.Id == dto.UserId &&
+            u.OrganizationId == ticket.OrganizationId);
+    if (targetUser == null)
+      return BadRequest(new { message = "User not found in organization" });
+
+    var already = await _context.TicketWatchers
+        .AnyAsync(w => w.TicketId == id && w.UserId == dto.UserId);
+    if (already)
+      return Ok(new { message = "Already watching" });
+
+    _context.TicketWatchers.Add(new TicketWatcher
+    {
+      TicketId = id,
+      UserId = dto.UserId,
+      OrganizationId = ticket.OrganizationId,
+      CreatedAt = DateTime.UtcNow
+    });
+
+    try
+    {
+      await _context.SaveChangesAsync();
+    }
+    catch (DbUpdateException)
+    {
+      return Ok(new { message = "Already watching" });
+    }
+
+    await _notificationService.CreateActivityAsync(
+        actorId,
+        ticket.OrganizationId,
+        "WatcherAdded",
+        $"Added watcher: {targetUser.FullName}",
+        "Ticket",
+        id);
+
+    if (dto.UserId != actorId)
+    {
+      await _notificationService.CreateAsync(
+          dto.UserId,
+          ticket.OrganizationId,
+          "Added as watcher",
+          $"You were added as watcher on #TN{ticket.TicketNumber}: {ticket.Title}",
+          "info",
+          id);
+    }
+
+    return Ok(new { message = "Watcher added" });
+  }
+
+  [HttpDelete("{id}/watchers/{userId}")]
+  public async Task<IActionResult> RemoveWatcher(Guid id, Guid userId)
+  {
+    var ticket = await _context.Tickets
+        .FirstOrDefaultAsync(t => t.Id == id);
+    if (ticket == null) return NotFound();
+
+    var actorId = GetUserId();
+    if (actorId == Guid.Empty) return Unauthorized();
+
+    var watcher = await _context.TicketWatchers
+        .FirstOrDefaultAsync(w =>
+            w.TicketId == id &&
+            w.UserId == userId);
+    if (watcher == null)
+      return Ok(new { message = "Watcher removed" });
+
+    _context.TicketWatchers.Remove(watcher);
+    await _context.SaveChangesAsync();
+
+    var action = userId == actorId
+        ? "Stopped watching this ticket"
+        : "Removed a watcher from this ticket";
+
+    await _notificationService.CreateActivityAsync(
+        actorId,
+        ticket.OrganizationId,
+        "WatcherRemoved",
+        action,
+        "Ticket",
+        id);
+
+    return Ok(new { message = "Watcher removed" });
+  }
+
+  private async Task NotifyWatchersAndAssigneeAsync(
+      Ticket ticket,
+      Guid actorUserId,
+      string title,
+      string message)
+  {
+    var recipients = new HashSet<Guid>();
+    if (ticket.AssignedToUserId.HasValue)
+      recipients.Add(ticket.AssignedToUserId.Value);
+
+    var watcherIds = await _context.TicketWatchers
+        .Where(w => w.TicketId == ticket.Id)
+        .Select(w => w.UserId)
+        .ToListAsync();
+
+    foreach (var watcherId in watcherIds)
+      recipients.Add(watcherId);
+
+    recipients.Remove(actorUserId);
+    if (recipients.Count == 0) return;
+
+    foreach (var recipientId in recipients)
+    {
+      try
+      {
+        await _notificationService.CreateAsync(
+            recipientId,
+            ticket.OrganizationId,
+            title,
+            message,
+            "info",
+            ticket.Id);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Watcher notification failed for {UserId}", recipientId);
+      }
+    }
+
+    var emailRecipients = await _context.Users
+        .IgnoreQueryFilters()
+        .Where(u => recipients.Contains(u.Id) && !string.IsNullOrWhiteSpace(u.Email))
+        .Select(u => new { u.Email })
+        .ToListAsync();
+
+    foreach (var recipient in emailRecipients)
+    {
+      try
+      {
+        await _emailService.SendAsync(
+            recipient.Email!,
+            title,
+            $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
+            organizationId: ticket.OrganizationId,
+            ticketNumberTag: $"#TN{ticket.TicketNumber}");
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Watcher email failed for {Email}", recipient.Email);
+      }
+    }
   }
 
   [HttpPost("bulk-update")]
