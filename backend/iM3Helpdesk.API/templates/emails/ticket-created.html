@@ -1,0 +1,49 @@
+
+<h2 style='color:#1a1f36;font-size:20px;margin:0 0 6px'>
+  Ticket Received ✅
+</h2>
+<p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+  Hi <strong>{{customer_name}}</strong>,
+  your ticket has been submitted successfully.
+</p>
+ 
+<div style='background:#f9fafb;border:1px solid #e5e7eb;
+  border-radius:12px;padding:20px 24px;margin-bottom:24px'>
+  <div style='display:flex;align-items:flex-start;
+    justify-content:space-between;margin-bottom:12px'>
+    <div>
+      <div style='font-size:12px;color:#9ca3af;
+        text-transform:uppercase;letter-spacing:0.5px;
+        margin-bottom:4px'>TICKET NUMBER</div>
+      <div style='font-size:22px;font-weight:700;
+        color:#2563eb'>{{ticket_number}}</div>
+    </div>
+    <div style='background:{{priority_color}}20;
+      color:{{priority_color}};padding:4px 14px;
+      border-radius:20px;font-size:12px;font-weight:600'>
+      {{priority}} Priority
+    </div>
+  </div>
+  <div style='border-top:1px solid #e5e7eb;
+    padding-top:16px'>
+    <div style='font-size:13px;font-weight:600;
+      color:#1a1f36;margin-bottom:6px'>{{ticket_title}}</div>
+    <div style='font-size:12px;color:#9ca3af'>
+      Category: {{category}}
+    </div>
+  </div>
+</div>
+ 
+<div style='background:#eff6ff;border:1px solid #bfdbfe;
+  border-radius:8px;padding:16px;
+  font-size:13px;color:#1e40af;margin-bottom:24px'>
+  <strong>⏱ What happens next?</strong><br/>
+  Our support team will review your ticket and get back
+  to you as soon as possible. You can reply to this
+  email to add more information.
+</div>
+ 
+<p style='font-size:13px;color:#6b7280;
+  text-align:center;margin:0'>
+  Support provided by <strong>{{org_name}}</strong>
+</p>

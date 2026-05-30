@@ -1,0 +1,44 @@
+
+      <h2 style='margin:0 0 8px;font-size:20px;
+        color:#1f2937;font-weight:700'>
+        {{type_icon}} Reminder: {{event_title}}
+      </h2>
+      <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+        This event starts in <strong>{{time_label}}</strong>
+      </p>
+ 
+      <table width='100%' cellpadding='0' cellspacing='0'
+        style='background:#f8fafc;border-radius:10px;
+          padding:20px;margin-bottom:24px'>
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Event
+            </span>
+            <div style='font-size:15px;font-weight:600;
+              color:#1f2937;margin-top:2px'>
+              {{type_icon}} {{event_title}}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style='padding:6px 0'>
+            <span style='color:#6b7280;font-size:12px;
+              text-transform:uppercase;letter-spacing:.05em'>
+              Date &amp; Time
+            </span>
+            <div style='font-size:15px;color:#1f2937;margin-top:2px'>
+              📅 {{date_str}} at {{time_str}}
+            </div>
+          </td>
+        </tr>
+        {{description_row}}
+        {{ticket_row}}
+      </table>
+ 
+      <p style='color:#9ca3af;font-size:12px;
+        text-align:center;margin:0'>
+        Hi {{attendee_name}}, this is your scheduled reminder from
+        <strong>{{org_name}}</strong>.
+      </p>

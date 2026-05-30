@@ -1,0 +1,42 @@
+
+<h2 style='color:#1a1f36;font-size:20px;margin:0 0 6px'>
+  {{status_emoji}} Ticket Status Updated
+</h2>
+<p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+  Hi <strong>{{customer_name}}</strong>,
+  the status of your ticket has changed.
+</p>
+ 
+<div style='background:#f9fafb;border:1px solid #e5e7eb;
+  border-radius:12px;padding:20px 24px;margin-bottom:24px'>
+  <div style='font-size:12px;color:#9ca3af;
+    text-transform:uppercase;letter-spacing:0.5px;
+    margin-bottom:4px'>TICKET</div>
+  <div style='font-size:15px;font-weight:600;
+    color:#1a1f36;margin-bottom:16px'>
+    {{ticket_number}} — {{ticket_title}}
+  </div>
+  <div style='display:flex;align-items:center;gap:12px'>
+    <div style='background:#f3f4f6;color:#6b7280;
+      padding:6px 16px;border-radius:20px;
+      font-size:13px;font-weight:500'>{{old_status}}</div>
+    <div style='color:#9ca3af;font-size:16px'>→</div>
+    <div style='background:{{status_color}}20;
+      color:{{status_color}};padding:6px 16px;
+      border-radius:20px;font-size:13px;font-weight:600;
+      border:1px solid {{status_color}}40'>
+      {{status_emoji}} {{new_status}}
+    </div>
+  </div>
+</div>
+ 
+<div style='background:#f0fdf4;border:1px solid #86efac;
+  border-radius:8px;padding:14px 16px;
+  font-size:13px;color:#15803d;margin-bottom:24px'>
+  {{message_for_status}}
+</div>
+ 
+<p style='font-size:12px;color:#9ca3af;
+  text-align:center;margin:0'>
+  {{org_name}} Support Team
+</p>
