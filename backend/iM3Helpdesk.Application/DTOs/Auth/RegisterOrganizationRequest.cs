@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace iM3Helpdesk.API.DTOs.Auth;
+namespace iM3Helpdesk.Application.DTOs.Auth;
 
 public class RegisterOrganizationRequest
 {

@@ -1,29 +1,10 @@
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace iM3Helpdesk.API.Services;
 
-// ─────────────────────────────────────────
-//  Interface
-// ─────────────────────────────────────────
-public interface IOtpService
-{
-  /// <summary>
-  /// 6-digit OTP generate karke email pe bhejo.
-  /// Returns false if user not found.
-  /// </summary>
-  Task<bool> SendOtpAsync(string email);
-
-  /// <summary>
-  /// OTP verify karo — true = valid, false = invalid/expired
-  /// </summary>
-  Task<bool> VerifyOtpAsync(string email, string otp);
-}
-
-// ─────────────────────────────────────────
-//  Implementation
-// ─────────────────────────────────────────
 public class OtpService : IOtpService
 {
   private readonly IMemoryCache _cache;
@@ -54,8 +35,7 @@ public class OtpService : IOtpService
     var context = scope.ServiceProvider
         .GetRequiredService<ApplicationDbContext>();
     var emailService = scope.ServiceProvider
-        .GetRequiredService<
-            iM3Helpdesk.Infrastructure.Services.IEmailService>();
+        .GetRequiredService<IEmailService>();
 
     // User exist karta hai?
     var user = await context.Users

@@ -1,13 +1,9 @@
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace iM3Helpdesk.API.Services;
-
-public interface IEscalationService
-{
-  Task CheckAndEscalateAsync();
-}
 
 public class EscalationService : IEscalationService
 {

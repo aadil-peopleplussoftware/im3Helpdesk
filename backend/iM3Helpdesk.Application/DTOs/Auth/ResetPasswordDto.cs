@@ -1,4 +1,4 @@
-namespace iM3Helpdesk.API.DTOs.Auth;
+namespace iM3Helpdesk.Application.DTOs.Auth;
 
 public class ResetPasswordDto
 {

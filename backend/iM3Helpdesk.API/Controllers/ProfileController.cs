@@ -1,4 +1,4 @@
-using iM3Helpdesk.API.DTOs.Auth;
+using iM3Helpdesk.Application.DTOs.Auth;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;

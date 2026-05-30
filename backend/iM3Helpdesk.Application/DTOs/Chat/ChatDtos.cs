@@ -1,4 +1,4 @@
-namespace iM3Helpdesk.API.DTOs.Chat;
+namespace iM3Helpdesk.Application.DTOs.Chat;
 
 public class SendMessageDto
 {

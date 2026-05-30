@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using iM3Helpdesk.API.DTOs.Chat;
+using iM3Helpdesk.Application.DTOs.Chat;
 
 
 namespace iM3Helpdesk.API.Controllers;

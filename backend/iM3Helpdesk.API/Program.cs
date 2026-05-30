@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Threading.RateLimiting;
+using iM3Helpdesk.Application.Contracts.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text;
+using iM3Helpdesk.Application.Contracts.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 

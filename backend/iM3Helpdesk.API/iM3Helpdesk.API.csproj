@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\iM3Helpdesk.Infrastructure\iM3Helpdesk.Infrastructure.csproj" />
+    <ProjectReference Include="..\iM3Helpdesk.Application\iM3Helpdesk.Application.csproj" />
   </ItemGroup>
 
 </Project>

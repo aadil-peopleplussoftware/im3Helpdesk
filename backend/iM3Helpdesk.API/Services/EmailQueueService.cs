@@ -1,15 +1,9 @@
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace iM3Helpdesk.API.Services;
-
-public interface IEmailQueueService
-{
-  Task QueueEmailAsync(string toEmail, string subject, string body,
-      Guid? organizationId = null);
-  Task ProcessQueueAsync();
-}
 
 public class EmailQueueService : IEmailQueueService
 {
@@ -51,7 +45,7 @@ public class EmailQueueService : IEmailQueueService
     var context = scope.ServiceProvider
         .GetRequiredService<ApplicationDbContext>();
     var emailService = scope.ServiceProvider
-        .GetRequiredService<iM3Helpdesk.Infrastructure.Services.IEmailService>();
+        .GetRequiredService<IEmailService>();
 
     var pendingEmails = await context.EmailQueues
         .Where(e => !e.IsSent

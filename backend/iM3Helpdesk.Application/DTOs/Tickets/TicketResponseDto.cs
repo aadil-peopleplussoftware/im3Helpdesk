@@ -1,4 +1,4 @@
-namespace iM3Helpdesk.API.DTOs.Tickets;
+namespace iM3Helpdesk.Application.DTOs.Tickets;
 
 public class TicketResponseDto
 {

@@ -1,15 +1,9 @@
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace iM3Helpdesk.API.Services;
-
-public interface ISlaService
-{
-  DateTime CalculateSlaDeadline(TicketPriority priority, DateTime createdAt);
-  string GetSlaStatus(DateTime? slaDeadline, TicketStatus status);
-  Task CheckAndUpdateSlaAsync();
-}
 
 public class SlaService : ISlaService
 {

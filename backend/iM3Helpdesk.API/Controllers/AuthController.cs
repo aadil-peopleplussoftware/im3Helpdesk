@@ -1,4 +1,4 @@
-using iM3Helpdesk.API.DTOs.Auth;
+using iM3Helpdesk.Application.DTOs.Auth;
 using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
@@ -12,6 +12,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using iM3Helpdesk.Infrastructure.Services;
 using System.Text;
+using iM3Helpdesk.Application.Contracts.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 

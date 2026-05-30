@@ -1,4 +1,4 @@
-using iM3Helpdesk.API.DTOs.Leads;
+using iM3Helpdesk.Application.DTOs.Leads;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;

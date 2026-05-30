@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using iM3Helpdesk.Application.Contracts.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 

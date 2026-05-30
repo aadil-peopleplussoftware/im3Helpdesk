@@ -1,15 +1,8 @@
-﻿using iM3Helpdesk.Domain.Entities;
+﻿using iM3Helpdesk.Application.Contracts.Services;
+using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 
 namespace iM3Helpdesk.API.Services;
-
-public interface INotificationService
-{
-    Task CreateAsync(Guid userId, Guid orgId, string title,
-        string message, string type = "info", Guid? ticketId = null);
-    Task CreateActivityAsync(Guid userId, Guid orgId, string action,
-        string description, string entityType, Guid? entityId = null);
-}
 
 public class NotificationService : INotificationService
 {

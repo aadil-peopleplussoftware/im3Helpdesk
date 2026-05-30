@@ -6,6 +6,7 @@ using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using iM3Helpdesk.Application.Contracts.Services;
 
 namespace iM3Helpdesk.API.Controllers;
 

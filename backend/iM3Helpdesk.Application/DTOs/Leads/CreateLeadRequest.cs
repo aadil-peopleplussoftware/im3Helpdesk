@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace iM3Helpdesk.API.DTOs.Leads;
+namespace iM3Helpdesk.Application.DTOs.Leads;
 
 public class CreateLeadRequest
 {

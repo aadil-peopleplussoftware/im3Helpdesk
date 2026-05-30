@@ -1,3 +1,4 @@
+using iM3Helpdesk.Application.Contracts.Services;
 namespace iM3Helpdesk.API.Services;
 
 public class EmailWorker : BackgroundService
