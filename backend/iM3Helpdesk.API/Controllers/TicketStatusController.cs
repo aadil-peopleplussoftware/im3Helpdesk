@@ -101,6 +101,13 @@ public class TicketStatusController : TicketsControllerBase
                 _logger.LogWarning(ex, "Status email failed");
             }
         }
+
+        await NotifyWatchersAndAssigneeAsync(
+            ticket,
+            userId,
+            "Ticket status updated",
+            $"Status changed to {newStatus} on #TN{ticket.TicketNumber}: {ticket.Title}");
+
         return Ok(new { message = "Status updated" });
     }
 
@@ -217,5 +224,68 @@ public class TicketStatusController : TicketsControllerBase
             totalHours = Math.Round(
                 ticket.TimeSpentMinutes / 60.0, 1)
         });
+    }
+
+    private async Task NotifyWatchersAndAssigneeAsync(
+        Domain.Entities.Ticket ticket,
+        Guid actorUserId,
+        string title,
+        string message)
+    {
+        var recipients = new HashSet<Guid>();
+        if (ticket.AssignedToUserId.HasValue)
+            recipients.Add(ticket.AssignedToUserId.Value);
+
+        var watcherIds = await _context.TicketWatchers
+            .Where(w => w.TicketId == ticket.Id)
+            .Select(w => w.UserId)
+            .ToListAsync();
+
+        foreach (var watcherId in watcherIds)
+            recipients.Add(watcherId);
+
+        recipients.Remove(actorUserId);
+        if (recipients.Count == 0) return;
+
+        foreach (var recipientId in recipients)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(
+                    recipientId,
+                    ticket.OrganizationId,
+                    title,
+                    message,
+                    "info",
+                    ticket.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Watcher notification failed for {UserId}", recipientId);
+            }
+        }
+
+        var emailRecipients = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => recipients.Contains(u.Id) && !string.IsNullOrWhiteSpace(u.Email))
+            .Select(u => new { u.Email })
+            .ToListAsync();
+
+        foreach (var recipient in emailRecipients)
+        {
+            try
+            {
+                await _emailService.SendAsync(
+                    recipient.Email!,
+                    title,
+                    $"<p>{System.Net.WebUtility.HtmlEncode(message)}</p>",
+                    organizationId: ticket.OrganizationId,
+                    ticketNumberTag: $"#TN{ticket.TicketNumber}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Watcher email failed for {Email}", recipient.Email);
+            }
+        }
     }
 }

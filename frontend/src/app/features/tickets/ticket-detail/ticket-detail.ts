@@ -73,6 +73,18 @@ export class TicketDetailComponent
     return this.orgContext.timezone();
   }
 
+  canDeleteTicket(): boolean {
+    const role = this.authService.getUserRole();
+    return role === 'CompanyAdmin' || role === 'SuperAdmin';
+  }
+
+  private runUiUpdate(fn: () => void) {
+    setTimeout(() => {
+      fn();
+      this.cdr.detectChanges();
+    }, 0);
+  }
+
   @ViewChild('replyEditor')
     replyEditorRef!: ElementRef;
   @ViewChild('noteEditor')
@@ -156,8 +168,14 @@ export class TicketDetailComponent
 
   // ─── Viewers / Timeline ──────────────
   viewers: any[] = [];
+  watchers: any[] = [];
+  watcherPopoverOpen = false;
+  watcherQuery = '';
+  watcherBusyUserId: string | null = null;
+  watcherLoading = false;
   private _viewersRef: any[] | null = null;
   private _viewersCache: any[] = [];
+  private _recentViewersCount = 0;
   timeline: any[] = [];
   showTimeline = true;
 
@@ -169,8 +187,15 @@ export class TicketDetailComponent
   starred = false;
   rightRailHidden = false;
   activityPanelOpen = false;
+  viewerPopoverOpen = false;
 
-  toggleStar() { this.starred = !this.starred; }
+  toggleStar(ev?: Event) {
+    ev?.stopPropagation();
+    this.runUiUpdate(() => {
+      this.watcherPopoverOpen = !this.watcherPopoverOpen;
+      this.viewerPopoverOpen = false;
+    });
+  }
   toggleRightRail() { this.rightRailHidden = !this.rightRailHidden; }
   toggleActivityPanel() { this.activityPanelOpen = !this.activityPanelOpen; }
 
@@ -341,6 +366,8 @@ export class TicketDetailComponent
     const seen = new Set<string>();
     const out: any[] = [];
     const cutoff = Date.now() - 60 * 60 * 1000; // last 1 hour
+    const recentCutoff = Date.now() - 5 * 60 * 1000; // last 5 min
+    let recentCount = 0;
     const me = (this.authService.getUserName() || '').trim().toLowerCase();
     for (const v of this.viewers || []) {
       const at = v?.viewedAt ? new Date(v.viewedAt).getTime() : 0;
@@ -350,16 +377,222 @@ export class TicketDetailComponent
       const key = String(v?.userId ?? name).toLowerCase();
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      out.push(v);
+      const isRecent = at >= recentCutoff;
+      if (isRecent) recentCount++;
+      out.push({ ...v, isRecent });
     }
     this._viewersRef = this.viewers;
     this._viewersCache = out;
+    this._recentViewersCount = recentCount;
     return out;
   }
+
+  recentViewersCount(): number {
+    this.uniqueViewers();
+    return this._recentViewersCount;
+  }
+
   uniqueViewerNames(): string {
     return this.uniqueViewers()
       .map(v => v?.userName || 'Unknown')
       .join('\n');
+  }
+
+  uniqueViewerDetails(): string {
+    return this.uniqueViewers()
+      .map(v => {
+        const name = v?.userName || 'Unknown';
+        const when = this.timeAgo(v?.viewedAt);
+        const email = v?.email || v?.userEmail || '';
+        return email
+          ? `${name} (${email}) - ${when}`
+          : `${name} - ${when}`;
+      })
+      .join('\n');
+  }
+
+  openViewerContact(v: any, ev?: Event): void {
+    ev?.stopPropagation();
+    const q = (v?.email || v?.userEmail || v?.userName || '').trim();
+    if (!q) return;
+    this.openContact(q);
+  }
+
+  toggleViewerPopover(ev?: Event): void {
+    ev?.stopPropagation();
+    this.runUiUpdate(() => {
+      this.viewerPopoverOpen = !this.viewerPopoverOpen;
+      this.watcherPopoverOpen = false;
+    });
+  }
+
+  openViewerPopover(ev?: Event): void {
+    ev?.stopPropagation();
+    this.runUiUpdate(() => {
+      this.viewerPopoverOpen = true;
+      this.watcherPopoverOpen = false;
+    });
+  }
+
+  closeViewerPopover(): void {
+    this.viewerPopoverOpen = false;
+  }
+
+  private decodeTokenPayload(): any | null {
+    const token = this.authService.getToken();
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const normalized = payload
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+      return JSON.parse(atob(padded));
+    } catch {
+      return null;
+    }
+  }
+
+  private currentUserId(): string {
+    const p = this.decodeTokenPayload() || {};
+    return String(
+      p.nameid ||
+      p.sub ||
+      p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+      ''
+    );
+  }
+
+  private currentUserEmail(): string {
+    const p = this.decodeTokenPayload() || {};
+    return String(
+      p.email ||
+      p.upn ||
+      p.unique_name ||
+      ''
+    );
+  }
+
+  private upsertLocalWatcher(w: any): void {
+    const id = String(w?.userId || '').toLowerCase();
+    if (!id) return;
+    const idx = this.watchers.findIndex(x =>
+      String(x?.userId || '').toLowerCase() === id);
+    if (idx >= 0) this.watchers[idx] = { ...this.watchers[idx], ...w };
+    else this.watchers = [...this.watchers, w];
+    this.starred = this.hasAnyWatcher();
+  }
+
+  private removeLocalWatcher(userId: string): void {
+    const id = String(userId || '').toLowerCase();
+    this.watchers = (this.watchers || []).filter(w =>
+      String(w?.userId || '').toLowerCase() !== id);
+    this.starred = this.hasAnyWatcher();
+  }
+
+  hasAnyWatcher(): boolean {
+    return (this.watchers?.length || 0) > 0;
+  }
+
+  isMeWatcher(): boolean {
+    const me = this.currentUserId().toLowerCase();
+    if (!me) return false;
+    return this.watchers.some(w => String(w?.userId || '').toLowerCase() === me);
+  }
+
+  watcherCandidates(): any[] {
+    const query = (this.watcherQuery || '').trim().toLowerCase();
+    const watched = new Set(
+      (this.watchers || []).map(w => String(w?.userId || '').toLowerCase())
+    );
+    return (this.agents || [])
+      .filter(a => {
+        const id = String(a?.id || '').toLowerCase();
+        if (!id || watched.has(id)) return false;
+        if (!query) return true;
+        const name = String(a?.fullName || '').toLowerCase();
+        const email = String(a?.email || '').toLowerCase();
+        return name.includes(query) || email.includes(query);
+      })
+      .slice(0, 8);
+  }
+
+  addMeWatcher(ev?: Event): void {
+    ev?.stopPropagation();
+    if (!this.ticketId || this.watcherBusyUserId) return;
+    this.watcherBusyUserId = 'me';
+    this.ticketService.addMeWatcher(this.ticketId).subscribe({
+      next: () => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.upsertLocalWatcher({
+            userId: this.currentUserId(),
+            fullName: this.authService.getUserName() || 'You',
+            email: this.currentUserEmail(),
+            createdAt: new Date().toISOString()
+          });
+        });
+        this.loadWatchers();
+      },
+      error: (err) => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.showToast('error', err?.error?.message || 'Failed to add watcher');
+        });
+      }
+    });
+  }
+
+  addWatcherById(userId: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!userId || this.watcherBusyUserId) return;
+    this.watcherBusyUserId = userId;
+    const agent = (this.agents || []).find(a =>
+      String(a?.id || '').toLowerCase() === String(userId).toLowerCase());
+    this.ticketService.addWatcher(this.ticketId, userId).subscribe({
+      next: () => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.watcherQuery = '';
+          this.upsertLocalWatcher({
+            userId,
+            fullName: agent?.fullName || 'Watcher',
+            email: agent?.email || '',
+            photoUrl: agent?.photoUrl,
+            createdAt: new Date().toISOString()
+          });
+        });
+        this.loadWatchers();
+      },
+      error: (err) => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.showToast('error', err?.error?.message || 'Failed to add watcher');
+        });
+      }
+    });
+  }
+
+  removeWatcherById(userId: string, ev?: Event): void {
+    ev?.stopPropagation();
+    if (!userId || this.watcherBusyUserId) return;
+    this.watcherBusyUserId = userId;
+    this.ticketService.removeWatcher(this.ticketId, userId).subscribe({
+      next: () => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.removeLocalWatcher(userId);
+        });
+        this.loadWatchers();
+      },
+      error: (err) => {
+        this.runUiUpdate(() => {
+          this.watcherBusyUserId = null;
+          this.showToast('error', err?.error?.message || 'Failed to remove watcher');
+        });
+      }
+    });
   }
 
   /** "11 days ago", "3 hours ago", "just now".
@@ -475,16 +708,19 @@ export class TicketDetailComponent
 
   closeNoteMenu() { this.noteMenuOpenId = null; }
 
-  @HostListener('document:click')
-  onDocClick() {
-    if (this.noteMenuOpenId) this.noteMenuOpenId = null;
+  @HostListener('document:click', ['$event'])
+  onDocClick(_ev?: MouseEvent) {
+    if (!this.noteMenuOpenId && !this.viewerPopoverOpen && !this.watcherPopoverOpen) return;
+    this.runUiUpdate(() => {
+      this.noteMenuOpenId = null;
+      this.viewerPopoverOpen = false;
+      this.watcherPopoverOpen = false;
+    });
   }
 
   startEditNote(c: any, ev?: Event) {
     ev?.stopPropagation();
     if (!this.canEditNote(c)) return;
-    this.noteMenuOpenId = null;
-    this.editingNoteId = c.id;
     const html = String(c.comment || '')
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
@@ -492,14 +728,21 @@ export class TicketDetailComponent
     // Decode HTML entities (&nbsp;, &amp;, &lt; …) using a DOM textarea.
     const ta = document.createElement('textarea');
     ta.innerHTML = html;
-    this.editingNoteText = (ta.value || '')
+    const text = (ta.value || '')
       .replace(/\u00a0/g, ' ')
       .trim();
+    this.runUiUpdate(() => {
+      this.noteMenuOpenId = null;
+      this.editingNoteId = c.id;
+      this.editingNoteText = text;
+    });
   }
 
   cancelNoteEdit() {
-    this.editingNoteId = null;
-    this.editingNoteText = '';
+    this.runUiUpdate(() => {
+      this.editingNoteId = null;
+      this.editingNoteText = '';
+    });
   }
 
   saveNoteEdit(c: any) {
@@ -507,24 +750,31 @@ export class TicketDetailComponent
     if (this.savingNoteId) return;
     const trimmed = (this.editingNoteText || '').trim();
     if (!trimmed) return;
-    const html = trimmed.replace(/\n/g, '<br>');
+    const html = trimmed.replace(/\r\n|\r|\n/g, '<br>');
 
-    this.savingNoteId = c.id;
-    this.http.put(
-      `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`,
+    this.runUiUpdate(() => {
+      this.savingNoteId = c.id;
+    });
+    this.ticketService.updateComment(
+      this.ticketId,
+      c.id,
       { comment: html, isInternal: true }
     ).subscribe({
       next: () => {
-        c.comment = html;
-        this.editingNoteId = null;
-        this.editingNoteText = '';
-        this.savingNoteId = null;
-        this.showToast('success', 'Note updated');
+        this.runUiUpdate(() => {
+          c.comment = html;
+          this.editingNoteId = null;
+          this.editingNoteText = '';
+          this.savingNoteId = null;
+          this.showToast('success', 'Note updated');
+        });
       },
       error: (err) => {
-        this.savingNoteId = null;
-        this.showToast('error',
-          err?.error?.message || 'Failed to update note');
+        this.runUiUpdate(() => {
+          this.savingNoteId = null;
+          this.showToast('error',
+            err?.error?.message || 'Failed to update note');
+        });
       }
     });
   }
@@ -540,20 +790,25 @@ export class TicketDetailComponent
     if (this.deletingNoteId) return;
     if (!window.confirm('Delete this private note? This cannot be undone.')) return;
 
-    this.deletingNoteId = c.id;
-    this.http.delete(
-      `${environment.apiUrl}/Tickets/${this.ticketId}/comments/${c.id}`
-    ).subscribe({
+    this.runUiUpdate(() => {
+      this.noteMenuOpenId = null;
+      this.deletingNoteId = c.id;
+    });
+    this.ticketService.deleteComment(this.ticketId, c.id).subscribe({
       next: () => {
-        this.ticket.comments =
-          (this.ticket.comments || []).filter((x: any) => x.id !== c.id);
-        this.deletingNoteId = null;
-        this.showToast('success', 'Note deleted');
+        this.runUiUpdate(() => {
+          this.ticket.comments =
+            (this.ticket.comments || []).filter((x: any) => x.id !== c.id);
+          this.deletingNoteId = null;
+          this.showToast('success', 'Note deleted');
+        });
       },
       error: (err) => {
-        this.deletingNoteId = null;
-        this.showToast('error',
-          err?.error?.message || 'Failed to delete note');
+        this.runUiUpdate(() => {
+          this.deletingNoteId = null;
+          this.showToast('error',
+            err?.error?.message || 'Failed to delete note');
+        });
       }
     });
   }
@@ -692,16 +947,18 @@ export class TicketDetailComponent
       `${environment.apiUrl}/Tickets/${this.ticketId}/timeline`);
     const viewers$ = this.http.get<any[]>(
       `${environment.apiUrl}/Tickets/${this.ticketId}/viewers`);
+    const watchers$ = this.ticketService.getWatchers(this.ticketId);
 
     forkJoin({
       ticket: safe(ticket$, null),
       org: safe(org$, null),
       attachments: safe(attachments$, [] as any[]),
       timeline: safe(timeline$, [] as any[]),
-      viewers: safe(viewers$, [] as any[])
+      viewers: safe(viewers$, [] as any[]),
+      watchers: safe(watchers$, [] as any[])
     }).subscribe({
       next: (bundle: any) => {
-        const { ticket, org, attachments, timeline, viewers } = bundle;
+        const { ticket, org, attachments, timeline, viewers, watchers } = bundle;
         if (!ticket) {
           this.setLoading(false);
           this.router.navigate(['/tickets']);
@@ -724,6 +981,8 @@ export class TicketDetailComponent
         this.attachments = attachments || [];
         this.timeline = timeline || [];
         this.viewers = viewers || [];
+        this.watchers = watchers || [];
+        this.starred = this.hasAnyWatcher();
 
         if (ticket?.ticketNumber)
           this.topbarCtx.set('#TN' + ticket.ticketNumber);
@@ -800,6 +1059,7 @@ loadTicket() {
         if (data.agentGroup?.id)
           this.selectedGroupId = data.agentGroup.id;
         this.loadViewers();
+        this.loadWatchers();
         this.refreshForwardPrefill();
         this.prefillReplyCcFromTicket();
         // Surface ticket number as a topbar breadcrumb suffix
@@ -858,6 +1118,31 @@ loadTicket() {
     });
   }
 
+  getAssignableAgents(): any[] {
+    if (!this.selectedGroupId) return this.agents;
+    const group = this.groups.find(g =>
+      String(g?.id || '').toLowerCase() ===
+      String(this.selectedGroupId || '').toLowerCase());
+    if (!group) return this.agents;
+
+    const memberIds: string[] = (group.memberIds || group.MemberIds || [])
+      .map((id: any) => String(id).toLowerCase());
+    if (memberIds.length === 0) return [];
+
+    return this.agents.filter(a =>
+      memberIds.includes(String(a?.id || '').toLowerCase()));
+  }
+
+  onGroupChanged(): void {
+    const allowedIds = new Set(
+      this.getAssignableAgents().map(a => String(a?.id || '').toLowerCase())
+    );
+    if (!this.selectedAgentId) return;
+    if (!allowedIds.has(String(this.selectedAgentId).toLowerCase())) {
+      this.selectedAgentId = '';
+    }
+  }
+
   loadTimeline() {
     this.http.get<any[]>(
       `${environment.apiUrl}/Tickets` +
@@ -882,6 +1167,25 @@ loadTicket() {
     ).subscribe({
       next: (data) => { this.viewers = data; }
     });
+  }
+
+  loadWatchers() {
+    this.watcherLoading = true;
+    this.ticketService.getWatchers(this.ticketId)
+      .subscribe({
+        next: (data) => {
+          this.runUiUpdate(() => {
+            this.watchers = data || [];
+            this.starred = this.hasAnyWatcher();
+            this.watcherLoading = false;
+          });
+        },
+        error: () => {
+          this.runUiUpdate(() => {
+            this.watcherLoading = false;
+          });
+        }
+      });
   }
 
   loadOrgInfo() {
@@ -937,7 +1241,9 @@ loadTicket() {
       `${environment.apiUrl}/CustomFields`
     ).subscribe({
       next: (fields) => {
-        this.customFields = fields;
+        this.runUiUpdate(() => {
+          this.customFields = fields;
+        });
         if (!fields.length) return;
 
         this.http.get<any[]>(
@@ -945,12 +1251,14 @@ loadTicket() {
           `/ticket/${this.ticketId}/values`
         ).subscribe({
           next: (values) => {
-            fields.forEach(f => {
-              this.customFieldValues[f.id] = '';
-            });
-            values.forEach(v => {
-              this.customFieldValues[
-                v.customFieldId] = v.value;
+            this.runUiUpdate(() => {
+              fields.forEach(f => {
+                this.customFieldValues[f.id] = '';
+              });
+              values.forEach(v => {
+                this.customFieldValues[
+                  v.customFieldId] = v.value;
+              });
             });
           }
         });
@@ -1055,25 +1363,28 @@ loadTicket() {
     const tags = this.getTagsArray();
     const tag = this.newTag.trim().toLowerCase();
     if (!tags.includes(tag)) tags.push(tag);
-    this.ticket.tags = tags.join(',');
-    this.newTag = '';
+    this.runUiUpdate(() => {
+      if (!this.ticket) return;
+      this.ticket.tags = tags.join(',');
+      this.newTag = '';
+    });
   }
 
   /** Stage a tag removal locally — commits on next Update click. */
   stageRemoveTag(tag: string) {
     if (!this.ticket) return;
     const tags = this.getTagsArray().filter(t => t !== tag);
-    this.ticket.tags = tags.join(',');
+    this.runUiUpdate(() => {
+      if (!this.ticket) return;
+      this.ticket.tags = tags.join(',');
+    });
   }
 
   deleteTicket() {
     if (!confirm(
       'Delete this ticket permanently?')) return;
 
-    this.http.delete(
-      `${environment.apiUrl}/Tickets` +
-      `/${this.ticketId}`
-    ).subscribe({
+    this.ticketService.delete(this.ticketId).subscribe({
       next: () => {
         this.showToast('success', 'Ticket deleted');
         this.router.navigate(['/tickets']);

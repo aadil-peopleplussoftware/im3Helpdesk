@@ -1,82 +1,36 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type ReactionKey =
   | 'like' | 'heart' | 'laugh' | 'wow' | 'sad' | 'dislike';
 
-/**
- * Reactions persistence. Currently localStorage-backed (per browser user).
- *
- * Storage shape:
- *   im3.reactions.v1 = {
- *     [targetId]: { [userId]: ReactionKey }
- *   }
- *
- * Swap to backend by replacing the read/write helpers with HTTP calls.
- */
+export interface ReactionState {
+  counts: Partial<Record<ReactionKey, number>>;
+  myReaction: ReactionKey | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReactionService {
-  private readonly KEY = 'im3.reactions.v1';
+  private http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/comments`;
 
-  private getUserId(): string {
-    // Stable per-browser identity; falls back to a generated guest id.
-    const name = localStorage.getItem('im3_name') || '';
-    if (name) return name;
-    let guest = localStorage.getItem('im3.reactions.guestId');
-    if (!guest) {
-      guest = 'guest-' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem('im3.reactions.guestId', guest);
-    }
-    return guest;
-  }
-
-  private readAll(): Record<string, Record<string, ReactionKey>> {
-    try {
-      const raw = localStorage.getItem(this.KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  private writeAll(data: Record<string, Record<string, ReactionKey>>): void {
-    try {
-      localStorage.setItem(this.KEY, JSON.stringify(data));
-    } catch {
-      /* quota — ignore */
-    }
-  }
-
-  /** Counts per reaction for a target. */
-  getCounts(targetId: string): Partial<Record<ReactionKey, number>> {
-    const all = this.readAll();
-    const map = all[targetId] || {};
-    const out: Partial<Record<ReactionKey, number>> = {};
-    for (const k of Object.values(map)) {
-      out[k] = (out[k] ?? 0) + 1;
-    }
-    return out;
-  }
-
-  /** Current user's reaction for a target, or null. */
-  getMyReaction(targetId: string): ReactionKey | null {
-    const all = this.readAll();
-    return (all[targetId]?.[this.getUserId()] as ReactionKey) ?? null;
+  /** Load counts + caller's reaction for a single comment. */
+  load(commentId: string): Observable<ReactionState> {
+    return this.http.get<ReactionState>(`${this.base}/${commentId}/reactions`);
   }
 
   /**
-   * Toggle: if user already has this reaction → remove it.
-   * Otherwise set/replace their reaction.
+   * Toggle reaction on a comment.
+   * Same type → removes. Different type → replaces.
+   * Returns fresh state after the change.
    */
-  toggle(targetId: string, key: ReactionKey): void {
-    const all = this.readAll();
-    const userId = this.getUserId();
-    const bucket = all[targetId] || (all[targetId] = {});
-    if (bucket[userId] === key) {
-      delete bucket[userId];
-    } else {
-      bucket[userId] = key;
-    }
-    if (Object.keys(bucket).length === 0) delete all[targetId];
-    this.writeAll(all);
+  toggle(commentId: string, reactionType: ReactionKey): Observable<ReactionState> {
+    return this.http.post<ReactionState>(
+      `${this.base}/${commentId}/reactions`,
+      { reactionType }
+    );
   }
 }
+

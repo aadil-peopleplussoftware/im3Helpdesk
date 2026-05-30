@@ -46,6 +46,38 @@ export class TicketService {
     );
   }
 
+  updateComment(
+    ticketId: string,
+    commentId: string,
+    data: { comment: string; isInternal: boolean }): Observable<any> {
+    return this.http.put(
+      `${this.apiUrl}/${ticketId}/comments/${commentId}`,
+      data
+    );
+  }
+
+  deleteComment(ticketId: string, commentId: string): Observable<any> {
+    return this.http.delete(
+      `${this.apiUrl}/${ticketId}/comments/${commentId}`
+    );
+  }
+
+  getWatchers(id: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${id}/watchers`);
+  }
+
+  addMeWatcher(id: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/watchers/me`, {});
+  }
+
+  addWatcher(id: string, userId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/watchers`, { userId });
+  }
+
+  removeWatcher(id: string, userId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}/watchers/${userId}`);
+  }
+
   // tags array as-is — backend expects string[] not comma-joined string
   updateTags(id: string, tags: string[]): Observable<any> {
     return this.http.put(
