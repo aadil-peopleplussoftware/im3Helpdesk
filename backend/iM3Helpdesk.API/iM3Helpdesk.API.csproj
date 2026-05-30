@@ -27,4 +27,10 @@
     <ProjectReference Include="..\iM3Helpdesk.Application\iM3Helpdesk.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="templates\emails\**\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

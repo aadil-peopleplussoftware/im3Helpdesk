@@ -1,0 +1,32 @@
+
+      <h2 style='margin:0 0 8px;font-size:20px;
+        color:{{color}};font-weight:700'>
+        {{icon}} Event {{label}}
+      </h2>
+      <p style='color:#6b7280;font-size:14px;margin:0 0 24px'>
+        An event you were invited to has been <strong>{{label_lower}}</strong>.
+      </p>
+ 
+      <table width='100%' cellpadding='0' cellspacing='0'
+        style='background:#f8fafc;border-radius:10px;
+          border-left:4px solid {{color}};
+          padding:20px;margin-bottom:24px'>
+        <tr>
+          <td>
+            <div style='font-size:16px;font-weight:600;
+              color:#1f2937;
+              {{title_style_extra}}'>
+              {{event_title}}
+            </div>
+            <div style='font-size:13px;color:#6b7280;margin-top:4px'>
+              📅 {{date_str}}
+            </div>
+          </td>
+        </tr>
+      </table>
+ 
+      <p style='color:#9ca3af;font-size:12px;
+        text-align:center;margin:0'>
+        Hi {{attendee_name}}, this notification was sent by
+        <strong>{{org_name}}</strong>.
+      </p>
