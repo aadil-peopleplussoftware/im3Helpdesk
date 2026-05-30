@@ -9,10 +9,18 @@ $danger-soft: #fee2e2;
 $amber: #f59e0b;
 
 .recycle-bin-wrap {
+  position: relative;
   padding: 24px 28px 80px;
+  min-height: calc(100vh - 60px);
   max-width: 1400px;
   margin: 0 auto;
   color: $ink;
+}
+
+/* Route-scoped fix: prevent transformed parent from clipping fixed modal backdrop. */
+:host ::ng-deep .content-surface {
+  transform: none;
+  backface-visibility: visible;
 }
 
 /* ── Header ─────────────────────────────────────────── */
@@ -148,7 +156,6 @@ $amber: #f59e0b;
       white-space: nowrap;
     }
     .col-num { width: 72px; }
-    .col-actions { width: 70px; text-align: center; }
   }
   tbody {
     tr {
@@ -161,6 +168,9 @@ $amber: #f59e0b;
         color: $ink;
       }
       &:last-child td { border-bottom: 0; }
+    }
+    tr.row-open {
+      cursor: pointer;
     }
     .col-num { font-weight: 700; color: $ink-soft; }
     .col-title {
@@ -178,21 +188,6 @@ $amber: #f59e0b;
       color: $ink-soft;
     }
     .col-purge { color: $danger; font-weight: 600; white-space: nowrap; }
-    .col-actions { text-align: center; }
-    .btn-open {
-      width: 32px;
-      height: 32px;
-      border: 1px solid $line;
-      background: #fff;
-      border-radius: 8px;
-      cursor: pointer;
-      color: #2563eb;
-      transition: all 0.15s;
-      &:hover {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-      }
-    }
   }
 }
 
@@ -226,7 +221,7 @@ $amber: #f59e0b;
 
 /* ── Detail modal ──────────────────────────────────── */
 .rb-modal-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(2px);
@@ -235,6 +230,7 @@ $amber: #f59e0b;
   align-items: flex-start;
   justify-content: center;
   padding: 56px 20px;
+  min-height: 100%;
   overflow-y: auto;
 }
 .rb-modal {
@@ -341,6 +337,20 @@ $amber: #f59e0b;
   padding: 10px 12px;
   max-height: 240px;
   overflow-y: auto;
+
+  /* Keep external email HTML inside the modal bounds. */
+  * {
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  img,
+  table,
+  iframe,
+  video {
+    max-width: 100% !important;
+    height: auto !important;
+  }
 }
 .tags {
   display: flex;

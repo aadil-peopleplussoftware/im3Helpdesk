@@ -1,21 +1,19 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
-import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
 import { AuthService } from '../../auth/auth.service';
 import {
   RecycleBinService,
-  DeletedTicketRow,
-  DeletedTicketDetail
+  DeletedTicketRow
 } from '../../../core/services/recycle-bin.service';
 
 @Component({
   selector: 'app-recycle-bin-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent, HasPermissionDirective],
+  imports: [CommonModule, FormsModule, RouterModule, LayoutComponent],
   templateUrl: './recycle-bin-page.html',
   styleUrls: ['./recycle-bin-page.scss']
 })
@@ -24,6 +22,7 @@ export class RecycleBinPageComponent implements OnInit {
   private auth = inject(AuthService);
   private toastr = inject(ToastrService);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   loading = true;
   isCompanyAdmin = false;
@@ -32,15 +31,6 @@ export class RecycleBinPageComponent implements OnInit {
   rows: DeletedTicketRow[] = [];
   filteredRows: DeletedTicketRow[] = [];
   search = '';
-
-  // Detail modal state
-  openId: string | null = null;
-  loadingDetail = false;
-  detail: DeletedTicketDetail | null = null;
-  acting = false; // disables modal buttons while restore/purge in flight
-
-  // Permanent-delete confirmation
-  confirmPurgeFor: string | null = null;
 
   ngOnInit() {
     this.isCompanyAdmin = this.auth.getUserRole() === 'CompanyAdmin';
@@ -84,78 +74,9 @@ export class RecycleBinPageComponent implements OnInit {
     );
   }
 
-  /** Open the details popup for a row. Triggers a GET so we always see fresh data. */
   openDetail(row: DeletedTicketRow) {
-    this.openId = row.id;
-    this.detail = null;
-    this.loadingDetail = true;
-    this.confirmPurgeFor = null;
-    this.bin.get(row.id).subscribe({
-      next: (d) => {
-        this.detail = d;
-        this.loadingDetail = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.loadingDetail = false;
-        this.toastr.error('Failed to load ticket details.');
-        this.closeDetail();
-      }
-    });
-  }
-
-  closeDetail() {
-    this.openId = null;
-    this.detail = null;
-    this.confirmPurgeFor = null;
-    this.acting = false;
-  }
-
-  /** Restore: clears IsDeleted; ticket reappears in the active list. */
-  restore(id: string) {
-    if (this.acting) return;
-    this.acting = true;
-    this.bin.restore(id).subscribe({
-      next: () => {
-        this.toastr.success('Ticket restored');
-        this.rows = this.rows.filter((r) => r.id !== id);
-        this.onSearchChange();
-        this.closeDetail();
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.acting = false;
-        this.toastr.error('Restore failed');
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  /** Two-step permanent delete: first click arms confirmation, second click commits. */
-  requestPurge(id: string) {
-    this.confirmPurgeFor = id;
-  }
-
-  cancelPurge() {
-    this.confirmPurgeFor = null;
-  }
-
-  purge(id: string) {
-    if (this.acting) return;
-    this.acting = true;
-    this.bin.purge(id).subscribe({
-      next: () => {
-        this.toastr.success('Ticket permanently deleted');
-        this.rows = this.rows.filter((r) => r.id !== id);
-        this.onSearchChange();
-        this.closeDetail();
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.acting = false;
-        this.toastr.error('Permanent delete failed');
-        this.cdr.detectChanges();
-      }
+    this.router.navigate(['/recycle-bin', row.id], {
+      state: { seed: row }
     });
   }
 

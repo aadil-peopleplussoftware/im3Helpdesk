@@ -1,6 +1,7 @@
 import {
   Component, OnInit,
-  ChangeDetectorRef, inject
+  ChangeDetectorRef,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,18 +25,19 @@ import { environment } from '../../../../environments/environment';
   styleUrls: ['./agent-list.scss']
 })
 export class AgentsComponent implements OnInit {
+  private cdr = inject(ChangeDetectorRef);
   private agentService = inject(AgentService);
   private authService = inject(AuthService);
   public router = inject(Router);
   private route = inject(ActivatedRoute);
   private toastr = inject(ToastrService);
-  private cdr = inject(ChangeDetectorRef);
   readonly baseUrl = environment.baseUrl;
   private http = inject(HttpClient);
 
   agents: any[] = [];
   filteredAgents: any[] = [];
   loading = true;
+  uploading = false;
   searchQuery = '';
   activeTab = 'active';
 
@@ -55,39 +57,63 @@ export class AgentsComponent implements OnInit {
   }
 
   loadAgents() {
-    // ✅ Groups aur Agents dono load karo, phir UUID lowercase se match karo
-    this.http.get<any[]>(`${environment.apiUrl}/AgentGroups`).subscribe({
-      next: (groups) => {
-        this.agentService.getAll().subscribe({
-          next: (data: any[]) => {
-            this.agents = data.map(agent => {
-              const agentIdLower = (agent.id || '').toLowerCase();
-              const agentGroups = groups
-                .filter(g => {
-                  const ids: string[] = g.memberIds || g.MemberIds || [];
-                  // Backend UUID uppercase string return karta hai — lowercase compare
-                  return ids.some(mid =>
-                    mid.toLowerCase() === agentIdLower);
-                })
-                .map((g: any) => g.name || g.Name);
-              return { ...agent, groupName: agentGroups.join(', ') };
-            });
-            this.filterAgents();
-            this.loading = false;
-            this.cdr.detectChanges();
-          }
-        });
+    this.loading = true;
+
+    // Always render users first. Group lookup is enrichment only.
+    this.agentService.getAll().subscribe({
+      next: (data: any[]) => {
+        this.agents = data.map(a => ({
+          ...this.normalizeAgent(a),
+          groupName: ''
+        }));
+        this.alignDefaultTabWithData();
+        this.filterAgents();
+        this.loading = false;
+        this.cdr.detectChanges();
+
+        this.enrichGroupNames();
       },
       error: () => {
-        // Groups fail — agents bina groups ke load karo
-        this.agentService.getAll().subscribe({
-          next: (data: any[]) => {
-            this.agents = data.map(a => ({ ...a, groupName: '' }));
-            this.filterAgents();
-            this.loading = false;
-            this.cdr.detectChanges();
-          }
+        this.agents = [];
+        this.filteredAgents = [];
+        this.loading = false;
+        this.cdr.detectChanges();
+        Promise.resolve().then(() =>
+          this.toastr.error('Users could not be loaded. Please try again.')
+        );
+      }
+    });
+  }
+
+  private enrichGroupNames() {
+    this.http.get<any>(`${environment.apiUrl}/AgentGroups`).subscribe({
+      next: (groupsRaw) => {
+        const groups = Array.isArray(groupsRaw)
+          ? groupsRaw
+          : (groupsRaw?.data ?? groupsRaw?.items ?? []);
+
+        if (!Array.isArray(groups) || groups.length === 0) return;
+
+        this.agents = this.agents.map(agent => {
+          const agentIdLower = String(agent.id || '').toLowerCase();
+          const agentGroups = groups
+            .filter((g: any) => {
+              const rawIds = g?.memberIds ?? g?.MemberIds ?? [];
+              const ids = Array.isArray(rawIds) ? rawIds : [];
+              return ids.some((mid: any) =>
+                String(mid).toLowerCase() === agentIdLower);
+            })
+            .map((g: any) => g?.name ?? g?.Name)
+            .filter((name: any) => !!name);
+
+          return { ...agent, groupName: agentGroups.join(', ') };
         });
+
+        this.filterAgents();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Group mapping failure should never hide users list.
       }
     });
   }
@@ -112,7 +138,6 @@ export class AgentsComponent implements OnInit {
     }
 
     this.filteredAgents = result;
-    this.cdr.detectChanges();
   }
 
   getActiveCount(): number {
@@ -123,6 +148,40 @@ export class AgentsComponent implements OnInit {
   getInactiveCount(): number {
     return this.agents.filter(
       a => a.isActive === false).length;
+  }
+
+  private normalizeAgent(agent: any): any {
+    const isActiveRaw = agent?.isActive ?? agent?.IsActive;
+    const isActive = typeof isActiveRaw === 'boolean'
+      ? isActiveRaw
+      : String(isActiveRaw).toLowerCase() !== 'false';
+
+    return {
+      ...agent,
+      id: agent?.id ?? agent?.Id ?? '',
+      fullName: agent?.fullName ?? agent?.FullName ?? '',
+      email: agent?.email ?? agent?.Email ?? '',
+      role: agent?.role ?? agent?.Role ?? 'Agent',
+      lastLoginAt: agent?.lastLoginAt ?? agent?.LastLoginAt ?? null,
+      photoUrl: agent?.photoUrl ?? agent?.PhotoUrl ?? '',
+      isActive
+    };
+  }
+
+  private alignDefaultTabWithData() {
+    if (this.searchQuery?.trim()) return;
+
+    const activeCount = this.agents.filter(a => a.isActive !== false).length;
+    const inactiveCount = this.agents.filter(a => a.isActive === false).length;
+
+    if (this.activeTab === 'active' && activeCount === 0 && inactiveCount > 0) {
+      this.activeTab = 'inactive';
+      return;
+    }
+
+    if (this.activeTab === 'inactive' && inactiveCount === 0 && activeCount > 0) {
+      this.activeTab = 'active';
+    }
   }
 
   getRoleLabel(role: number | string): string {
@@ -230,5 +289,111 @@ export class AgentsComponent implements OnInit {
     a.href = url;
     a.download = 'agents.csv';
     a.click();
+  }
+
+  downloadBulkTemplate() {
+    const csv = [
+      ['FullName', 'Email', 'Role', 'PhoneNumber'],
+      ['Aadil Khan', 'aadil.agent@example.com', 'Agent', '+91-9000000001'],
+      ['Sara Customer', 'sara.customer@example.com', 'Customer', '+91-9000000002'],
+      ['Nora Admin', 'nora.admin@example.com', 'Administrator', '+91-9000000003']
+    ].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users-bulk-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  onBulkFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files && input.files.length > 0 ? input.files[0] : null;
+    if (!file) return;
+
+    const name = file.name.toLowerCase();
+    if (!(name.endsWith('.xlsx') || name.endsWith('.csv'))) {
+      this.toastr.error('Please upload only .xlsx or .csv file.');
+      input.value = '';
+      return;
+    }
+
+    this.uploading = true;
+
+    this.agentService.bulkImport(file, true).subscribe({
+      next: (res: any) => {
+        this.finishBulkUpload(input);
+
+        const total = Number(res?.totalRows || 0);
+        const created = Number(res?.createdCount || 0);
+        const failed = Number(res?.failedCount || 0);
+
+        this.toastr.success(
+          `Import complete: ${created} created, ${failed} failed out of ${total}.`
+        );
+
+        if (failed > 0 && Array.isArray(res?.results)) {
+          const failRows = res.results
+            .filter((x: any) => !x.success)
+            .slice(0, 3)
+            .map((x: any) => `Row ${x.rowNumber}: ${x.message}`)
+            .join(' | ');
+
+          this.toastr.warning(
+            failRows || 'Some rows failed. Please check downloaded report.'
+          );
+        }
+
+        if (Array.isArray(res?.results) && res.results.length > 0) {
+          this.downloadBulkImportReport(res.results);
+        }
+
+        this.loadAgents();
+      },
+      error: (err: any) => {
+        this.finishBulkUpload(input);
+
+        const message = err?.error?.message
+          || (err?.status === 405
+            ? 'Bulk import API method not available. Please restart backend and try again.'
+            : 'Bulk import failed.');
+
+        this.toastr.error(message);
+      }
+    });
+  }
+
+  private finishBulkUpload(input: HTMLInputElement) {
+    input.value = '';
+    // Defer flag reset to next macrotask to avoid NG0100 in dev mode.
+    setTimeout(() => {
+      this.uploading = false;
+    });
+  }
+
+  private downloadBulkImportReport(results: any[]) {
+    const rows = [
+      ['RowNumber', 'Email', 'Role', 'Status', 'Message', 'TempPassword', 'InviteEmailSent'],
+      ...results.map((r: any) => [
+        String(r.rowNumber ?? ''),
+        String(r.email ?? ''),
+        String(r.role ?? ''),
+        r.success ? 'Created' : 'Failed',
+        String(r.message ?? ''),
+        String(r.tempPassword ?? ''),
+        String(r.inviteEmailSent ?? '')
+      ])
+    ];
+
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `users-bulk-import-report-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

@@ -88,7 +88,7 @@ export class LeadManagementComponent implements OnInit {
     // and avoids depending on a separate /summary endpoint.
     this.superAdminService.getLeads(undefined).subscribe({
       next: (data) => {
-        this.allLeads = data || [];
+        this.allLeads = (data || []).map((l: any) => this.normalizeLead(l));
         this.computeSummary();
         this.applyFilter();
         this.loading = false;
@@ -269,5 +269,35 @@ export class LeadManagementComponent implements OnInit {
 
   countByStatus(status: number): number {
     return (this.allLeads || []).filter(x => x?.status === status).length;
+  }
+
+  private normalizeLead(raw: any): any {
+    const statusRaw = raw?.status ?? raw?.Status;
+
+    return {
+      ...raw,
+      id: raw?.id ?? raw?.Id,
+      organizationName: raw?.organizationName ?? raw?.OrganizationName ?? '',
+      ownerName: raw?.ownerName ?? raw?.OwnerName ?? '',
+      workEmail: raw?.workEmail ?? raw?.WorkEmail ?? '',
+      phone: raw?.phone ?? raw?.Phone ?? '',
+      notes: raw?.notes ?? raw?.Notes ?? '',
+      createdAt: raw?.createdAt ?? raw?.CreatedAt,
+      status: this.parseLeadStatus(statusRaw)
+    };
+  }
+
+  private parseLeadStatus(value: any): number {
+    if (typeof value === 'number') return value;
+
+    if (typeof value === 'string') {
+      const v = value.trim().toLowerCase();
+      if (v === '0' || v === 'pending') return this.LeadStatus.Pending;
+      if (v === '1' || v === 'approved') return this.LeadStatus.Approved;
+      if (v === '2' || v === 'rejected') return this.LeadStatus.Rejected;
+      if (v === '3' || v === 'completed') return this.LeadStatus.Completed;
+    }
+
+    return -1;
   }
 }

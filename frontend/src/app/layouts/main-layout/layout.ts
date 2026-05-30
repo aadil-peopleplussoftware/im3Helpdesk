@@ -3,7 +3,8 @@ import {
   Component, OnInit, OnDestroy, AfterViewInit,
   ChangeDetectorRef, inject,
   ViewChild,
-  ElementRef
+  ElementRef,
+  HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -133,6 +134,36 @@ export class LayoutComponent implements OnInit, OnDestroy {
   public goToCustomerPortal() {
     this.showProfileDropdown = false;
     this.router.navigate(['/customer']);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    let changed = false;
+
+    if (!target.closest('.notif-bell')) {
+      if (this.showNotifDropdown) {
+        this.showNotifDropdown = false;
+        changed = true;
+      }
+      if (this.showKbDropdown) {
+        this.showKbDropdown = false;
+        changed = true;
+      }
+      if (this.showBirthdayDropdown) {
+        this.showBirthdayDropdown = false;
+        changed = true;
+      }
+    }
+
+    if (!target.closest('.todo-trigger') && this.showTodoPanel) {
+      this.showTodoPanel = false;
+      changed = true;
+    }
+
+    if (changed) this.cdr.detectChanges();
   }
 
   private authService    = inject(AuthService);
@@ -321,8 +352,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.http.get<any[]>(`${environment.apiUrl}/admin/leads`).subscribe({
       next: (rows) => {
         const list = Array.isArray(rows) ? rows : [];
-        // Backend stores numeric enum values; 0 == Pending.
-        this.superAdminPendingLeadsCount = list.filter(x => x?.status === 0).length;
+        this.superAdminPendingLeadsCount = list.filter(x => {
+          const raw = x?.status;
+          if (typeof raw === 'number') return raw === 0;
+          if (typeof raw === 'string') {
+            const v = raw.trim().toLowerCase();
+            return v === '0' || v === 'pending';
+          }
+          return false;
+        }).length;
         this.cdr.detectChanges();
       },
       error: () => {}

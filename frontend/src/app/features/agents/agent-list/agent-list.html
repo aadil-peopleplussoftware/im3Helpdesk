@@ -25,6 +25,24 @@
           Export
         </button>
         <ng-container *hasPermission="'agents:add'">
+          <button class="export-btn"
+            *ngIf="isCompanyAdmin"
+            (click)="downloadBulkTemplate()">
+            Download Import Template
+          </button>
+          <button class="new-btn"
+            *ngIf="isCompanyAdmin"
+            [disabled]="uploading"
+            (click)="bulkFile.click()">
+            {{ uploading ? 'Uploading...' : 'Bulk Upload Users' }}
+          </button>
+          <input #bulkFile
+            type="file"
+            accept=".xlsx,.csv"
+            style="display:none"
+            (change)="onBulkFileSelected($event)" />
+        </ng-container>
+        <ng-container *hasPermission="'agents:add'">
           <button class="new-btn"
             *ngIf="isCompanyAdmin"
             (click)="router.navigate(['/agents/invite'])">
@@ -39,7 +57,7 @@
       <button class="a-tab"
         [class.active]="activeTab === 'active'"
         (click)="activeTab = 'active'; filterAgents()">
-        Support Agents
+        Active Users
         <span class="tab-count">
           {{ getActiveCount() }}
         </span>
@@ -47,7 +65,7 @@
       <button class="a-tab"
         [class.active]="activeTab === 'inactive'"
         (click)="activeTab = 'inactive'; filterAgents()">
-        Deactivated Agents
+        Deactivated Users
         <span class="tab-count inactive">
           {{ getInactiveCount() }}
         </span>

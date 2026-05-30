@@ -17,6 +17,13 @@ export class AgentService {
     return this.http.post(`${this.apiUrl}/invite`, data);
   }
 
+  bulkImport(file: File, sendInviteEmail = true): Observable<any> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('sendInviteEmail', String(sendInviteEmail));
+    return this.http.post(`${this.apiUrl}/bulk-import`, form);
+  }
+
   updateRole(id: string, role: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/role`,
       { role });
