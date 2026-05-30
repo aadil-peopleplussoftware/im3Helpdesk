@@ -125,9 +125,16 @@
 }
 
 .clear-btn {
-  background: var(--ui-color-danger-bg);
-  color: var(--ui-color-danger);
-  border-color: var(--ui-color-danger-bg);
+  &:disabled {
+    opacity: 0.65;
+    cursor: default;
+  }
+
+  &.has-filter {
+    background: var(--ui-color-danger-bg);
+    color: var(--ui-color-danger);
+    border-color: var(--ui-color-danger-bg);
+  }
 }
 
 .new-btn {

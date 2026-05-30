@@ -15,7 +15,7 @@ import { MatProgressSpinnerModule }
   from '@angular/material/progress-spinner';
 import { ToastrService } from 'ngx-toastr';
 import { Subject, interval, forkJoin, of } from 'rxjs';
-import { takeUntil, catchError } from 'rxjs/operators';
+import { takeUntil, catchError, map, distinctUntilChanged } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { TicketService } from '../../../core/services/ticket';
 import { AgentService } from '../../../core/services/agent';
@@ -910,23 +910,42 @@ export class TicketDetailComponent
   // LIFECYCLE
   // ─────────────────────────────────────
   ngOnInit() {
-    this.ticketId =
-      this.route.snapshot.paramMap
-        .get('id') || '';
     const role = this.authService.getUserRole();
     this.isAgent = ['Agent', 'CompanyAdmin', 'SuperAdmin'].includes(role);
-
-    // ── Atomic initial load: render the page only after EVERY piece of
-    //    critical data has arrived, so the conversation never "pops in"
-    //    To:/Cc:/viewer/attachment rows after the fact (Freshdesk-style).
-    this.loadInitialBundleAtomic();
 
     // Non-critical / lazy data — safe to fire-and-forget alongside the bundle.
     this.loadMasterOptions();
     this.loadAgents();
     this.loadGroups();
     this.loadAgentSignature();
-    this.loadCustomFieldValues();
+
+    this.route.paramMap
+      .pipe(
+        map(params => params.get('id') || ''),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((id) => {
+        if (!id) {
+          this.router.navigate(['/tickets']);
+          return;
+        }
+
+        this.ticketId = id;
+        this.convoExpanded = false;
+        this.ticket = null;
+        this.attachments = [];
+        this.timeline = [];
+        this.viewers = [];
+        this.watchers = [];
+        this._ticketJson = null;
+        this._attachmentsSig = null;
+        this.setLoading(true);
+
+        // Atomic initial load: render page only after core ticket payload resolves.
+        this.loadInitialBundleAtomic();
+        this.loadCustomFieldValues();
+      });
   }
 
   /**

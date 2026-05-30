@@ -1,0 +1,93 @@
+<app-layout>
+  <div class="rb-detail-wrap">
+    <header class="rb-detail-head">
+      <button type="button" class="btn-back" (click)="backToList()">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Recycle Bin
+      </button>
+      <div class="rb-head-meta" *ngIf="detail">
+        <span class="rb-state">In Recycle Bin</span>
+        <h1>#{{ detail.ticketNumber }} - {{ detail.title }}</h1>
+      </div>
+    </header>
+
+    <div class="rb-loading" *ngIf="loading">
+      <i class="fa-solid fa-circle-notch fa-spin"></i>
+      Loading ticket details...
+    </div>
+
+    <div class="rb-refreshing" *ngIf="!loading && loadingFresh">
+      <i class="fa-solid fa-arrows-rotate fa-spin"></i>
+      Refreshing latest details...
+    </div>
+
+    <section class="rb-detail-grid" *ngIf="detail && !loading">
+      <article class="detail-card">
+        <h2>Ticket Snapshot</h2>
+        <div class="meta-grid">
+          <div><label>Status</label><span [class]="statusClass(detail.status)">{{ statusLabel(detail.status) }}</span></div>
+          <div><label>Priority</label><span [class]="priorityClass(detail.priority)">{{ priorityLabel(detail.priority) }}</span></div>
+          <div><label>Category</label><span>{{ detail.category || '-' }}</span></div>
+          <div><label>Type</label><span>{{ detail.ticketType || '-' }}</span></div>
+          <div><label>Created</label><span>{{ detail.createdAt | date:'medium' }}</span></div>
+          <div><label>Deleted</label><span>{{ detail.deletedAt | date:'medium' }}</span></div>
+          <div><label>Deleted By</label><span>{{ detail.deletedByName || '-' }}</span></div>
+          <div><label>Auto Purge On</label><span>{{ detail.purgeAfter ? (detail.purgeAfter | date:'medium') : 'Never' }}</span></div>
+          <div><label>Requester</label><span>{{ detail.fromName || detail.fromEmail || detail.createdByName || '-' }}</span></div>
+          <div><label>Assigned</label><span>{{ detail.assignedToName || '-' }}</span></div>
+          <div><label>SLA</label>
+            <span>
+              {{ detail.slaStatus || '-' }}
+              <span class="sla-breach" *ngIf="detail.isSlaBreached">BREACHED</span>
+            </span>
+          </div>
+          <div><label>Time Spent</label><span>{{ detail.timeSpentMinutes }} min</span></div>
+        </div>
+
+        <div class="desc-block" *ngIf="detail.description">
+          <label>Description</label>
+          <div class="desc-body" [innerHTML]="detail.description"></div>
+        </div>
+
+        <div class="tags-block" *ngIf="detail.tags">
+          <label>Tags</label>
+          <div class="tags">
+            <span class="tag" *ngFor="let t of detail.tags.split(',')">{{ t.trim() }}</span>
+          </div>
+        </div>
+      </article>
+
+      <aside class="action-card" *ngIf="isCompanyAdmin">
+        <h3>Actions</h3>
+        <p>Use restore to send this ticket back to active list, or permanently delete it.</p>
+
+        <button type="button" class="btn-restore" *hasPermission="'recycle-bin:edit'" [disabled]="acting" (click)="restore()">
+          <i class="fa-solid fa-rotate-left"></i>
+          Restore Ticket
+        </button>
+
+        <ng-container *ngIf="!confirmPurge; else purgeConfirm">
+          <button type="button" class="btn-danger" *hasPermission="'recycle-bin:delete'" [disabled]="acting" (click)="requestPurge()">
+            <i class="fa-solid fa-trash"></i>
+            Permanent Delete
+          </button>
+        </ng-container>
+
+        <ng-template #purgeConfirm>
+          <div class="confirm-box">
+            <div class="warn-text">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              This action is irreversible.
+            </div>
+            <div class="confirm-actions">
+              <button type="button" class="btn-cancel" [disabled]="acting" (click)="cancelPurge()">Cancel</button>
+              <button type="button" class="btn-danger" *hasPermission="'recycle-bin:delete'" [disabled]="acting" (click)="purge()">
+                {{ acting ? 'Deleting...' : 'Delete Forever' }}
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </aside>
+    </section>
+  </div>
+</app-layout>

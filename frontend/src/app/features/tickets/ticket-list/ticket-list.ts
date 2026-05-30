@@ -1,7 +1,8 @@
 import {
   Component, OnInit, OnDestroy,
   ChangeDetectorRef, inject,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
+  HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -242,7 +243,7 @@ export class TicketListComponent
   clearFilters() {
     this.filters = {
       status: '',
-      includeClosed: false,
+      includeClosed: true,
       priority: '',
       category: '',
       assignedTo: '',
@@ -254,8 +255,27 @@ export class TicketListComponent
   }
 
   hasActiveFilters(): boolean {
-    return Object.values(this.filters)
-      .some(v => v !== '');
+    return !!(
+      !this.filters.includeClosed ||
+      this.filters.status ||
+      this.filters.priority ||
+      this.filters.category ||
+      this.filters.assignedTo ||
+      this.filters.search ||
+      this.filters.dateFrom ||
+      this.filters.dateTo
+    );
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    if (this.showColumnPicker && !target.closest('.col-wrap')) {
+      this.showColumnPicker = false;
+      this.cdr.markForCheck();
+    }
   }
 
   sortBy_(field: string) {

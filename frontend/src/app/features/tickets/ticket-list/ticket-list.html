@@ -77,7 +77,8 @@
         </button>
 
         <button class="icon-btn clear-btn"
-          *ngIf="hasActiveFilters()"
+          [class.has-filter]="hasActiveFilters()"
+          [disabled]="!hasActiveFilters()"
           (click)="clearFilters()">
           ✕ Clear
         </button>
@@ -148,15 +149,6 @@
             <option *ngFor="let s of statusOptions"
               [value]="s.value">{{ s.label }}</option>
           </select>
-        </div>
-        <div class="filter-group check-group">
-          <label>Closed Tickets</label>
-          <label class="check-inline">
-            <input type="checkbox"
-              [(ngModel)]="filters.includeClosed"
-              (ngModelChange)="applyFilters()"/>
-            Include closed in list
-          </label>
         </div>
         <div class="filter-group">
           <label>Priority</label>

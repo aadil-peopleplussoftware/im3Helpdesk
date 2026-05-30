@@ -161,7 +161,16 @@ export const routes: Routes = [
     canActivate: [authGuard, companyAdminGuard, featureGuard('role-rights')]
   },
   {
+    path: 'recycle-bin/:id',
+    loadComponent: () =>
+      import('./features/recycle-bin/recycle-bin-detail-page/recycle-bin-detail-page').then(
+        m => m.RecycleBinDetailPageComponent
+      ),
+    canActivate: [authGuard, permissionGuard('recycle-bin'), featureGuard('recycle-bin')]
+  },
+  {
     path: 'recycle-bin',
+    pathMatch: 'full',
     loadComponent: () =>
       import('./features/recycle-bin/recycle-bin-page/recycle-bin-page').then(
         m => m.RecycleBinPageComponent
