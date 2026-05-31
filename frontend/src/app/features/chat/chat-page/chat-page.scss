@@ -4,6 +4,9 @@
 ═══════════════════════════════════════ */
 
 :host {
+  display: block;
+  height: 100%;
+  overflow: hidden;
   --cs-width: 360px;
   --header-h: 56px;
   --accent: var(--ui-color-primary);
@@ -22,7 +25,8 @@
 /* ── Page layout ── */
 .chat-page {
   display: flex;
-  height: calc(100vh - var(--header-h));
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg);
   position: relative;
@@ -139,6 +143,16 @@
     color: var(--online);
     font-weight: 600;
   }
+}
+
+.call-conn-chip {
+  margin-top: -6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-radius: 999px;
+  padding: 6px 10px;
 }
 
 /* Incoming call action buttons */
@@ -520,6 +534,7 @@
 .chat-sidebar {
   width: var(--cs-width);
   min-width: var(--cs-width);
+  min-height: 0;
   background: var(--white);
   border-right: 1px solid var(--border);
   display: flex;
@@ -743,6 +758,7 @@
 
 .cs-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--ui-color-border) transparent;
@@ -888,6 +904,7 @@
 ════════════════════════════════════════ */
 .chat-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -936,6 +953,7 @@
 
 .cm-window {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1011,6 +1029,15 @@
   color: var(--text);
 }
 
+.cm-profile-link {
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
 .cm-hd-status,
 .cm-header-status {
   font-size: 12px;
@@ -1070,7 +1097,9 @@
 .cm-msgs,
 .cm-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
@@ -1191,6 +1220,11 @@
   color: var(--accent);
   margin-bottom: 2px;
   padding-left: 2px;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Text bubble */

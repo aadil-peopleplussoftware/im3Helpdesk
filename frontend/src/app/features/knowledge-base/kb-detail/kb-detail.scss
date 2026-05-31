@@ -58,6 +58,12 @@
 .post-author {
   display: flex;
   gap: 10px;
+  cursor: pointer;
+
+  &:hover .author-name {
+    color: var(--accent, var(--ui-color-primary));
+    text-decoration: underline;
+  }
 }
 
 .author-av {
@@ -207,6 +213,12 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary, var(--ui-color-text-primary));
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent, var(--ui-color-primary));
+    text-decoration: underline;
+  }
 }
 
 .viewer-time {
@@ -407,6 +419,15 @@
 .comment-item {
   display: flex;
   gap: 10px;
+}
+
+.comment-author {
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent, var(--ui-color-primary));
+    text-decoration: underline;
+  }
 }
 
 .comment-av {

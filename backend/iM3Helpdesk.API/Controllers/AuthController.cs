@@ -122,8 +122,8 @@ public class AuthController : ControllerBase
     user.FailedLoginAttempts = 0;
     user.LockedUntil = null;
 
-    // ✅ FIX: loginWithOtp flag check karo
-    if (dto.LoginWithOtp)
+    // OTP is required when explicitly requested or when account-level 2FA is enabled.
+    if (dto.LoginWithOtp || user.IsTwoFactorEnabled)
     {
       // OTP mode — sirf OTP bhejo, JWT mat do abhi
       await _context.SaveChangesAsync();
@@ -132,6 +132,7 @@ public class AuthController : ControllerBase
       return Ok(new
       {
         requiresOtp = true,
+        isTwoFactorEnabled = user.IsTwoFactorEnabled,
         message = "OTP sent to your email. Please verify."
       });
     }
@@ -160,6 +161,7 @@ public class AuthController : ControllerBase
           user.FullName,
           user.Email,
           role = user.Role.ToString(),
+          isTwoFactorEnabled = user.IsTwoFactorEnabled,
           organizationId = user.OrganizationId,
           organizationName = user.Organization?.Name
         }
@@ -265,6 +267,7 @@ public class AuthController : ControllerBase
         user.FullName,
         user.Email,
         role = user.Role.ToString(),
+        isTwoFactorEnabled = user.IsTwoFactorEnabled,
         organizationId = user.OrganizationId,
         organizationName = user.Organization?.Name
       }

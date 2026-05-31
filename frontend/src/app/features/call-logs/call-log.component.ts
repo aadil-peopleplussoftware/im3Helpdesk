@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ChatService }
   from '../../core/services/chat.service';
@@ -93,7 +94,12 @@ type LogFilter =
 
       <!-- Info -->
       <div class="cl-info">
-        <div class="cl-name">
+        <div class="cl-name"
+          role="button"
+          tabindex="0"
+          title="Open profile"
+          (click)="openUserProfile(log, $event)"
+          (keydown.enter)="openUserProfile(log, $event)">
           {{ log.otherUserName || 'Unknown' }}
         </div>
         <div class="cl-status"
@@ -349,6 +355,12 @@ type LogFilter =
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      cursor: pointer;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .cl-name:hover {
+      text-decoration: underline;
     }
     .cl-status {
       display: flex;
@@ -437,6 +449,7 @@ export class CallLogComponent
 
   private chatService = inject(ChatService);
   private cdr         = inject(ChangeDetectorRef);
+  private router      = inject(Router);
 
   logs:         any[]      = [];
   loading                  = false;
@@ -529,6 +542,13 @@ export class CallLogComponent
   callBack(log: any, type: 'audio' | 'video') {
     this.chatService.startCallFromLog(
       log.otherUserId, type);
+  }
+
+  openUserProfile(log: any, ev?: Event) {
+    ev?.stopPropagation();
+    const id = String(log?.otherUserId || '').trim();
+    if (!id) return;
+    this.router.navigate(['/users', id]);
   }
 
   getStatusLabel(log: any): string {

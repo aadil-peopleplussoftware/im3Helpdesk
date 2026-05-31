@@ -208,14 +208,15 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
         const forUser =
           this.selectedUser && !msg.groupId &&
           ((msg.senderId === this.myId && msg.receiverId === this.selectedUser.id) ||
-           (msg.senderId === this.selectedUser.id && msg.receiverId === this.myId));
+           (msg.senderId === this.selectedUser.id && msg.receiverId === this.myId) ||
+           (msg.isFromMe && msg.receiverId === this.selectedUser.id));
         const forGroup =
           this.selectedGroup && msg.groupId === this.selectedGroup.id;
 
         if (forUser || forGroup) {
           if (!this.messages.some(m => m.id === msg.id)) {
             this.messages = [...this.messages, msg];
-            this.shouldScrollToBottom = true;
+            this.queueScrollToBottom();
           }
         }
         this.cdr.detectChanges();
@@ -360,6 +361,14 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   ngOnDestroy() {
+    if (this.callSvc.isCallActive && !this.callSvc.isMinimized) {
+      const name = this.selectedUser?.fullName
+        || this.callSvc.activeCall?.name
+        || this.callSvc.incomingCallData?.callerName
+        || 'Call';
+      this.callSvc.showMiniBar(name, this.callSvc.callType || this.callType);
+    }
+
     this.subs.forEach(s => s.unsubscribe());
     clearTimeout(this.typingTimeout);
     clearInterval(this.callTimerUI);
@@ -534,6 +543,20 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     else this.selectUser(item);
   }
 
+  openUserProfile(user: any, ev?: Event) {
+    ev?.stopPropagation();
+    const id = String(user?.id || user?.userId || '').trim();
+    if (!id) return;
+    this.router.navigate(['/users', id]);
+  }
+
+  openMessageSenderProfile(message: any, ev?: Event) {
+    ev?.stopPropagation();
+    const id = String(message?.senderId || '').trim();
+    if (!id || id === this.myId) return;
+    this.router.navigate(['/users', id]);
+  }
+
   selectUser(user: any) {
     this.selectedUser = user;
     this.selectedGroup = null;
@@ -544,7 +567,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (data) => {
         this.messages = data;
         this.loadingMessages = false;
-        this.shouldScrollToBottom = true;
+        this.queueScrollToBottom();
         this.cdr.detectChanges();
         if ((user.unreadCount || 0) > 0) {
           user.unreadCount = 0;
@@ -567,7 +590,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
       next: (data) => {
         this.messages = data;
         this.loadingMessages = false;
-        this.shouldScrollToBottom = true;
+        this.queueScrollToBottom();
         this.cdr.detectChanges();
       }
     });
@@ -578,6 +601,8 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!content && !this.uploadingFile) return;
     if (!this.selectedUser && !this.selectedGroup) return;
     this.newMessage = '';
+    this.queueScrollToBottom();
+
     if (this.selectedUser) {
       this.stopTyping();
       this.chatService.sendMessage(this.selectedUser.id, content);
@@ -603,6 +628,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
         if (rid) this.chatService.sendMessage(rid, this.newMessage || '', res.messageType, res.url, res.name, res.type);
         else if (gid) this.chatService.sendGroupMessage(gid, this.newMessage || '', res.messageType, res.url, res.name, res.type);
         this.newMessage = '';
+        this.queueScrollToBottom();
         this.cdr.detectChanges();
       },
       error: () => { this.uploadingFile = false; this.cdr.detectChanges(); }
@@ -682,6 +708,20 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   // ── Helpers ──────────────────────────────
+  private queueScrollToBottom() {
+    this.shouldScrollToBottom = true;
+
+    // Message bubbles/media can resize after initial render,
+    // so perform a few delayed scroll attempts.
+    setTimeout(() => this.scrollToBottom(), 0);
+    setTimeout(() => this.scrollToBottom(), 120);
+    setTimeout(() => this.scrollToBottom(), 350);
+  }
+
+  onMessageMediaLoaded() {
+    this.queueScrollToBottom();
+  }
+
   scrollToBottom() {
     try { const el = this.msgContainer?.nativeElement; if (el) el.scrollTop = el.scrollHeight; } catch {}
   }

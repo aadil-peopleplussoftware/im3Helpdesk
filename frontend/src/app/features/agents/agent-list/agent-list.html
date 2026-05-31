@@ -89,7 +89,12 @@
           <tr *ngFor="let a of filteredAgents"
             class="agent-row">
             <td>
-              <div class="agent-name-cell">
+              <div class="agent-name-cell"
+                role="button"
+                tabindex="0"
+                title="Open profile"
+                (click)="openAgentProfile(a, $event)"
+                (keydown.enter)="openAgentProfile(a, $event)">
                 <div class="ag-av"
                   [style.background]="a.photoUrl
                     ? 'transparent'

@@ -147,7 +147,7 @@
           <div class="post-header">
             <div class="post-author"
               [class.system-author]="a.authorType === 'System'"
-              (click)="a.authorType !== 'System' && selectUser({userId: a.createdByUserId, userName: a.createdBy})">
+              (click)="openArticleAuthorProfile(a, $event)">
               <div class="author-av"
                 [class.system-av]="a.authorType === 'System'"
                 [style.background]="a.authorType === 'System' ? null : getAvatarColor(a.createdBy)">
@@ -266,7 +266,14 @@
                 </div>
                 <div class="comment-body">
                   <div class="comment-header">
-                    <span class="comment-author">{{ c.userName }}</span>
+                    <span class="comment-author"
+                      role="button"
+                      tabindex="0"
+                      title="Open profile"
+                      (click)="openCommentAuthorProfile(c, $event)"
+                      (keydown.enter)="openCommentAuthorProfile(c, $event)">
+                      {{ c.userName }}
+                    </span>
                     <span class="comment-time">
                       {{ c.createdAt | date:'dd MMM, hh:mm a' }}
                     </span>

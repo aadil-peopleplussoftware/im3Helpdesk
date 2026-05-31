@@ -17,8 +17,8 @@ import {
   moveItemInArray
 } from '@angular/cdk/drag-drop';
 import { ToastrService } from 'ngx-toastr';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
 import { LayoutComponent }
   from '../../../layouts/main-layout/layout';
 import { HasPermissionDirective } from '../../../core/directives/has-permission.directive';
@@ -26,6 +26,7 @@ import { AuthService } from '../../auth/auth.service';
 import { environment } from '../../../../environments/environment';
 import { TicketMasterOption, TicketMasterService } from '../../../core/services/ticket-master';
 import { OrgContextService } from '../../../core/services/org-context.service';
+import { AgentService } from '../../../core/services/agent';
 
 
 @Component({
@@ -52,6 +53,7 @@ export class TicketListComponent
   private toastr = inject(ToastrService);
   public cdr = inject(ChangeDetectorRef);
   private http = inject(HttpClient);
+  private agentService = inject(AgentService);
   private ticketMasterService = inject(TicketMasterService);
   private orgContext = inject(OrgContextService);
 
@@ -298,6 +300,55 @@ export class TicketListComponent
   viewTicket(id: string) {
     if (!id) return;
     this.router.navigate(['/tickets', id]);
+  }
+
+  openPersonDetails(nameOrEmail: string | null | undefined, ev?: Event) {
+    ev?.stopPropagation();
+    const q = String(nameOrEmail || '').trim();
+    if (!q) return;
+
+    forkJoin({
+      contacts: this.http.get<any[]>(`${environment.apiUrl}/Contacts`, {
+        params: { search: q }
+      }).pipe(catchError(() => of([]))),
+      users: this.agentService.getAll().pipe(catchError(() => of([])))
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ contacts, users }) => {
+        const matchedContact = this.findContactMatch(contacts, q);
+        if (matchedContact?.id) {
+          this.router.navigate(['/contacts'], {
+            queryParams: {
+              contactId: matchedContact.id,
+              q: matchedContact.email || q
+            }
+          });
+          return;
+        }
+
+        const matchedUser = this.findSystemUserMatch(users, q);
+        if (matchedUser?.id) {
+          this.router.navigate(['/users', matchedUser.id]);
+          return;
+        }
+
+        this.router.navigate(['/contacts'], { queryParams: { q } });
+      });
+  }
+
+  private findContactMatch(contacts: any[], query: string): any | null {
+    const q = query.toLowerCase();
+    return contacts.find(c => String(c?.email || '').toLowerCase() === q)
+      || contacts.find(c => String(c?.fullName || '').toLowerCase() === q)
+      || contacts[0]
+      || null;
+  }
+
+  private findSystemUserMatch(users: any[], query: string): any | null {
+    const q = query.toLowerCase();
+    return users.find(u => String(u?.email || u?.Email || '').toLowerCase() === q)
+      || users.find(u => String(u?.fullName || u?.FullName || '').toLowerCase() === q)
+      || null;
   }
 
   toggleSelect(id: string) {

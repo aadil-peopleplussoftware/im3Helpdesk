@@ -21,6 +21,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   activeCall: any = null;
   callType: 'audio' | 'video' = 'audio';
   callDuration  = 0;
+  rtcState: RTCPeerConnectionState = 'new';
 
   // ── WebRTC (yahan store — never destroyed) ──
   pc: RTCPeerConnection | null     = null;
@@ -36,6 +37,7 @@ export class GlobalCallNotificationService implements OnDestroy {
   remoteStream$      = new BehaviorSubject<MediaStream | null>(null);
 
   private callTimer: any;
+  private disconnectTimer: any;
   private _stopRingFn: (() => void) | null = null;
   private _navigateToChat: (() => void) | null = null;
 
@@ -199,6 +201,7 @@ export class GlobalCallNotificationService implements OnDestroy {
       this.isCallActive = true;
       this.isMinimized  = false;
       this.callDuration = 0;
+      this.rtcState = 'connecting';
       this.startCallTimer();
 
     } catch (e) {
@@ -257,11 +260,13 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.isMinimized           = false;
     this.activeCall            = null;
     this.callDuration          = 0;
+    this.rtcState              = 'closed';
     this.activeCallOtherId     = '';
     this.incomingCallData      = null;
     this.isSettingRemoteAnswer = false;
     this.iceCandidateQueue     = [];
     clearInterval(this.callTimer);
+    clearTimeout(this.disconnectTimer);
 
     // ✅ Streams clear — but callEnded$ null se clear karo
     // Pehle callEnded$ ko null karo taaki subscriber loop nahi hoga
@@ -341,9 +346,29 @@ export class GlobalCallNotificationService implements OnDestroy {
     };
 
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'disconnected' ||
-          pc.connectionState === 'failed' ||
-          pc.connectionState === 'closed') {
+      const state = pc.connectionState;
+      this.rtcState = state;
+
+      // Connected again after a short network/tab hiccup.
+      if (state === 'connected') {
+        clearTimeout(this.disconnectTimer);
+        return;
+      }
+
+      // Browsers may briefly report disconnected on tab switch/background.
+      // End only if it stays disconnected for a grace period.
+      if (state === 'disconnected') {
+        clearTimeout(this.disconnectTimer);
+        this.disconnectTimer = setTimeout(() => {
+          if (this.isCallActive && pc.connectionState === 'disconnected') {
+            this.endCall(false);
+          }
+        }, 15000);
+        return;
+      }
+
+      if (state === 'failed' || state === 'closed') {
+        clearTimeout(this.disconnectTimer);
         if (this.isCallActive) this.endCall(false);
       }
     };
@@ -395,5 +420,6 @@ export class GlobalCallNotificationService implements OnDestroy {
     this.subs.forEach(s => s.unsubscribe());
     this.stopRingtone();
     clearInterval(this.callTimer);
+    clearTimeout(this.disconnectTimer);
   }
 }

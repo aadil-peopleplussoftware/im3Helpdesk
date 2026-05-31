@@ -90,6 +90,14 @@
         </span>
       </div>
 
+      <div class="call-conn-chip" *ngIf="callState==='active' && (callSvc.rtcState === 'connecting' || callSvc.rtcState === 'disconnected' || callSvc.rtcState === 'failed')">
+        {{
+          callSvc.rtcState === 'connecting' ? 'Connecting...' :
+          callSvc.rtcState === 'disconnected' ? 'Reconnecting...' :
+          'Connection issue'
+        }}
+      </div>
+
       <!-- Call controls -->
       <div class="call-controls">
         <button class="ctrl-btn mute"
@@ -567,6 +575,12 @@
           </div>
           <div class="cm-hd-av"
             *ngIf="selectedUser"
+            role="button"
+            tabindex="0"
+            [class.cm-profile-link]="true"
+            title="Open profile"
+            (click)="openUserProfile(selectedUser, $event)"
+            (keydown.enter)="openUserProfile(selectedUser, $event)"
             [style.background]="
               selectedUser.photoUrl
                 ? 'transparent'
@@ -592,7 +606,13 @@
         </div>
 
         <div class="cm-hd-info">
-          <div class="cm-hd-name">
+          <div class="cm-hd-name"
+            [class.cm-profile-link]="!!selectedUser"
+            role="button"
+            tabindex="0"
+            [title]="selectedUser ? 'Open profile' : null"
+            (click)="selectedUser && openUserProfile(selectedUser, $event)"
+            (keydown.enter)="selectedUser && openUserProfile(selectedUser, $event)">
             {{ selectedUser?.fullName
               || selectedGroup?.name }}
           </div>
@@ -690,7 +710,12 @@
               <div class="cm-sender"
                 *ngIf="selectedGroup
                   && !m.isFromMe
-                  && m.senderId !== myId">
+                  && m.senderId !== myId"
+                role="button"
+                tabindex="0"
+                title="Open profile"
+                (click)="openMessageSenderProfile(m, $event)"
+                (keydown.enter)="openMessageSenderProfile(m, $event)">
                 {{ m.senderName }}
               </div>
 
@@ -703,6 +728,7 @@
                     + m.attachmentUrl"
                   [alt]="m.attachmentName
                     || 'Image'"
+                  (load)="onMessageMediaLoaded()"
                   (click)="openImage(
                     baseUrl
                     + m.attachmentUrl)"/>

@@ -52,6 +52,7 @@ public class ProfileController : ControllerBase
       user.DateOfBirth,
       user.DateOfJoining,
       user.Gender,
+      user.IsTwoFactorEnabled,
       user.PhotoUrl, // Included photo URL in response
       UserName = user.Email.Split('@')[0],
       Role = user.Role.ToString(),
@@ -266,6 +267,30 @@ public class ProfileController : ControllerBase
     await _context.SaveChangesAsync();
 
     return Ok(new { message = "Organization updated successfully" });
+  }
+
+  [HttpPut("two-factor")]
+  public async Task<IActionResult> UpdateTwoFactor([FromBody] UpdateTwoFactorDto dto)
+  {
+    var userId = GetUserId();
+    if (userId == null) return Unauthorized();
+
+    var user = await _context.Users
+      .IgnoreQueryFilters()
+      .FirstOrDefaultAsync(u => u.Id == userId);
+
+    if (user == null) return NotFound();
+
+    user.IsTwoFactorEnabled = dto.IsTwoFactorEnabled;
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+      message = dto.IsTwoFactorEnabled
+        ? "Two-factor authentication enabled."
+        : "Two-factor authentication disabled.",
+      isTwoFactorEnabled = user.IsTwoFactorEnabled
+    });
   }
 
   private Guid? GetUserId()

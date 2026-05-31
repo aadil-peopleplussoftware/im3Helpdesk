@@ -413,6 +413,15 @@
   color: var(--text-muted, var(--ui-color-text-faint));
 }
 
+.person-link {
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent, var(--ui-color-primary));
+    text-decoration: underline;
+  }
+}
+
 .status-drop-zone.cdk-drop-list-dragging {
   background: var(--hover-bg, var(--ui-color-bg-subtle));
 }

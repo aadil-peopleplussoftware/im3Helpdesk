@@ -207,9 +207,9 @@
             <div class="ec-av is-clickable"
               role="button"
               tabindex="0"
-              [title]="'Open contact: ' + (senderEmail() || senderName())"
-              (click)="openContact(senderEmail() || senderName())"
-              (keydown.enter)="openContact(senderEmail() || senderName())"
+              [title]="'Open details: ' + (senderEmail() || senderName())"
+              (click)="openContact(senderEmail() || senderName(), ticket.createdBy)"
+              (keydown.enter)="openContact(senderEmail() || senderName(), ticket.createdBy)"
               [style.background]="
                 ticket.createdBy?.photoUrl
                   ? 'transparent'
@@ -228,9 +228,9 @@
                 <span class="ec-name is-clickable"
                   role="button"
                   tabindex="0"
-                  [title]="'Open contact: ' + (senderEmail() || senderName())"
-                  (click)="openContact(senderEmail() || senderName())"
-                  (keydown.enter)="openContact(senderEmail() || senderName())">
+                  [title]="'Open details: ' + (senderEmail() || senderName())"
+                  (click)="openContact(senderEmail() || senderName(), ticket.createdBy)"
+                  (keydown.enter)="openContact(senderEmail() || senderName(), ticket.createdBy)">
                   {{ senderName() }}
                 </span>
                 <span class="ec-via">reported via email</span>
@@ -321,9 +321,9 @@
                 <div class="fr-av is-clickable"
                   role="button"
                   tabindex="0"
-                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
+                  [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
                   [style.background]="
                     getAvatarColor(
                       commentAuthor(c))">
@@ -334,9 +334,9 @@
                     <span class="fr-name is-clickable"
                       role="button"
                       tabindex="0"
-                      [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                      (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                      [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                      (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
                       {{ commentAuthor(c) }}
                     </span>
                     <span class="fr-agent"
@@ -432,9 +432,9 @@
                 <div class="fr-av is-clickable"
                   role="button"
                   tabindex="0"
-                  [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                  (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))"
+                  [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                  (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                  (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
                   [style.background]="
                     getAvatarColor(
                       commentAuthor(c))">
@@ -445,9 +445,9 @@
                     <span class="fr-name note-name is-clickable"
                       role="button"
                       tabindex="0"
-                      [title]="'Open contact: ' + (commentEmail(c) || commentAuthor(c))"
-                      (click)="openContact(commentEmail(c) || commentAuthor(c))"
-                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c))">
+                      [title]="'Open details: ' + (commentEmail(c) || commentAuthor(c))"
+                      (click)="openContact(commentEmail(c) || commentAuthor(c), c.user)"
+                      (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
                       {{ commentAuthor(c) }}
                     </span>
                     <span class="fr-note-lbl">

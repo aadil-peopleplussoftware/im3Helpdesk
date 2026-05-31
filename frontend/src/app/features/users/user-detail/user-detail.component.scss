@@ -1,0 +1,172 @@
+.user-detail-page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 24px 30px;
+}
+
+.udp-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.udp-head-copy h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #16324f;
+}
+
+.udp-head-copy p {
+  margin: 3px 0 0;
+  color: #587088;
+  font-size: 0.88rem;
+}
+
+.udp-back {
+  border: 1px solid #c6d6e5;
+  background: #fff;
+  color: #1d4b70;
+  border-radius: 8px;
+  padding: 8px 13px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.udp-loading {
+  padding: 16px;
+  border-radius: 12px;
+  background: #f7fbff;
+  color: #35597a;
+}
+
+.udp-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(31, 110, 168, 0.07), transparent 42%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #d8e5f3;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 10px 24px rgba(17, 56, 88, 0.08);
+}
+
+.udp-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.udp-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: #1f6ea8;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.udp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.udp-meta h2 {
+  margin: 0;
+  font-size: 1.24rem;
+}
+
+.udp-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.udp-role {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f2fc;
+  color: #1f5d8c;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.udp-verified {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0d7c58;
+  background: #e5faf2;
+  border: 1px solid #bcead9;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.udp-verified.off {
+  color: #995902;
+  background: #fff3df;
+  border-color: #f1d5a1;
+}
+
+.udp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.udp-grid dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: #567089;
+  margin-bottom: 4px;
+}
+
+.udp-grid dd {
+  margin: 0;
+  font-weight: 600;
+  color: #1c3952;
+  word-break: break-word;
+}
+
+.udp-signature {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #c9d8e7;
+}
+
+.udp-signature h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: #274967;
+}
+
+.udp-signature p {
+  margin: 0;
+  color: #385a79;
+}
+
+@media (max-width: 700px) {
+  .user-detail-page {
+    padding: 16px;
+  }
+
+  .udp-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .udp-card {
+    padding: 16px;
+  }
+
+  .udp-hero {
+    align-items: flex-start;
+  }
+}

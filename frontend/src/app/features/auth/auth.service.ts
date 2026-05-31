@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import {
   REFRESH_TOKEN_KEY,
-  TOKEN_KEY
+  TOKEN_KEY,
+  TWO_FACTOR_ENABLED_KEY
 } from '../../core/constants/auth.constants';
 
 @Injectable({ providedIn: 'root' })
@@ -120,6 +121,14 @@ resendOtp(dto: { email: string }) {
     return localStorage.getItem('im3_name') || '';
   }
 
+  isTwoFactorEnabled(): boolean {
+    return localStorage.getItem(TWO_FACTOR_ENABLED_KEY) === 'true';
+  }
+
+  setTwoFactorEnabled(enabled: boolean): void {
+    localStorage.setItem(TWO_FACTOR_ENABLED_KEY, String(enabled));
+  }
+
   isTokenValid(): boolean {
     return this.isAuthenticated();
 }
@@ -151,6 +160,7 @@ resendOtp(dto: { email: string }) {
     localStorage.removeItem('im3_role');
     localStorage.removeItem('im3_name');
     localStorage.removeItem('im3_orgName'); // Clear org name on logout
+    localStorage.removeItem(TWO_FACTOR_ENABLED_KEY);
     this.router.navigate(['/auth/login']);
   }
 

@@ -284,8 +284,13 @@
               {{ (t.assignedTo || t.createdBy)
                 ?.charAt(0)?.toUpperCase() }}
             </div>
-            <span>
-              {{ t.assignedTo || 'Unassigned' }}
+            <span class="person-link"
+              role="button"
+              tabindex="0"
+              title="Open details"
+              (click)="openPersonDetails(t.assignedTo || t.createdBy, $event)"
+              (keydown.enter)="openPersonDetails(t.assignedTo || t.createdBy, $event)">
+              {{ t.assignedTo || t.createdBy || 'Unassigned' }}
             </span>
           </div>
           <div class="card-right">
@@ -346,7 +351,14 @@
             </div>
 
             <div class="st-meta">
-              <span>{{ t.assignedTo || 'Unassigned' }}</span>
+              <span class="person-link"
+                role="button"
+                tabindex="0"
+                title="Open details"
+                (click)="openPersonDetails(t.assignedTo || t.createdBy, $event)"
+                (keydown.enter)="openPersonDetails(t.assignedTo || t.createdBy, $event)">
+                {{ t.assignedTo || 'Unassigned' }}
+              </span>
               <span class="sep">·</span>
               <span>{{ getTimeAgo(t.createdAt) }}</span>
             </div>
@@ -427,7 +439,16 @@
               </ng-container>
 
               <ng-container *ngSwitchCase="'assignedTo'">
-                {{ t.assignedTo || '—' }}
+                <span *ngIf="t.assignedTo || t.createdBy"
+                  class="person-link"
+                  role="button"
+                  tabindex="0"
+                  title="Open details"
+                  (click)="openPersonDetails(t.assignedTo || t.createdBy, $event)"
+                  (keydown.enter)="openPersonDetails(t.assignedTo || t.createdBy, $event)">
+                  {{ t.assignedTo || t.createdBy }}
+                </span>
+                <span *ngIf="!(t.assignedTo || t.createdBy)">—</span>
               </ng-container>
 
               <ng-container *ngSwitchCase="'ticketType'">

@@ -78,30 +78,40 @@
   user-select: none;
 
   .logo-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: color-mix(in srgb,
-      var(--ui-color-primary) 14%,
+      var(--ui-color-primary) 10%,
       transparent);
-    color: var(--ui-color-primary);
+    border: 1px solid color-mix(in srgb,
+      var(--ui-color-primary) 26%,
+      transparent);
+    color: color-mix(in srgb,
+      var(--ui-color-primary) 84%,
+      var(--ui-color-primary-hover) 16%);
     flex-shrink: 0;
     transition: transform 0.2s ease,
-                background 0.2s ease;
+                background 0.2s ease,
+                border-color 0.2s ease;
 
-    svg {
-      width: 28px;
-      height: 28px;
+    svg,
+    img {
+      width: 30px;
+      height: 30px;
       display: block;
     }
 
     &:hover {
       transform: translateY(-1px);
       background: color-mix(in srgb,
-        var(--ui-color-primary) 22%,
+        var(--ui-color-primary) 18%,
+        transparent);
+      border-color: color-mix(in srgb,
+        var(--ui-color-primary) 42%,
         transparent);
     }
   }

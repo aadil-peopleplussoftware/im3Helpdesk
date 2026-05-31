@@ -2,7 +2,7 @@ import {
   Component, OnInit,
   ChangeDetectorRef, inject
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -29,6 +29,7 @@ export class KbDetailComponent implements OnInit {
   private authService = inject(AuthService);
   private route       = inject(ActivatedRoute);
   public  router      = inject(Router);
+  private location    = inject(Location);
   private cdr         = inject(ChangeDetectorRef);
   readonly baseUrl = environment.baseUrl;
   private toastr      = inject(ToastrService);
@@ -171,6 +172,33 @@ export class KbDetailComponent implements OnInit {
           this.toastr.error('Failed to delete');
       }
     });
+  }
+
+  goBack() {
+    if (window.history.length > 1) {
+      this.location.back();
+      return;
+    }
+    this.router.navigate([this.getBackRoute()]);
+  }
+
+  openProfileById(rawId: unknown, ev?: Event) {
+    ev?.stopPropagation();
+    const userId = String(rawId || '').trim();
+    if (!userId) return;
+    this.router.navigate(['/users', userId]);
+  }
+
+  openAuthorProfile(ev?: Event) {
+    this.openProfileById(this.article?.createdByUserId, ev);
+  }
+
+  openCommentAuthorProfile(comment: any, ev?: Event) {
+    this.openProfileById(comment?.userId || comment?.createdByUserId, ev);
+  }
+
+  openViewerProfile(viewer: any, ev?: Event) {
+    this.openProfileById(viewer?.userId || viewer?.id, ev);
   }
 
   // ── Helpers ────────────────────────────────

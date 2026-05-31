@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260531083105_AddUserTwoFactorEnabled")]
+    partial class AddUserTwoFactorEnabled
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1805,20 +1808,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasIndex("OrganizationId");
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "aadil080933@gmail.com",
-                            FailedLoginAttempts = 0,
-                            FullName = "Super Admin",
-                            IsEmailVerified = true,
-                            PasswordHash = "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e",
-                            PhoneNumber = "9999999999",
-                            Role = 0
-                        });
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.UserOnlineStatus", b =>

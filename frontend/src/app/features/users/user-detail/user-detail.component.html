@@ -1,1 +1,64 @@
+<app-layout>
+	<section class="user-detail-page">
+		<header class="udp-header">
+			<button type="button" class="udp-back" (click)="goBack()">← Back</button>
+			<div class="udp-head-copy">
+				<h1>System User Profile</h1>
+				<p>Profile details for internal user account</p>
+			</div>
+		</header>
+
+		<div class="udp-loading" *ngIf="loading">Loading profile...</div>
+
+		<article class="udp-card" *ngIf="!loading && user">
+			<div class="udp-hero">
+				<div class="udp-avatar" [class.has-photo]="!!user.photoUrl">
+					<img *ngIf="user.photoUrl" [src]="profilePhotoUrl()" [alt]="user.fullName || 'User'" />
+					<span *ngIf="!user.photoUrl">{{ getInitials(user.fullName) }}</span>
+				</div>
+				<div class="udp-meta">
+					<h2>{{ user.fullName || 'Unknown' }}</h2>
+					<div class="udp-meta-row">
+						<span class="udp-role">{{ user.role || 'User' }}</span>
+						<span class="udp-verified" [class.off]="!user.isEmailVerified">
+							{{ user.isEmailVerified ? 'Verified' : 'Not verified' }}
+						</span>
+					</div>
+				</div>
+			</div>
+
+			<dl class="udp-grid">
+				<div>
+					<dt>Email</dt>
+					<dd>{{ user.email || '-' }}</dd>
+				</div>
+				<div>
+					<dt>Phone</dt>
+					<dd>{{ user.phoneNumber || '-' }}</dd>
+				</div>
+				<div>
+					<dt>Joined</dt>
+					<dd>{{ user.createdAt ? (user.createdAt | date:'dd MMM yyyy, hh:mm a') : '-' }}</dd>
+				</div>
+				<div>
+					<dt>Last Login</dt>
+					<dd>{{ user.lastLoginAt ? (user.lastLoginAt | date:'dd MMM yyyy, hh:mm a') : 'Never' }}</dd>
+				</div>
+				<div>
+					<dt>Email Verified</dt>
+					<dd>{{ user.isEmailVerified ? 'Yes' : 'No' }}</dd>
+				</div>
+				<div>
+					<dt>User Id</dt>
+					<dd>{{ user.id || '-' }}</dd>
+				</div>
+			</dl>
+
+			<section class="udp-signature" *ngIf="user.signature">
+				<h3>Signature</h3>
+				<p>{{ user.signature }}</p>
+			</section>
+		</article>
+	</section>
+</app-layout>
 

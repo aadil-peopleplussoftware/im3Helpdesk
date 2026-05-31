@@ -150,6 +150,13 @@ export class AgentsComponent implements OnInit {
       a => a.isActive === false).length;
   }
 
+  openAgentProfile(agent: any, ev?: Event) {
+    ev?.stopPropagation();
+    const id = String(agent?.id || '').trim();
+    if (!id) return;
+    this.router.navigate(['/users', id]);
+  }
+
   private normalizeAgent(agent: any): any {
     const isActiveRaw = agent?.isActive ?? agent?.IsActive;
     const isActive = typeof isActiveRaw === 'boolean'
