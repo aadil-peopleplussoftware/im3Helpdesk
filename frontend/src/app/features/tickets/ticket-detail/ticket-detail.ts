@@ -347,13 +347,68 @@ export class TicketDetailComponent
   }
 
   /**
-   * Navigate to the Contacts page filtered for the supplied identifier.
-   * Prefers the email so we land on the matching contact card directly.
+   * Smart person navigation for ticket timeline:
+   * 1) If contact exists => open contacts drawer detail.
+   * 2) Else if system user exists => open user profile.
+   * 3) Else fallback to contacts search.
    */
-  openContact(emailOrName: string | null | undefined) {
+  openContact(emailOrName: string | null | undefined, person?: any) {
     const q = (emailOrName || '').trim();
     if (!q) return;
-    this.router.navigate(['/contacts'], { queryParams: { q } });
+
+    const personId = this.extractId(person);
+
+    forkJoin({
+      contacts: this.http.get<any[]>(`${environment.apiUrl}/Contacts`, {
+        params: { search: q }
+      }).pipe(catchError(() => of([]))),
+      users: this.agentService.getAll().pipe(catchError(() => of([])))
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(({ contacts, users }) => {
+        const matchedContact = this.findContactMatch(contacts, q);
+        if (matchedContact?.id) {
+          this.router.navigate(['/contacts'], {
+            queryParams: {
+              contactId: matchedContact.id,
+              q: matchedContact.email || q
+            }
+          });
+          return;
+        }
+
+        const matchedUser = this.findSystemUserMatch(users, q, personId);
+        if (matchedUser?.id) {
+          this.router.navigate(['/users', matchedUser.id]);
+          return;
+        }
+
+        this.router.navigate(['/contacts'], { queryParams: { q } });
+      });
+  }
+
+  private findContactMatch(contacts: any[], query: string): any | null {
+    const q = query.toLowerCase();
+    return contacts.find(c => String(c?.email || '').toLowerCase() === q)
+      || contacts.find(c => String(c?.fullName || '').toLowerCase() === q)
+      || contacts[0]
+      || null;
+  }
+
+  private findSystemUserMatch(users: any[], query: string, personId: string): any | null {
+    const q = query.toLowerCase();
+    const byId = personId
+      ? users.find(u => this.extractId(u) === personId)
+      : null;
+    if (byId) return byId;
+
+    return users.find(u => String(u?.email || u?.Email || '').toLowerCase() === q)
+      || users.find(u => String(u?.fullName || u?.FullName || '').toLowerCase() === q)
+      || null;
+  }
+
+  private extractId(value: any): string {
+    return String(value?.id || value?.Id || value?.userId || value?.UserId || '').trim();
   }
 
   // ─── Viewer badge helpers ────────────────────────────────
@@ -415,7 +470,7 @@ export class TicketDetailComponent
     ev?.stopPropagation();
     const q = (v?.email || v?.userEmail || v?.userName || '').trim();
     if (!q) return;
-    this.openContact(q);
+    this.openContact(q, v);
   }
 
   toggleViewerPopover(ev?: Event): void {

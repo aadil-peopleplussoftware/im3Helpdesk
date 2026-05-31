@@ -28,4 +28,5 @@ public class User
     public DateOnly? DateOfBirth { get; set; }
     public DateOnly? DateOfJoining { get; set; }
     public string? Gender { get; set; }
+    public bool IsTwoFactorEnabled { get; set; } = false;
 }

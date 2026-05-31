@@ -163,6 +163,8 @@ public class ApplicationDbContext : DbContext
           .HasMaxLength(120);
       e.Property(x => x.Gender)
           .HasMaxLength(30);
+      e.Property(x => x.IsTwoFactorEnabled)
+          .HasDefaultValue(false);
       e.HasQueryFilter(u =>
           _isSuperAdmin ||
           u.OrganizationId ==

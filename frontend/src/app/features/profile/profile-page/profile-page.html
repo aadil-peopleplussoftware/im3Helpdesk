@@ -193,11 +193,18 @@
                 <div class="tfa-left">
                   <i class="fas fa-shield-alt tfa-shield-icon"></i>
                   <div>
-                    <p class="tfa-title">Two-Factor Authorization is enabled</p>
-                    <p class="tfa-desc">Authenticators require dynamic pins when starting new sessions on external hosts.</p>
+                    <p class="tfa-title">Two-Factor Authentication</p>
+                    <p class="tfa-desc">
+                      {{ twoFactorEnabled
+                        ? 'Enabled: next sign-in will require password and OTP verification.'
+                        : 'Disabled: sign-in will use password only.' }}
+                    </p>
                   </div>
                 </div>
-                <span class="secured-badge">SECURED (2FA)</span>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="twoFactorEnabled" (change)="onTwoFactorToggle($event)" />
+                  <span class="toggle-slider"></span>
+                </label>
               </div>
             </div>
 

@@ -65,6 +65,7 @@ export class ProfilePageComponent implements OnInit {
 
   emailNotifications = true;
   smsAlerts = false;
+  twoFactorEnabled = false;
 
   showPasswordForm = false;
   changingPassword = false;
@@ -111,6 +112,7 @@ export class ProfilePageComponent implements OnInit {
 
   ngOnInit() {
     this.isCompanyAdmin = this.authService.getUserRole() === 'CompanyAdmin';
+    this.twoFactorEnabled = this.authService.isTwoFactorEnabled();
     this.profileForm.disable({ emitEvent: false });
     this.loadProfile();
     if (this.isCompanyAdmin) this.loadMailboxSetupStatus();
@@ -179,6 +181,9 @@ export class ProfilePageComponent implements OnInit {
           createdAt: data.createdAt ?? null,
           lastLoginAt: data.lastLoginAt ?? null
         };
+
+        this.twoFactorEnabled = !!data.isTwoFactorEnabled;
+        this.authService.setTwoFactorEnabled(this.twoFactorEnabled);
 
         this.refreshCompletion();
         this.loadingProfile = false;
@@ -440,6 +445,28 @@ export class ProfilePageComponent implements OnInit {
       this.newPasswordCtrl.reset();
       this.confirmPasswordCtrl.reset();
     }
+  }
+
+  onTwoFactorToggle(event: Event): void {
+    const enabled = (event.target as HTMLInputElement).checked;
+    this.http.put<any>(`${environment.apiUrl}/Profile/two-factor`, {
+      isTwoFactorEnabled: enabled
+    }).subscribe({
+      next: (res) => {
+        this.twoFactorEnabled = !!res?.isTwoFactorEnabled;
+        this.authService.setTwoFactorEnabled(this.twoFactorEnabled);
+        this.toastr.success(
+          this.twoFactorEnabled
+            ? 'Two-factor authentication enabled. Next login will require password + OTP.'
+            : 'Two-factor authentication disabled. Login will use password only.'
+        );
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.toastr.error(err?.error?.message || 'Failed to update two-factor setting.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   logout() {

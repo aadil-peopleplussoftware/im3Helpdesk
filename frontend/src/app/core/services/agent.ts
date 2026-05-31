@@ -13,6 +13,10 @@ export class AgentService {
     return this.http.get<any[]>(this.apiUrl);
   }
 
+  getById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
   invite(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/invite`, data);
   }

@@ -1,10 +1,10 @@
 // FILE: src/app/shared/components/global-call-popup/global-call-popup.component.ts
 
 import {
-  Component, ChangeDetectorRef, inject, OnInit, OnDestroy
+  Component, ChangeDetectorRef, inject, OnInit, OnDestroy, ElementRef, ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { GlobalCallNotificationService }
   from '../../../core/services/global-call-notification.service';
@@ -87,6 +87,65 @@ import { ChatService } from '../../../core/services/chat.service';
     📵
   </button>
 
+</div>
+
+<!-- ══════════════════════════════════════
+     ACTIVE CALL FLOATING WINDOW
+══════════════════════════════════════ -->
+<div class="floating-call-wrap"
+  *ngIf="showFloatingWindow"
+  #floatingCallWindow>
+
+  <div class="floating-call-head">
+    <div class="fch-left">
+      <span class="fch-dot"></span>
+      <div>
+        <div class="fch-title">
+          {{ callSvc.callType === 'video' ? 'Video call' : 'Voice call' }}
+        </div>
+        <div class="fch-sub">
+          {{ activeCallName }} · {{ callSvc.getMiniDuration() }}
+        </div>
+      </div>
+    </div>
+
+    <div class="fch-actions">
+      <button class="fch-btn" type="button" title="Open chat" (click)="openInChat()">💬</button>
+      <button class="fch-btn" type="button" title="Fullscreen" (click)="toggleFullscreen()">⛶</button>
+      <button class="fch-btn" type="button" title="Minimize" (click)="minimizeCall()">▁</button>
+      <button class="fch-btn end" type="button" title="End call" (click)="endCall()">📵</button>
+    </div>
+  </div>
+
+  <div class="floating-conn" *ngIf="showConnectionNotice" [class.warn]="connectionTone === 'warn'">
+    {{ connectionLabel }}
+  </div>
+
+  <div class="floating-call-body" *ngIf="callSvc.callType === 'video'; else voiceBody">
+    <video class="fc-remote-video" #popupRemoteVideo autoplay playsinline></video>
+    <video class="fc-local-video" #popupLocalVideo autoplay playsinline muted></video>
+    <audio #popupRemoteAudio autoplay playsinline style="display:none"></audio>
+  </div>
+
+  <ng-template #voiceBody>
+    <div class="voice-wrap">
+      <div class="voice-avatar" [style.background]="getAvatarColor(activeCallName)">
+        {{ getInitials(activeCallName) }}
+      </div>
+      <div class="voice-name">{{ activeCallName }}</div>
+      <div class="voice-label">Call is active in background</div>
+      <audio #popupRemoteAudio autoplay playsinline style="display:none"></audio>
+    </div>
+  </ng-template>
+
+  <div class="floating-call-controls">
+    <button class="fcc-btn" type="button" title="Mute microphone" [class.active]="isMuted" (click)="toggleMute()">
+      {{ isMuted ? '🔇' : '🎙' }}
+    </button>
+    <button class="fcc-btn" type="button" title="Toggle camera" *ngIf="callSvc.callType === 'video'" [class.active]="isCameraOff" (click)="toggleCamera()">
+      {{ isCameraOff ? '📵' : '📷' }}
+    </button>
+  </div>
 </div>
   `,
   styles: [`
@@ -232,6 +291,175 @@ import { ChatService } from '../../../core/services/chat.service';
     .mini-btn.open:hover { background: rgba(147,197,253,.15); }
     .mini-btn.end  { color: #fca5a5; }
     .mini-btn.end:hover { background: rgba(252,165,165,.15); }
+
+    /* ── Active floating call window ── */
+    .floating-call-wrap {
+      position: fixed;
+      right: 24px;
+      bottom: 92px;
+      width: 360px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #0f172a;
+      color: #e2e8f0;
+      z-index: 99997;
+      box-shadow: 0 14px 40px rgba(0,0,0,.45);
+      border: 1px solid rgba(148,163,184,.25);
+    }
+    .floating-call-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(15,23,42,.96);
+      border-bottom: 1px solid rgba(148,163,184,.2);
+    }
+    .fch-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .fch-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: blink 1s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+    .fch-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .fch-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+    .fch-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .fch-btn {
+      background: rgba(148,163,184,.16);
+      border: none;
+      color: #e2e8f0;
+      border-radius: 8px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      line-height: 1;
+      transition: all .15s;
+    }
+    .fch-btn:hover { background: rgba(148,163,184,.32); }
+    .fch-btn.end { color: #fca5a5; }
+    .fch-btn.end:hover { background: rgba(127,29,29,.55); }
+
+    .floating-call-body {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      background: #020617;
+    }
+    .floating-conn {
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #dbeafe;
+      background: rgba(30,64,175,.35);
+      border-bottom: 1px solid rgba(148,163,184,.18);
+      letter-spacing: .2px;
+    }
+    .floating-conn.warn {
+      color: #fde68a;
+      background: rgba(161,98,7,.35);
+    }
+    .fc-remote-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #020617;
+    }
+    .fc-local-video {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: 100px;
+      height: 72px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 2px solid rgba(248,250,252,.9);
+      background: #1e293b;
+    }
+    .voice-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      padding: 26px 10px;
+      background: #020617;
+    }
+    .voice-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 6px rgba(59,130,246,.2);
+    }
+    .voice-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .voice-label {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .floating-call-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 12px 12px;
+      background: rgba(15,23,42,.98);
+      border-top: 1px solid rgba(148,163,184,.2);
+    }
+    .fcc-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(148,163,184,.16);
+      color: #f8fafc;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .fcc-btn:hover { background: rgba(148,163,184,.32); }
+    .fcc-btn.active {
+      background: rgba(127,29,29,.55);
+      color: #fecaca;
+    }
+
+    @media (max-width: 768px) {
+      .floating-call-wrap {
+        width: calc(100vw - 24px);
+        right: 12px;
+        bottom: 84px;
+      }
+    }
   `]
 })
 export class GlobalCallPopupComponent implements OnInit, OnDestroy {
@@ -240,21 +468,96 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
   chatSvc    = inject(ChatService);
   private router = inject(Router);
   private cdr    = inject(ChangeDetectorRef);
+
+  @ViewChild('floatingCallWindow') floatingCallWindow?: ElementRef<HTMLDivElement>;
+  @ViewChild('popupRemoteVideo') popupRemoteVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('popupLocalVideo') popupLocalVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('popupRemoteAudio') popupRemoteAudio?: ElementRef<HTMLAudioElement>;
+
+  isMuted = false;
+  isCameraOff = false;
+  isChatRoute = false;
+
   private subs: Subscription[] = [];
+  private uiTick: any;
+
+  get showFloatingWindow(): boolean {
+    return this.callSvc.isCallActive && !this.callSvc.isMinimized && !this.isChatRoute;
+  }
+
+  get activeCallName(): string {
+    return this.callSvc.activeCall?.name || this.callSvc.incomingCallData?.callerName || 'Active Call';
+  }
+
+  get showConnectionNotice(): boolean {
+    const s = this.callSvc.rtcState;
+    return this.showFloatingWindow && (s === 'connecting' || s === 'disconnected' || s === 'failed');
+  }
+
+  get connectionLabel(): string {
+    const s = this.callSvc.rtcState;
+    if (s === 'connecting') return 'Connecting call...';
+    if (s === 'disconnected') return 'Reconnecting...';
+    if (s === 'failed') return 'Connection failed';
+    return '';
+  }
+
+  get connectionTone(): 'info' | 'warn' {
+    return this.callSvc.rtcState === 'failed' ? 'warn' : 'info';
+  }
 
   ngOnInit() {
+    this.updateRouteState();
+
+    this.subs.push(
+      this.router.events.subscribe(evt => {
+        if (evt instanceof NavigationEnd) {
+          this.updateRouteState();
+          this.syncStreams();
+          this.cdr.detectChanges();
+        }
+      })
+    );
+
     this.subs.push(
       this.chatSvc.callAccepted$.subscribe(d => {
         if (!d) return;
+        this.syncStreams();
         this.cdr.detectChanges();
       })
     );
-    // ✅ 200ms refresh for mini bar duration + popup state sync
-    setInterval(() => this.cdr.detectChanges(), 200);
+
+    this.subs.push(
+      this.callSvc.remoteStream$.subscribe(() => {
+        this.syncStreams();
+        this.cdr.detectChanges();
+      })
+    );
+
+    this.subs.push(
+      this.chatSvc.callEnded$.subscribe(d => {
+        if (!d) return;
+        this.resetLocalControls();
+      })
+    );
+
+    this.subs.push(
+      this.chatSvc.callRejected$.subscribe(d => {
+        if (!d) return;
+        this.resetLocalControls();
+      })
+    );
+
+    // Keep timer text and media bindings in sync while minimized/popup is alive.
+    this.uiTick = setInterval(() => {
+      this.syncStreams();
+      this.cdr.detectChanges();
+    }, 500);
   }
 
   ngOnDestroy() {
     this.subs.forEach(s => s.unsubscribe());
+    clearInterval(this.uiTick);
   }
 
   decline() {
@@ -274,15 +577,107 @@ export class GlobalCallPopupComponent implements OnInit, OnDestroy {
   }
 
   expandCall() {
-    this.callSvc.expandCall();
+    this.openInChat();
     this.cdr.detectChanges();
   }
 
   endCall() {
-    // End call via endCallLocal on chat page (through stream)
-    this.chatSvc.callEnded$.next({ ended: true });
-    this.callSvc.endMiniBar();
+    this.callSvc.endCall(true);
+    this.resetLocalControls();
     this.cdr.detectChanges();
+  }
+
+  openInChat() {
+    if (!this.isChatRoute) {
+      this.router.navigate(['/chat']);
+      setTimeout(() => this.callSvc.expandCall(), 80);
+      return;
+    }
+    this.callSvc.expandCall();
+  }
+
+  minimizeCall() {
+    this.callSvc.showMiniBar(this.activeCallName, this.callSvc.callType);
+  }
+
+  toggleMute() {
+    this.isMuted = !this.isMuted;
+    this.callSvc.toggleMute(this.isMuted);
+  }
+
+  toggleCamera() {
+    this.isCameraOff = !this.isCameraOff;
+    this.callSvc.toggleCamera(this.isCameraOff);
+  }
+
+  toggleFullscreen() {
+    const target = this.floatingCallWindow?.nativeElement;
+    if (!target) return;
+
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void>;
+      mozCancelFullScreen?: () => Promise<void>;
+      msExitFullscreen?: () => Promise<void>;
+      webkitFullscreenElement?: Element;
+      mozFullScreenElement?: Element;
+      msFullscreenElement?: Element;
+    };
+
+    const isFs = !!(
+      document.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    );
+
+    if (!isFs) {
+      const el = target as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+        mozRequestFullScreen?: () => Promise<void>;
+        msRequestFullscreen?: () => Promise<void>;
+      };
+      (el.requestFullscreen
+        || el.webkitRequestFullscreen
+        || el.mozRequestFullScreen
+        || el.msRequestFullscreen
+      )?.call(el);
+      return;
+    }
+
+    (document.exitFullscreen
+      || doc.webkitExitFullscreen
+      || doc.mozCancelFullScreen
+      || doc.msExitFullscreen
+    )?.call(document);
+  }
+
+  private updateRouteState() {
+    this.isChatRoute = this.router.url.startsWith('/chat');
+  }
+
+  private resetLocalControls() {
+    this.isMuted = false;
+    this.isCameraOff = false;
+  }
+
+  private syncStreams() {
+    if (!this.showFloatingWindow) return;
+
+    const remote = this.callSvc.remoteStream;
+    const local = this.callSvc.localStream;
+
+    if (this.popupRemoteVideo?.nativeElement && remote && this.callSvc.callType === 'video') {
+      this.popupRemoteVideo.nativeElement.srcObject = remote;
+    }
+
+    if (this.popupRemoteAudio?.nativeElement && remote) {
+      this.popupRemoteAudio.nativeElement.srcObject = remote;
+      this.popupRemoteAudio.nativeElement.play().catch(() => {});
+    }
+
+    if (this.popupLocalVideo?.nativeElement && local && this.callSvc.callType === 'video') {
+      this.popupLocalVideo.nativeElement.srcObject = local;
+    }
   }
 
   getInitials(name: string): string {

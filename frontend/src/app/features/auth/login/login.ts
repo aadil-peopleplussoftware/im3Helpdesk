@@ -1,6 +1,6 @@
 import {
   Component, ChangeDetectorRef, inject,
-  OnDestroy, AfterViewInit, ElementRef, ViewChild
+  OnDestroy, AfterViewInit, OnInit, ElementRef, ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -20,7 +20,7 @@ type LoginStep = 'credentials' | 'otp' | 'success';
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
 })
-export class LoginComponent implements OnDestroy, AfterViewInit {
+export class LoginComponent implements OnInit, OnDestroy, AfterViewInit {
   private authService = inject(AuthService);
   private router      = inject(Router);
   private toastr      = inject(ToastrService);
@@ -37,6 +37,7 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
   showPassword    = false;
   errorMessage    = '';
   loginWithOtp    = false;
+  forceTwoFactor  = false;
 
   otpEmail       = '';
   resendCooldown = 0;
@@ -50,6 +51,15 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
     email:    ['', [Validators.required, Validators.email]],
     password: ['', Validators.required]
   });
+
+  ngOnInit() {
+    this.forceTwoFactor = this.authService.isTwoFactorEnabled();
+    if (this.forceTwoFactor) {
+      this.loginWithOtp = true;
+      this.credForm.get('password')?.setValidators(Validators.required);
+      this.credForm.get('password')?.updateValueAndValidity({ emitEvent: false });
+    }
+  }
 
   ngAfterViewInit() {}
 
@@ -149,6 +159,8 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
 
   // ── Toggle OTP checkbox ────────────────────
   toggleOtpMode(event: Event) {
+    if (this.forceTwoFactor) return;
+
     this.loginWithOtp = (event.target as HTMLInputElement).checked;
     this.errorMessage = '';
     if (this.loginWithOtp) {
@@ -164,6 +176,15 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
   onSubmit() {
     this.credForm.get('email')?.markAsTouched();
     if (this.credForm.get('email')?.invalid) return;
+
+    if (this.forceTwoFactor) {
+      if (this.credForm.invalid) {
+        this.credForm.markAllAsTouched();
+        return;
+      }
+      this.passwordLoginWithOtp();
+      return;
+    }
 
     if (this.loginWithOtp) {
       this.sendOtpOnly();
@@ -186,9 +207,18 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
 
     this.authService.login(payload).subscribe({
       next: (res: any) => {
+        if (res?.requiresOtp) {
+          this.loading = false;
+          this.forceTwoFactor = !!res?.isTwoFactorEnabled;
+          this.otpEmail = this.credForm.value.email;
+          this.goToOtpStep();
+          return;
+        }
+
         this.loading = false;
         // Seedha save karo aur redirect — OTP screen nahi
         this.authService.saveUserData(res);
+        this.authService.setTwoFactorEnabled(!!res?.user?.isTwoFactorEnabled);
         this.cdr.detectChanges();
         this.redirectUser(res);
       },
@@ -227,6 +257,41 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
       });
   }
 
+  private passwordLoginWithOtp() {
+    this.loading = true;
+    this.errorMessage = '';
+    this.cdr.detectChanges();
+
+    const payload = { ...this.credForm.value, loginWithOtp: true };
+
+    this.authService.login(payload).subscribe({
+      next: (res: any) => {
+        this.loading = false;
+        if (res?.requiresOtp) {
+          this.forceTwoFactor = !!res?.isTwoFactorEnabled;
+          this.otpEmail = this.credForm.value.email;
+          this.goToOtpStep();
+          return;
+        }
+
+        this.authService.saveUserData(res);
+        this.authService.setTwoFactorEnabled(!!res?.user?.isTwoFactorEnabled);
+        this.cdr.detectChanges();
+        this.redirectUser(res);
+      },
+      error: (err: any) => {
+        this.loading = false;
+        this.errorMessage =
+          err.status === 401
+            ? (err.error?.message || 'Invalid email or password')
+            : err.status === 403
+              ? 'Account is locked. Contact admin.'
+              : err.error?.message || 'Login failed.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   private goToOtpStep() {
     this.step = 'otp';
     this.startCooldown();
@@ -251,6 +316,7 @@ export class LoginComponent implements OnDestroy, AfterViewInit {
       .subscribe({
         next: (res: any) => {
           this.authService.saveUserData(res);
+          this.authService.setTwoFactorEnabled(!!res?.user?.isTwoFactorEnabled);
           this.loading = false;
           this.step    = 'success';
           this.cdr.detectChanges();

@@ -167,6 +167,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
+
+  &:hover .ag-name {
+    color: var(--accent, var(--ui-color-primary));
+    text-decoration: underline;
+  }
 }
 
 .ag-av {

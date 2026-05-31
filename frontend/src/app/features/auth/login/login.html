@@ -36,6 +36,10 @@
 
         <form [formGroup]="credForm" (ngSubmit)="onSubmit()">
 
+          <div class="error-alert" *ngIf="forceTwoFactor">
+            <span class="alert-icon">🔐</span> Two-factor authentication is enabled for your account.
+          </div>
+
           <div class="error-alert" *ngIf="errorMessage">
             <span class="alert-icon">✦</span> {{ errorMessage }}
           </div>
@@ -55,7 +59,7 @@
             </span>
           </div>
 
-          <div class="form-group" *ngIf="!loginWithOtp">
+          <div class="form-group" *ngIf="forceTwoFactor || !loginWithOtp">
             <div class="label-row">
               <label>Password</label>
               <a routerLink="/forgot-password" class="forgot-link">Forgot password?</a>
@@ -74,7 +78,7 @@
             </div>
           </div>
 
-          <div class="otp-toggle-row">
+          <div class="otp-toggle-row" *ngIf="!forceTwoFactor">
             <label class="otp-checkbox-label">
               <input type="checkbox" class="otp-checkbox" [checked]="loginWithOtp" (change)="toggleOtpMode($event)"/>
               <span class="otp-checkbox-custom"></span>
@@ -84,11 +88,11 @@
 
           <button type="submit" class="submit-btn" [disabled]="loading">
             <span *ngIf="!loading" class="btn-text">
-              {{ loginWithOtp ? 'Send OTP Code' : 'Continue' }} <span class="arrow">→</span>
+              {{ forceTwoFactor ? 'Continue to OTP' : (loginWithOtp ? 'Send OTP Code' : 'Continue') }} <span class="arrow">→</span>
             </span>
             <span *ngIf="loading" class="btn-loading">
               <span class="spinner"></span>
-              {{ loginWithOtp ? 'Sending code...' : 'Authenticating...' }}
+              {{ forceTwoFactor ? 'Verifying password...' : (loginWithOtp ? 'Sending code...' : 'Authenticating...') }}
             </span>
           </button>
 

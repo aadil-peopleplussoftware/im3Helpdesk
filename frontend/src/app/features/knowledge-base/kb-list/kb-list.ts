@@ -139,6 +139,21 @@ export class KbListComponent implements OnInit {
     this.loadArticles();
   }
 
+  openArticleAuthorProfile(article: any, event: Event) {
+    event.stopPropagation();
+    if (article?.authorType === 'System') return;
+    const userId = String(article?.createdByUserId || article?.userId || '').trim();
+    if (!userId) return;
+    this.router.navigate(['/users', userId]);
+  }
+
+  openCommentAuthorProfile(comment: any, event: Event) {
+    event.stopPropagation();
+    const userId = String(comment?.userId || comment?.createdByUserId || '').trim();
+    if (!userId) return;
+    this.router.navigate(['/users', userId]);
+  }
+
   // ── Reactions ──────────────────────────────────
   onReact(article: any, type: 'like' | 'dislike', event: Event) {
     event.stopPropagation();

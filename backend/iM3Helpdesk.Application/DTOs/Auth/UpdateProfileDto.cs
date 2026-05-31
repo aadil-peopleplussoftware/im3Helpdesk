@@ -42,3 +42,8 @@ public class UpdateOrganizationDto
     public string? LogoUrl { get; set; }
     public string? BrandColor { get; set; }
 }
+
+public class UpdateTwoFactorDto
+{
+    public bool IsTwoFactorEnabled { get; set; }
+}
