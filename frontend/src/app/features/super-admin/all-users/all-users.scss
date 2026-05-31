@@ -185,6 +185,10 @@
 .au-row {
   &:last-child td { border-bottom: none; }
   &:hover { background: var(--hover-bg, var(--ui-color-bg-subtle)); }
+
+  &.is-clickable {
+    cursor: pointer;
+  }
 }
 
 .au-user-cell {
@@ -264,3 +268,218 @@
 }
 
 @keyframes au-spin { to { transform: rotate(360deg); } }
+
+.sa-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 26, 42, 0.35);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 1200;
+}
+
+.sa-detail-panel {
+  width: min(520px, 100%);
+  height: 100%;
+  background: var(--bg-card, white);
+  border-left: 1px solid var(--border-color, var(--ui-color-border));
+  box-shadow: -14px 0 32px rgba(10, 24, 40, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.sa-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-color, var(--ui-color-border));
+
+  h3 {
+    margin: 0;
+    font-size: 1.08rem;
+    color: var(--text-primary, var(--ui-color-text-primary));
+  }
+}
+
+.sa-close {
+  border: 1px solid var(--border-color, var(--ui-color-border));
+  background: var(--bg-card, white);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+}
+
+.sa-detail-loading {
+  padding: 18px;
+  color: var(--text-muted, var(--ui-color-text-faint));
+}
+
+.sa-detail-body {
+  overflow: auto;
+  padding: 16px 18px 24px;
+}
+
+.sa-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  h4 {
+    margin: 0;
+    font-size: 1.18rem;
+    color: var(--text-primary, var(--ui-color-text-primary));
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--text-muted, var(--ui-color-text-faint));
+    font-size: 0.9rem;
+  }
+}
+
+.sa-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #f43f5e, #ef4444);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.sa-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  > div {
+    border: 1px solid var(--border-color, var(--ui-color-border));
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--ui-color-bg-subtle);
+  }
+
+  dt {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, var(--ui-color-text-faint));
+    margin-bottom: 4px;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--text-primary, var(--ui-color-text-primary));
+    font-weight: 600;
+    word-break: break-word;
+  }
+}
+
+.sa-org-card {
+  margin-top: 14px;
+  border: 1px solid var(--border-color, var(--ui-color-border));
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sa-org-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  h5 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.82rem;
+    color: var(--text-muted, var(--ui-color-text-faint));
+  }
+}
+
+.sa-org-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.sa-org-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  span {
+    font-size: 0.78rem;
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: var(--ui-color-bg-subtle);
+    color: var(--text-secondary, var(--ui-color-text-secondary));
+    border: 1px solid var(--border-color, var(--ui-color-border));
+
+    &.active {
+      background: var(--ui-color-success-bg);
+      color: var(--ui-color-success);
+      border-color: transparent;
+    }
+
+    &.inactive {
+      background: var(--ui-color-danger-bg);
+      color: var(--ui-color-danger);
+      border-color: transparent;
+    }
+  }
+}
+
+.sa-signature {
+  margin-top: 14px;
+  border: 1px dashed var(--border-color, var(--ui-color-border));
+  border-radius: 10px;
+  padding: 10px;
+
+  h6 {
+    margin: 0 0 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, var(--ui-color-text-secondary));
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-primary, var(--ui-color-text-primary));
+    white-space: pre-wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .sa-grid {
+    grid-template-columns: 1fr;
+  }
+}

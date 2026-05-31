@@ -6,6 +6,7 @@ import { ToastrService } from 'ngx-toastr';
 import { SuperAdminService } from '../../../core/services/super-admin';
 import { AuthService } from '../../auth/auth.service';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-all-users',
@@ -29,6 +30,9 @@ export class AllUsersComponent implements OnInit {
   loading = true;
   searchQuery = '';
   filterRole = '';
+  detailsLoading = false;
+  selectedUser: any = null;
+  readonly baseUrl = environment.baseUrl;
 
   roleOptions = ['SuperAdmin', 'CompanyAdmin', 'Agent', 'Customer'];
 
@@ -101,6 +105,53 @@ export class AllUsersComponent implements OnInit {
   getInitials(name: string): string {
     if (!name) return '?';
     return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2);
+  }
+
+  openUserDetails(user: any) {
+    const id = String(user?.id || '').trim();
+    if (!id) return;
+
+    this.detailsLoading = true;
+    this.selectedUser = null;
+    this.cdr.detectChanges();
+
+    this.superAdminService.getUserById(id).subscribe({
+      next: (res) => {
+        this.selectedUser = res;
+        this.detailsLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.detailsLoading = false;
+        this.toastr.error('Failed to load user details');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  closeUserDetails() {
+    this.selectedUser = null;
+    this.detailsLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  mediaUrl(raw?: string | null): string {
+    const value = String(raw || '').trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    return `${this.baseUrl}${value.startsWith('/') ? '' : '/'}${value}`;
+  }
+
+  userPhotoUrl(): string {
+    return this.mediaUrl(this.selectedUser?.photoUrl);
+  }
+
+  orgLogoUrl(): string {
+    return this.mediaUrl(this.selectedUser?.organization?.logoUrl);
+  }
+
+  organizationName(user: any): string {
+    return user?.organizationName || user?.organization?.name || '—';
   }
 
   logout() { this.authService.logout(); }

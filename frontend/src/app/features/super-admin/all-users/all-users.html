@@ -90,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let u of filteredUsers" class="au-row">
+          <tr *ngFor="let u of filteredUsers" class="au-row is-clickable" (click)="openUserDetails(u)">
 
             <td>
               <div class="au-user-cell">
@@ -113,7 +113,7 @@
             </td>
 
             <td class="au-org">
-              {{ u.organizationName || u.organization?.name || '—' }}
+              {{ organizationName(u) }}
             </td>
 
             <td class="center">
@@ -131,6 +131,69 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="sa-detail-overlay" *ngIf="selectedUser || detailsLoading" (click)="closeUserDetails()">
+      <aside class="sa-detail-panel" (click)="$event.stopPropagation()">
+        <div class="sa-detail-head">
+          <h3>User Details</h3>
+          <button type="button" class="sa-close" (click)="closeUserDetails()">✕</button>
+        </div>
+
+        <div class="sa-detail-loading" *ngIf="detailsLoading">Loading details...</div>
+
+        <div class="sa-detail-body" *ngIf="!detailsLoading && selectedUser">
+          <div class="sa-profile-row">
+            <div class="sa-avatar" [class.has-photo]="!!selectedUser.photoUrl">
+              <img *ngIf="selectedUser.photoUrl" [src]="userPhotoUrl()" [alt]="selectedUser.fullName || 'User'" />
+              <span *ngIf="!selectedUser.photoUrl">{{ getInitials(selectedUser.fullName) }}</span>
+            </div>
+            <div>
+              <h4>{{ selectedUser.fullName || '—' }}</h4>
+              <p>{{ selectedUser.role || 'User' }}</p>
+            </div>
+          </div>
+
+          <dl class="sa-grid">
+            <div><dt>Email</dt><dd>{{ selectedUser.email || '—' }}</dd></div>
+            <div><dt>Phone</dt><dd>{{ selectedUser.phoneNumber || '—' }}</dd></div>
+            <div><dt>Department</dt><dd>{{ selectedUser.department || '—' }}</dd></div>
+            <div><dt>Designation</dt><dd>{{ selectedUser.designation || '—' }}</dd></div>
+            <div><dt>Location</dt><dd>{{ selectedUser.location || '—' }}</dd></div>
+            <div><dt>Gender</dt><dd>{{ selectedUser.gender || '—' }}</dd></div>
+            <div><dt>Date of Birth</dt><dd>{{ selectedUser.dateOfBirth ? (selectedUser.dateOfBirth | date:'dd MMM yyyy') : '—' }}</dd></div>
+            <div><dt>Date of Joining</dt><dd>{{ selectedUser.dateOfJoining ? (selectedUser.dateOfJoining | date:'dd MMM yyyy') : '—' }}</dd></div>
+            <div><dt>Created At</dt><dd>{{ selectedUser.createdAt ? (selectedUser.createdAt | date:'dd MMM yyyy, hh:mm a') : '—' }}</dd></div>
+            <div><dt>Last Login</dt><dd>{{ selectedUser.lastLoginAt ? (selectedUser.lastLoginAt | date:'dd MMM yyyy, hh:mm a') : 'Never' }}</dd></div>
+            <div><dt>Email Verified</dt><dd>{{ selectedUser.isEmailVerified ? 'Yes' : 'No' }}</dd></div>
+            <div><dt>2FA</dt><dd>{{ selectedUser.isTwoFactorEnabled ? 'Enabled' : 'Disabled' }}</dd></div>
+          </dl>
+
+          <section class="sa-org-card" *ngIf="selectedUser.organization">
+            <div class="sa-org-title">
+              <div class="sa-org-logo" [class.has-photo]="!!selectedUser.organization.logoUrl">
+                <img *ngIf="selectedUser.organization.logoUrl" [src]="orgLogoUrl()" [alt]="selectedUser.organization.name || 'Organization'" />
+                <span *ngIf="!selectedUser.organization.logoUrl">{{ getInitials(selectedUser.organization.name) }}</span>
+              </div>
+              <div>
+                <h5>{{ selectedUser.organization.name }}</h5>
+                <p>{{ selectedUser.organization.slug }}</p>
+              </div>
+            </div>
+            <div class="sa-org-meta">
+              <span [class.active]="selectedUser.organization.isActive" [class.inactive]="!selectedUser.organization.isActive">
+                {{ selectedUser.organization.isActive ? 'Active' : 'Inactive' }}
+              </span>
+              <span>{{ selectedUser.organization.supportEmail || 'No support email' }}</span>
+            </div>
+          </section>
+
+          <section class="sa-signature" *ngIf="selectedUser.signature">
+            <h6>Signature</h6>
+            <p>{{ selectedUser.signature }}</p>
+          </section>
+        </div>
+      </aside>
     </div>
 
   </div>

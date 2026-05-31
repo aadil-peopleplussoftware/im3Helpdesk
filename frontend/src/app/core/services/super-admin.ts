@@ -25,6 +25,14 @@ export class SuperAdminService {
     return this.http.get<any[]>(`${this.apiUrl}/users`);
   }
 
+  getUserById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/users/${id}`);
+  }
+
+  getOrganizationById(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/organizations/${id}`);
+  }
+
   getLeads(status?: string): Observable<any[]> {
     return this.http.get<any[]>(`${environment.apiUrl}/admin/leads`, {
       params: status ? { status } : {}

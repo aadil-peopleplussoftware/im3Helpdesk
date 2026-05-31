@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let o of filteredOrganizations" class="ol-row">
+          <tr *ngFor="let o of filteredOrganizations" class="ol-row is-clickable" (click)="openOrganizationDetails(o)">
 
             <td>
               <div class="ol-org-cell">
@@ -127,7 +127,7 @@
               <button class="ol-toggle-btn"
                 [class.deactivate]="o.isActive"
                 [class.activate]="!o.isActive"
-                (click)="toggleOrg(o.id, o.name)">
+                (click)="$event.stopPropagation(); toggleOrg(o.id, o.name)">
                 {{ o.isActive ? 'Deactivate' : 'Activate' }}
               </button>
             </td>
@@ -135,6 +135,73 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="sa-detail-overlay" *ngIf="selectedOrg || detailsLoading" (click)="closeOrganizationDetails()">
+      <aside class="sa-detail-panel" (click)="$event.stopPropagation()">
+        <div class="sa-detail-head">
+          <h3>Organization Details</h3>
+          <button type="button" class="sa-close" (click)="closeOrganizationDetails()">✕</button>
+        </div>
+
+        <div class="sa-detail-loading" *ngIf="detailsLoading">Loading details...</div>
+
+        <div class="sa-detail-body" *ngIf="!detailsLoading && selectedOrg">
+          <div class="sa-profile-row">
+            <div class="sa-avatar" [class.has-photo]="!!selectedOrg.logoUrl">
+              <img *ngIf="selectedOrg.logoUrl" [src]="orgLogoUrl()" [alt]="selectedOrg.name || 'Organization'" />
+              <span *ngIf="!selectedOrg.logoUrl">{{ getInitials(selectedOrg.name) }}</span>
+            </div>
+            <div>
+              <h4>{{ selectedOrg.name || '—' }}</h4>
+              <p>{{ selectedOrg.slug || '—' }}</p>
+            </div>
+          </div>
+
+          <dl class="sa-grid">
+            <div><dt>Support Email</dt><dd>{{ selectedOrg.supportEmail || '—' }}</dd></div>
+            <div><dt>Status</dt><dd>{{ selectedOrg.isActive ? 'Active' : 'Inactive' }}</dd></div>
+            <div><dt>Brand Color</dt><dd>{{ selectedOrg.brandColor || '—' }}</dd></div>
+            <div><dt>Timezone</dt><dd>{{ selectedOrg.timezone || '—' }}</dd></div>
+            <div><dt>Created At</dt><dd>{{ selectedOrg.createdAt ? (selectedOrg.createdAt | date:'dd MMM yyyy, hh:mm a') : '—' }}</dd></div>
+            <div><dt>Trial Ends</dt><dd>{{ selectedOrg.trialEndsAt ? (selectedOrg.trialEndsAt | date:'dd MMM yyyy') : '—' }}</dd></div>
+            <div><dt>Total Users</dt><dd>{{ selectedOrg.totalUsers ?? 0 }}</dd></div>
+            <div><dt>Active Users</dt><dd>{{ selectedOrg.activeUsers ?? 0 }}</dd></div>
+            <div><dt>Total Tickets</dt><dd>{{ selectedOrg.totalTickets ?? 0 }}</dd></div>
+            <div><dt>Email Polling</dt><dd>{{ selectedOrg.emailPollingEnabled ? 'Enabled' : 'Disabled' }}</dd></div>
+            <div><dt>Email Polling Onboarded At</dt><dd>{{ selectedOrg.emailPollingOnboardedAt ? (selectedOrg.emailPollingOnboardedAt | date:'dd MMM yyyy, hh:mm a') : '—' }}</dd></div>
+            <div><dt>Polling Interval</dt><dd>{{ selectedOrg.emailPollingIntervalSeconds || 0 }} sec</dd></div>
+            <div><dt>Recycle Bin</dt><dd>{{ selectedOrg.recycleBinRetentionValue }} {{ selectedOrg.recycleBinRetentionUnit }}</dd></div>
+            <div><dt>SMTP Host</dt><dd>{{ selectedOrg.smtpHost || '—' }}</dd></div>
+            <div><dt>SMTP Port</dt><dd>{{ selectedOrg.smtpPort || '—' }}</dd></div>
+            <div><dt>SMTP From</dt><dd>{{ selectedOrg.smtpFromEmail || '—' }}</dd></div>
+            <div><dt>SMTP Password</dt><dd>{{ selectedOrg.smtpPassword || 'Not set' }}</dd></div>
+            <div><dt>IMAP Host</dt><dd>{{ selectedOrg.imapHost || '—' }}</dd></div>
+            <div><dt>IMAP Port</dt><dd>{{ selectedOrg.imapPort || '—' }}</dd></div>
+            <div><dt>WhatsApp</dt><dd>{{ selectedOrg.whatsAppNumber || '—' }}</dd></div>
+            <div><dt>Twilio SID</dt><dd>{{ selectedOrg.twilioAccountSid || '—' }}</dd></div>
+            <div><dt>Twilio Token</dt><dd>{{ selectedOrg.hasTwilioAuthToken ? 'Set' : 'Not set' }}</dd></div>
+            <div><dt>Slack Webhook</dt><dd>{{ selectedOrg.slackWebhookUrl || '—' }}</dd></div>
+            <div><dt>Teams Webhook</dt><dd>{{ selectedOrg.teamsWebhookUrl || '—' }}</dd></div>
+          </dl>
+
+          <section class="sa-recent" *ngIf="selectedOrg.recentUsers?.length">
+            <h5>Recent Users</h5>
+            <div class="sa-recent-list">
+              <div class="sa-recent-item" *ngFor="let u of selectedOrg.recentUsers">
+                <div class="sa-mini-av" [class.has-photo]="!!u.photoUrl">
+                  <img *ngIf="u.photoUrl" [src]="userPhotoUrl(u.photoUrl)" [alt]="u.fullName || 'User'" />
+                  <span *ngIf="!u.photoUrl">{{ getInitials(u.fullName) }}</span>
+                </div>
+                <div>
+                  <strong>{{ u.fullName }}</strong>
+                  <p>{{ u.email }} • {{ u.role }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </aside>
     </div>
 
   </div>
