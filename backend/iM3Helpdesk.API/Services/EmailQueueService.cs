@@ -51,6 +51,8 @@ public class EmailQueueService : IEmailQueueService
         .Where(e => !e.IsSent
             && e.RetryCount < 3
             && e.NextRetryAt <= DateTime.UtcNow)
+      .OrderBy(e => e.NextRetryAt)
+      .ThenBy(e => e.CreatedAt)
         .Take(10)
         .ToListAsync();
 
