@@ -129,13 +129,22 @@ public class EmailPollingService : BackgroundService
       CancellationToken ct)
   {
     using var client = new ImapClient();
+    var imapHost = org.ImapHost?.Trim();
     var username = org.SmtpUsername ?? org.SmtpFromEmail ?? org.SupportEmail ?? "";
     var password = org.SmtpPassword ?? "";
     var imapPort = org.ImapPort ?? 993;
 
+    if (string.IsNullOrWhiteSpace(imapHost))
+    {
+      _logger.LogWarning(
+          "Skipping email polling for org {OrgId} because IMAP host is not configured.",
+          org.Id);
+      return;
+    }
+
     try
     {
-      await client.ConnectAsync(org.ImapHost, imapPort, true, ct);
+      await client.ConnectAsync(imapHost, imapPort, true, ct);
       await client.AuthenticateAsync(username, password, ct);
 
       var inbox = client.Inbox;
