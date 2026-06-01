@@ -299,6 +299,12 @@ public class ApplicationDbContext : DbContext
           .IsRequired(false)
           .OnDelete(
               DeleteBehavior.Restrict);
+      e.HasOne(c => c.EditedBy)
+          .WithMany()
+          .HasForeignKey(c => c.EditedById)
+          .IsRequired(false)
+          .OnDelete(
+              DeleteBehavior.Restrict);
       e.HasIndex(c => c.EmailMessageId);
     });
 
@@ -671,21 +677,17 @@ public class ApplicationDbContext : DbContext
     });
 
     // ── TodoItem ──────────────────
-    // ✅ FIX WARNING: IsRequired(false)
-    // fixes "User required end" warning
     modelBuilder.Entity<TodoItem>(e =>
     {
       e.HasKey(x => x.Id);
       e.Property(x => x.Title)
           .HasMaxLength(500)
           .IsRequired();
-      e.HasOne<User>()
+      e.HasOne(x => x.User)
           .WithMany()
-          .HasForeignKey(
-              (TodoItem x) => x.UserId)
+          .HasForeignKey(x => x.UserId)
           .OnDelete(
-              DeleteBehavior.Restrict)
-          .IsRequired(false);
+              DeleteBehavior.Restrict);
     });
 
     // ════════════════════════════════

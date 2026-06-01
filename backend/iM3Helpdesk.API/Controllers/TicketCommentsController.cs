@@ -73,6 +73,8 @@ public class TicketCommentsController : TicketsControllerBase
 
         comment.Comment = html;
         comment.IsInternal = true;
+        comment.EditedAt = DateTime.UtcNow;
+        comment.EditedById = userId;
 
         if (comment.Ticket != null)
         {

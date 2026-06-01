@@ -981,14 +981,15 @@ public class AIFeaturesController : ControllerBase
     // Helper to build top-N with trend
     List<object> TopWithTrend<TKey>(
         Func<dynamic, TKey> selector,
-        int take = 7)
+      int take = 7)
+      where TKey : notnull
     {
       var curMap = current
           .GroupBy(t => selector(t))
-          .ToDictionary(g => g.Key!, g => g.Count());
+        .ToDictionary(g => g.Key, g => g.Count());
       var prevMap = previous
           .GroupBy(t => selector(t))
-          .ToDictionary(g => g.Key!, g => g.Count());
+        .ToDictionary(g => g.Key, g => g.Count());
 
       return curMap
           .OrderByDescending(kv => kv.Value)
@@ -1029,7 +1030,7 @@ public class AIFeaturesController : ControllerBase
             : (string)t.Category);
 
     var topTypes = TopWithTrend(
-        t => (string)t.TicketType);
+      t => (string)t.TicketType ?? "Unknown");
 
     var topPriorities = TopWithTrend(
         t => ((TicketPriority)t.Priority).ToString());

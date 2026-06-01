@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using iM3Helpdesk.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using iM3Helpdesk.Infrastructure.Persistence;
 namespace iM3Helpdesk.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260531183313_RemoveTodoItemShadowUserFk")]
+    partial class RemoveTodoItemShadowUserFk
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1437,12 +1440,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("EditedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("EditedById")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("EmailMessageId")
                         .HasColumnType("nvarchar(450)");
 
@@ -1479,8 +1476,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("EditedById");
 
                     b.HasIndex("EmailMessageId");
 
@@ -1760,11 +1755,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsTwoFactorEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
@@ -1818,7 +1808,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                             FailedLoginAttempts = 0,
                             FullName = "Super Admin",
                             IsEmailVerified = true,
-                            IsTwoFactorEnabled = false,
                             PasswordHash = "$2a$11$5mzOVht3guIDVrfa/Ju01eBo7TgkNkPz.HPoNgPHsgyRGxiU6DG6e",
                             PhoneNumber = "9999999999",
                             Role = 0
@@ -2088,11 +2077,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.TicketComment", b =>
                 {
-                    b.HasOne("iM3Helpdesk.Domain.Entities.User", "EditedBy")
-                        .WithMany()
-                        .HasForeignKey("EditedById")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("iM3Helpdesk.Domain.Entities.Ticket", "Ticket")
                         .WithMany("Comments")
                         .HasForeignKey("TicketId")
@@ -2103,8 +2087,6 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("EditedBy");
 
                     b.Navigation("Ticket");
 

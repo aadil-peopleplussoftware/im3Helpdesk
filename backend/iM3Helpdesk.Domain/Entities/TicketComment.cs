@@ -34,6 +34,11 @@ public class TicketComment
   public string? InReplyTo { get; set; }
   public string? References { get; set; }
 
+  // Edit tracking (for private notes). Null when never edited.
+  public DateTime? EditedAt { get; set; }
+  public Guid? EditedById { get; set; }
+
   public User? User { get; set; }
+  public User? EditedBy { get; set; }
   public Ticket? Ticket { get; set; }
 }
