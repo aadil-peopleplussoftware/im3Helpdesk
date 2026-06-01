@@ -122,6 +122,7 @@ export class TicketDetailComponent
 
   /** Conversation thread collapse (Freshdesk-style "+N conversations" pill). */
   convoExpanded = false;
+  convoExpanding = false;
 
   quickReplyText = '';
   noteText = '';
@@ -290,6 +291,11 @@ export class TicketDetailComponent
     const second = parts.length > 1
       ? parts[parts.length - 1].charAt(0) : '';
     return (first + second).toUpperCase();
+  }
+
+  /** Logged-in user's display name (used for composer avatar). */
+  meName(): string {
+    return this.authService.getUserName() || 'You';
   }
 
   /**
@@ -725,7 +731,7 @@ export class TicketDetailComponent
       return this.orgSupportEmail ? [this.orgSupportEmail] : [];
     }
     // Agent outbound → addressed back to the ticket sender.
-    const to = this.ticket?.fromEmail;
+    const to = this.ticket?.fromEmail || (this.ticket as any)?.createdBy?.email;
     return to ? [to] : [];
   }
 
@@ -942,6 +948,7 @@ export class TicketDetailComponent
   }
 
   expandConversations() {
+    if (this.convoExpanded) return;
     this.convoExpanded = true;
   }
 

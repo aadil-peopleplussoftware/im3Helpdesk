@@ -240,6 +240,8 @@ public class TicketsController : TicketsControllerBase
         .Include(t => t.AgentGroup)
         .Include(t => t.Comments)
         .ThenInclude(c => c.User)
+        .Include(t => t.Comments)
+        .ThenInclude(c => c.EditedBy)
         .AsSplitQuery()
         .FirstOrDefaultAsync(t => t.Id == id);
 
@@ -334,6 +336,13 @@ public class TicketsController : TicketsControllerBase
               c.NotifiedTo,
               c.FromName,
               c.FromEmail,
+              c.EditedAt,
+              EditedBy = c.EditedBy == null ? null : new
+              {
+                c.EditedBy.Id,
+                c.EditedBy.FullName,
+                c.EditedBy.Email
+              },
               User = c.User == null ? null : new
               {
                 c.User.Id,
