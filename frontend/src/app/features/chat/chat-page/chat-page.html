@@ -40,9 +40,13 @@
   </div>
 
   <!-- ══════════ ACTIVE CALL ══════════ -->
+  <!-- Note: Once the call is `active`, the global Teams-style popup
+       in <app-global-call-popup> takes over the UI (it has higher z-index).
+       This in-page overlay still mounts to keep refs (#localVideo etc.) and
+       the dialing 'calling' state visible. -->
   <div class="call-overlay"
-    *ngIf="callState === 'calling'
-      || callState === 'active'">
+    *ngIf="callState === 'calling' || callState === 'active'"
+    [class.hidden-by-popup]="callState === 'active'">
     <div class="call-card active-card">
 
       <!-- Video streams -->
@@ -115,6 +119,14 @@
           title="Camera">
           {{ isCameraOff ? '📵' : '📷' }}
         </button>
+        <!-- ➕ Add people / Conference -->
+        <button class="ctrl-btn add"
+          type="button"
+          *ngIf="callState==='active'"
+          (click)="openInvitePicker()"
+          title="Add people to call">
+          ➕
+        </button>
         <!-- ✅ Minimize button -->
         <button class="ctrl-btn minimize"
           type="button"
@@ -128,6 +140,48 @@
           (click)="hangUp()"
           title="End call">
           📵
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ADD-PEOPLE PICKER (during active call) ══════════ -->
+  <div class="modal-overlay invite-picker-overlay"
+    *ngIf="showInvitePicker"
+    (click)="closeInvitePicker()">
+    <div class="modal-card invite-picker-card" (click)="$event.stopPropagation()">
+      <div class="ip-head">
+        <strong>Add people to call</strong>
+        <button class="ip-x" type="button" (click)="closeInvitePicker()">✕</button>
+      </div>
+      <input class="ip-search" type="text"
+        placeholder="Search..."
+        [(ngModel)]="inviteSearch" />
+      <div class="ip-list">
+        <div *ngIf="loadingInviteUsers" class="ip-empty">Loading…</div>
+        <label class="ip-row"
+          *ngFor="let u of filteredInviteUsers()">
+          <input type="checkbox"
+            [checked]="inviteSelected.has(u.id)"
+            (change)="toggleInviteUser(u.id)" />
+          <div class="ip-av"
+            [style.background]="getAvatarColor(u.fullName)">
+            {{ getInitials(u.fullName) }}
+          </div>
+          <div class="ip-info">
+            <div class="ip-name">{{ u.fullName }}</div>
+            <div class="ip-mail">{{ u.email }}</div>
+          </div>
+        </label>
+        <div *ngIf="!loadingInviteUsers && filteredInviteUsers().length === 0"
+          class="ip-empty">No matches</div>
+      </div>
+      <div class="ip-foot">
+        <button type="button" class="ip-btn ghost" (click)="closeInvitePicker()">Cancel</button>
+        <button type="button" class="ip-btn primary"
+          [disabled]="inviteSelected.size === 0"
+          (click)="confirmInvite()">
+          Invite ({{ inviteSelected.size }})
         </button>
       </div>
     </div>

@@ -28,6 +28,8 @@ import { TranslationService } from '../../core/services/translation'; // ✅ ADD
 import { environment } from '../../../environments/environment';
 import { GlobalCallNotificationService } from '../../core/services/global-call-notification.service';
 import { GlobalCallPopupComponent } from '../../shared/components/global-call-popup/global-call-popup.component';
+import { GlobalChatNotificationService } from '../../core/services/global-chat-notification.service';
+import { GlobalChatNotificationComponent } from '../../shared/components/global-chat-notification/global-chat-notification.component';
 import { TopbarContextService } from '../../core/services/topbar-context.service';
 import { OrgContextService } from '../../core/services/org-context.service';
 import { RoleRightsService } from '../../core/services/role-rights.service';
@@ -41,7 +43,8 @@ import { SubscriptionService } from '../../core/services/subscription';
     RouterModule,
     FormsModule,
     TodoPanelComponent,
-    GlobalCallPopupComponent
+    GlobalCallPopupComponent,
+    GlobalChatNotificationComponent
   ],
   templateUrl: './layout.html',
   styleUrls: ['./layout.scss']
@@ -173,6 +176,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   private destroy$       = new Subject<void>();
   private chatService    = inject(ChatService);
   private globalCallSvc  = inject(GlobalCallNotificationService);
+  private globalChatSvc  = inject(GlobalChatNotificationService);
   public  tr             = inject(TranslationService); // ✅ ADD — 'tr' naam se template mein use hoga
   public  topbarCtx      = inject(TopbarContextService);
   private orgContext     = inject(OrgContextService);
@@ -618,6 +622,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.chatService.connect();
 
     this.globalCallSvc.init(() => { this.router.navigate(['/chat']); });
+    this.globalChatSvc.init();
 
     this.chatService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
       this.chatUnreadCount = count; this.cdr.detectChanges();

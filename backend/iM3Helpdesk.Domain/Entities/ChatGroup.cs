@@ -11,6 +11,11 @@ public class ChatGroup : IMustHaveTenant
   public Guid OrganizationId { get; set; }
   public DateTime CreatedAt { get; set; }
       = DateTime.UtcNow;
+  /// <summary>
+  /// If this group was auto-created from a conference call, this is the
+  /// originating CallLog id. Null for manually-created groups.
+  /// </summary>
+  public Guid? CallLogId { get; set; }
   public User? CreatedBy { get; set; }
   public List<ChatGroupMember> Members { get; set; }
       = new();
