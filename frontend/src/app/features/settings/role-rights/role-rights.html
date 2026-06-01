@@ -48,6 +48,27 @@
       👑 SuperAdmin always has full access. Permissions for this role cannot be changed.
     </div>
 
+    <!-- Plan scope banner -->
+    <div *ngIf="!isReadOnly && sub.loaded() && sub.plan() as plan" class="rr-plan-banner">
+      <div class="rr-plan-info">
+        <span class="rr-plan-dot" [style.background]="plan.accent || '#2563eb'"></span>
+        <div class="rr-plan-text">
+          <strong>{{ plan.name }} plan</strong>
+          <small>
+            Showing {{ availableModules().length }} of {{ modules().length }} modules included in your subscription.
+            <ng-container *ngIf="lockedModules().length">
+              {{ lockedModules().length }} locked.
+            </ng-container>
+          </small>
+        </div>
+      </div>
+      <a *ngIf="lockedModules().length"
+         routerLink="/explore-plans"
+         class="rr-plan-cta">
+        🔓 Upgrade to unlock more
+      </a>
+    </div>
+
     <!-- Toolbar -->
     <div class="rr-toolbar">
       <div class="rr-search">
@@ -135,6 +156,24 @@
 
       <div *ngIf="groupedModules().length === 0" class="rr-empty">
         No modules match “{{ search() }}”.
+      </div>
+    </div>
+
+    <!-- Locked modules card -->
+    <div *ngIf="!loading() && lockedModules().length" class="rr-locked-card">
+      <div class="rr-locked-head">
+        <span class="rr-locked-icon">🔒</span>
+        <div>
+          <strong>{{ lockedModules().length }} more module{{ lockedModules().length === 1 ? '' : 's' }} available on higher plans</strong>
+          <small>Upgrade your subscription to manage permissions for these modules.</small>
+        </div>
+        <a routerLink="/explore-plans" class="rr-btn rr-btn-primary rr-btn-sm">Explore plans →</a>
+      </div>
+      <div class="rr-locked-grid">
+        <div *ngFor="let m of lockedModules(); trackBy: trackModule" class="rr-locked-chip" [title]="m.label + ' • locked by your plan'">
+          <span class="rr-locked-chip-icon">{{ m.icon }}</span>
+          <span class="rr-locked-chip-label">{{ m.label }}</span>
+        </div>
       </div>
     </div>
 

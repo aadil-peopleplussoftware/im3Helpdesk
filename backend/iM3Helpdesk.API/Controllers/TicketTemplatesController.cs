@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -136,6 +138,7 @@ public class TicketTemplatesController : ControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("ticket-templates", PermissionAction.Add)]
   public async Task<IActionResult> Create([FromBody] TicketTemplateDto dto)
   {
     var priority = dto.Priority?.Trim() ?? TicketPriority.Medium.ToString();
@@ -175,6 +178,7 @@ public class TicketTemplatesController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [RequirePermission("ticket-templates", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var template = await _context.TicketTemplates.FindAsync(id);

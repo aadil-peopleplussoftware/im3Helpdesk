@@ -1,4 +1,6 @@
 ﻿using iM3Helpdesk.API.Common.Helpers;
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Application.DTOs.Tickets;
 using iM3Helpdesk.Domain.Entities;
@@ -360,6 +362,7 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("tickets", PermissionAction.Add)]
   public async Task<IActionResult> Create(
       [FromBody] CreateTicketDto dto)
   {
@@ -454,6 +457,7 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpPut("{id}")]
+  [RequirePermission("tickets", PermissionAction.Edit)]
   public async Task<IActionResult> Update(
       Guid id, [FromBody] UpdateTicketDto dto)
   {
@@ -590,7 +594,7 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpDelete("{id}")]
-  [Authorize(Roles = "CompanyAdmin,SuperAdmin")]
+  [RequirePermission("tickets", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     // Soft delete only: ticket is moved to the Recycle Bin so an admin
@@ -1189,6 +1193,7 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpPost("bulk-update")]
+  [RequirePermission("tickets", PermissionAction.Edit)]
   public async Task<IActionResult> BulkUpdate(
       [FromBody] BulkUpdateDto dto)
   {
@@ -1248,6 +1253,7 @@ public class TicketsController : TicketsControllerBase
   }
 
   [HttpGet("export")]
+  [RequirePermission("tickets", PermissionAction.Export)]
   public async Task<IActionResult> Export(
       [FromQuery] string? status,
       [FromQuery] string? priority)

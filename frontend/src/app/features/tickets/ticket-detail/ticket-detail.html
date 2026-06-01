@@ -108,7 +108,7 @@
           </button>
           <ng-container *hasPermission="'tickets:delete'">
             <button type="button" class="td-tb-btn td-tb-btn--danger"
-              *ngIf="ticket && canDeleteTicket()"
+              *ngIf="ticket"
               title="Delete ticket"
               (click)="deleteTicket()">
               <span class="td-tb-ic" aria-hidden="true">🗑</span> Delete

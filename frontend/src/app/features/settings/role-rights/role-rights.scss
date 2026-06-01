@@ -264,6 +264,81 @@
   font-size: 13px;
 }
 
+// ── Plan banner ──
+.rr-plan-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(99,102,241,.06), rgba(139,92,246,.06));
+  border: 1px solid var(--ui-color-border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+.rr-plan-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.rr-plan-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+  flex: 0 0 auto;
+}
+.rr-plan-text { display: flex; flex-direction: column; min-width: 0; }
+.rr-plan-text strong { font-size: 13.5px; color: var(--ui-color-text-primary); }
+.rr-plan-text small  { font-size: 12px; color: var(--ui-color-text-muted); margin-top: 2px; }
+.rr-plan-cta {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font: 600 12.5px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff !important;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(99,102,241,.32);
+  transition: transform .12s ease;
+  &:hover { transform: translateY(-1px); }
+}
+
+// ── Locked modules card ──
+.rr-locked-card {
+  margin-top: 16px;
+  background: var(--ui-color-bg-surface);
+  border: 1px dashed var(--ui-color-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.rr-locked-head {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  > div { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; }
+  strong { font-size: 14px; color: var(--ui-color-text-primary); }
+  small  { font-size: 12px; color: var(--ui-color-text-muted); margin-top: 2px; }
+}
+.rr-locked-icon { font-size: 22px; }
+.rr-btn-sm { padding: 8px 14px !important; font-size: 12.5px !important; }
+.rr-locked-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.rr-locked-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  background: var(--ui-color-bg-subtle);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 10px;
+  color: var(--ui-color-text-muted);
+  font-size: 12.5px;
+  opacity: .85;
+  position: relative;
+  &::after {
+    content: "🔒";
+    margin-left: auto;
+    font-size: 11px;
+    opacity: .7;
+  }
+}
+.rr-locked-chip-icon { font-size: 16px; }
+.rr-locked-chip-label { font-weight: 600; color: var(--ui-color-text-primary); }
+
 @media (max-width: 720px) {
   .rr-matrix { font-size: 12.5px; }
   .rr-mod { padding: 10px 10px; }

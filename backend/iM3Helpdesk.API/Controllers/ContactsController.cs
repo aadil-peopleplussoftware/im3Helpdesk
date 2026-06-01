@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -90,6 +92,7 @@ public class ContactsController : ControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("contacts", PermissionAction.Add)]
   public async Task<IActionResult> Create(
       [FromBody] CreateContactDto dto)
   {
@@ -126,6 +129,7 @@ public class ContactsController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [RequirePermission("contacts", PermissionAction.Edit)]
   public async Task<IActionResult> Update(
       Guid id, [FromBody] CreateContactDto dto)
   {
@@ -144,6 +148,7 @@ public class ContactsController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [RequirePermission("contacts", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var contact = await _context.Contacts

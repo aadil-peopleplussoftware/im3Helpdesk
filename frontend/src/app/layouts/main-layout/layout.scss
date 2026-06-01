@@ -64,6 +64,134 @@
   z-index: 100;
 }
 
+/* Global main sidebar dock mode (controlled from Settings: Left / Bottom). */
+.app-shell.main-sidebar-bottom {
+  .sidebar {
+    width: auto;
+    min-width: 0;
+    height: 50px;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0 8px;
+  }
+
+  .sidebar-logo {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    height: 100%;
+    padding: 2px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-section {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    justify-content: center;
+    margin-right: 0;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .nav-item {
+    margin: 0;
+    min-width: 56px;
+    min-height: 40px;
+    padding: 2px 5px;
+    border-radius: 8px;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1px;
+    position: relative;
+    font-size: 12px;
+    color: var(--ui-color-text-muted);
+    border: none;
+    transform: none !important;
+
+    > span:not(.nav-icon):not(.badge) {
+      display: block;
+      line-height: 1;
+      font-size: 10.5px;
+      font-weight: 600;
+      max-width: 100%;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    &:hover {
+      background: transparent;
+      color: var(--ui-color-text-primary);
+    }
+
+    &.active {
+      background: transparent;
+      color: var(--ui-color-primary);
+      box-shadow: none;
+    }
+
+    &.active::before,
+    &.active::after {
+      content: none !important;
+      display: none !important;
+    }
+  }
+
+  .nav-icon {
+    width: 19px;
+    height: 19px;
+    margin: 0;
+  }
+
+  .badge {
+    position: absolute;
+    top: 2px;
+    right: 5px;
+    background: var(--ui-color-danger) !important;
+    color: #fff;
+    border: 1px solid var(--ui-color-bg-surface);
+    padding: 1px 4px;
+    font-size: 8px;
+    min-width: auto;
+  }
+
+  .badge.badge-call {
+    background: var(--ui-color-danger) !important;
+  }
+
+  .sidebar-collapse-btn {
+    display: none;
+  }
+
+  .main-area,
+  .main-area.collapsed {
+    margin-left: 0;
+    width: 100vw;
+    padding-bottom: 44px;
+  }
+}
+
 .sidebar-logo {
   display: flex;
   align-items: center;
@@ -229,11 +357,15 @@
 /* Operational Collapse Button */
 .sidebar-collapse-btn {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  border-top: 1px solid var(--ui-color-border);
+  border: none;
   background: var(--ui-color-bg-page);
+  box-shadow: none;
+  outline: none;
+  appearance: none;
   cursor: pointer;
   color: var(--ui-color-text-muted);
   font-size: 13.5px;
@@ -819,6 +951,31 @@
   .hamburger { display: block; }
   .topbar { padding: 0 16px; }
   .topbar-search { max-width: 180px; }
+
+  .app-shell.main-sidebar-bottom {
+    .sidebar {
+      left: 8px;
+      right: 8px;
+      bottom: 2px;
+      height: 50px;
+      border-radius: 0;
+    }
+
+    .nav-item {
+      min-width: 52px;
+      min-height: 40px;
+      padding: 2px 4px;
+
+      > span:not(.nav-icon):not(.badge) {
+        font-size: 9px;
+      }
+    }
+
+    .main-area,
+    .main-area.collapsed {
+      padding-bottom: 52px;
+    }
+  }
 }
 
 .my-ticket-stats {

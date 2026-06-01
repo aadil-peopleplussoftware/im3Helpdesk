@@ -85,15 +85,31 @@ export class RoleRightsService {
     this.inFlight = null;
   }
 
+  // Catalog of modules whose access we DO gate. Unknown modules (not in this
+  // list) default to allow so screens we haven't catalogued yet stay visible;
+  // catalogued modules without an explicit row default to deny.
+  private static readonly KNOWN_MODULES: ReadonlySet<string> = new Set([
+    'dashboard','tickets','contacts','knowledge-base','chat','calendar',
+    'notifications','todo','call-logs','reports','analytics-heatmap',
+    'ai-insights','audit-log','agents','agent-groups','customers','leads',
+    'ticket-templates','custom-fields','ticket-masters','settings',
+    'organization-profile','holiday-setup','recycle-bin','role-rights',
+    'integrations-email','integrations-slack','integrations-whatsapp',
+  ]);
+
   /**
-   * UI permission check. Defaults to ALLOW before the map loads
-   * (guards always await `ensureLoaded()` first so they never see this).
+   * UI permission check.
+   * - Before the map loads: allow (guards await `ensureLoaded()` so they never see this).
+   * - SuperAdmin: always allow.
+   * - Known module with no row in the matrix: deny (defense-in-depth — backend is the
+   *   source of truth, but a missing row signals an explicit revoke from RoleRights).
+   * - Unknown module (not in catalog): allow (screens we haven't enrolled yet).
    */
   can(module: string, action: 'view' | 'add' | 'edit' | 'delete' | 'export' = 'view'): boolean {
     if (this.isSuperAdminFlag()) return true;
     if (!this.loaded()) return true;
     const row = this.myPermissions()[module];
-    if (!row) return true; // unknown module -> allow (never block screens not in catalog)
+    if (!row) return !RoleRightsService.KNOWN_MODULES.has(module);
     switch (action) {
       case 'view':   return !!row.canView;
       case 'add':    return !!row.canAdd;

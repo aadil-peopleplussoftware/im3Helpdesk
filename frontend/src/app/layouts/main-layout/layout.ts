@@ -185,6 +185,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return saved === 'true';
   })();
 
+  mainSidebarDock: 'left' | 'bottom' = (() => {
+    const saved = (localStorage.getItem('im3_main_sidebar_pos') || 'left').toLowerCase();
+    return saved === 'bottom' ? 'bottom' : 'left';
+  })();
+
+  private onMainSidebarPositionChanged = (ev: Event) => {
+    const customEvent = ev as CustomEvent<{ pos?: string }>;
+    const raw = (customEvent?.detail?.pos || '').toLowerCase();
+    this.mainSidebarDock = raw === 'bottom' ? 'bottom' : 'left';
+    this.cdr.detectChanges();
+  };
+
   isCompanyAdmin = false;
   smtpSetupIncomplete = false;
   smtpSetupChecked = false;
@@ -636,6 +648,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.initSearchPipeline();
 
     this.updateActivePageFromUrl(this.router.url);
+    window.addEventListener('im3-main-sidebar-pos', this.onMainSidebarPositionChanged as EventListener);
     this.router.events
       .pipe(
         filter((e: any) => e?.constructor?.name === 'NavigationEnd'),
@@ -728,6 +741,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.chatService.disconnect();
+    window.removeEventListener('im3-main-sidebar-pos', this.onMainSidebarPositionChanged as EventListener);
   }
 
   // ──────────────────────────────────────────────

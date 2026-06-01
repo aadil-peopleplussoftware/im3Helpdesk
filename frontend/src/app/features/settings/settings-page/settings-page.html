@@ -170,6 +170,25 @@
                 </div>
               </div>
             </div>
+
+            <div class="row-control">
+              <div class="row-label">
+                <div class="row-title">Main Sidebar Position</div>
+                <div class="row-desc">Controls Dashboard, Chat, Calendar and other app pages</div>
+              </div>
+              <div class="row-actions">
+                <div class="chip-group">
+                  <button type="button"
+                    class="chip"
+                    [class.active]="mainSidebarPosition === 'left'"
+                    (click)="setMainSidebarPosition('left')">Left</button>
+                  <button type="button"
+                    class="chip"
+                    [class.active]="mainSidebarPosition === 'bottom'"
+                    (click)="setMainSidebarPosition('bottom')">Bottom</button>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section class="pane-section">

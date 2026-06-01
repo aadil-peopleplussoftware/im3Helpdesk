@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -95,6 +97,7 @@ public class TicketMastersController : ControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("ticket-masters", PermissionAction.Add)]
   public async Task<IActionResult> Create([FromBody] CreateTicketMasterOptionDto dto)
   {
     if (!TryNormalizeField(dto.Field, out var field))
@@ -129,6 +132,7 @@ public class TicketMastersController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [RequirePermission("ticket-masters", PermissionAction.Edit)]
   public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTicketMasterOptionDto dto)
   {
     var row = await _context.TicketFieldMasters.FirstOrDefaultAsync(x => x.Id == id);
@@ -177,6 +181,7 @@ public class TicketMastersController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [RequirePermission("ticket-masters", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var row = await _context.TicketFieldMasters.FirstOrDefaultAsync(x => x.Id == id);
@@ -191,6 +196,7 @@ public class TicketMastersController : ControllerBase
   }
 
   [HttpDelete("{id}/hard")]
+  [RequirePermission("ticket-masters", PermissionAction.Delete)]
   public async Task<IActionResult> HardDelete(Guid id)
   {
     var row = await _context.TicketFieldMasters.FirstOrDefaultAsync(x => x.Id == id);

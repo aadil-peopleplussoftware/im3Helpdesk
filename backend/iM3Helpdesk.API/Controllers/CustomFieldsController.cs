@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
@@ -45,6 +47,7 @@ public class CustomFieldsController : ControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("custom-fields", PermissionAction.Add)]
   public async Task<IActionResult> Create(
       [FromBody] CreateCustomFieldDto dto)
   {
@@ -65,6 +68,7 @@ public class CustomFieldsController : ControllerBase
   }
 
   [HttpPut("{id}")]
+  [RequirePermission("custom-fields", PermissionAction.Edit)]
   public async Task<IActionResult> Update(Guid id,
       [FromBody] CreateCustomFieldDto dto)
   {
@@ -82,6 +86,7 @@ public class CustomFieldsController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [RequirePermission("custom-fields", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var field = await _context.CustomFields.FindAsync(id);

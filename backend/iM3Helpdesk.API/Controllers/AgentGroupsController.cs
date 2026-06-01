@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
@@ -52,6 +54,7 @@ public class AgentGroupsController : ControllerBase
   }
 
   [HttpPost]
+  [RequirePermission("agent-groups", PermissionAction.Add)]
   public async Task<IActionResult> Create(
       [FromBody] AgentGroupDto dto)
   {
@@ -96,6 +99,7 @@ public class AgentGroupsController : ControllerBase
 
   // ✅ PUT — explicit route
   [HttpPut("{id}")]
+  [RequirePermission("agent-groups", PermissionAction.Edit)]
   public async Task<IActionResult> Update(
       Guid id, [FromBody] AgentGroupDto dto)
   {
@@ -145,6 +149,7 @@ public class AgentGroupsController : ControllerBase
 
   // ✅ DELETE — with cascade
   [HttpDelete("{id}")]
+  [RequirePermission("agent-groups", PermissionAction.Delete)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var orgId = _tenant.OrganizationId!.Value;

@@ -77,6 +77,7 @@ export class SettingsPageComponent implements OnInit {
   language = 'en';
 
   settingsSidebarPosition: 'left' | 'right' | 'top' | 'bottom' = 'left';
+  mainSidebarPosition: 'left' | 'bottom' = 'left';
 
   // Email polling cadence (general settings).
   // Stored on the backend in seconds; the UI lets the user pick a number
@@ -171,6 +172,9 @@ export class SettingsPageComponent implements OnInit {
     } else {
       this.settingsSidebarPosition = 'left';
     }
+
+    const savedMainPos = (localStorage.getItem('im3_main_sidebar_pos') || 'left').toLowerCase();
+    this.mainSidebarPosition = savedMainPos === 'bottom' ? 'bottom' : 'left';
 
     // Seed timezone from the org-context cache so the dropdown isn't empty
     // before the HTTP call returns.
@@ -285,6 +289,14 @@ export class SettingsPageComponent implements OnInit {
     localStorage.setItem('im3_settings_sidebar_pos', pos);
     this.cdr.detectChanges();
     Promise.resolve().then(() => this.toastr.success('Layout updated!'));
+  }
+
+  setMainSidebarPosition(pos: 'left' | 'bottom') {
+    this.mainSidebarPosition = pos;
+    localStorage.setItem('im3_main_sidebar_pos', pos);
+    window.dispatchEvent(new CustomEvent('im3-main-sidebar-pos', { detail: { pos } }));
+    this.cdr.detectChanges();
+    Promise.resolve().then(() => this.toastr.success('Main sidebar position updated!'));
   }
 
   applyTheme(themeId: string) {

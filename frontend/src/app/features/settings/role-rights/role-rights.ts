@@ -9,6 +9,7 @@ import {
   PermissionRow,
   Matrix
 } from '../../../core/services/role-rights.service';
+import { SubscriptionService } from '../../../core/services/subscription';
 import { LayoutComponent } from '../../../layouts/main-layout/layout';
 
 type Action = 'canView' | 'canAdd' | 'canEdit' | 'canDelete' | 'canExport';
@@ -25,6 +26,7 @@ interface ActionMeta { key: Action; label: string; icon: string; }
 export class RoleRightsComponent implements OnInit {
   private svc = inject(RoleRightsService);
   private toastr = inject(ToastrService);
+  protected sub = inject(SubscriptionService);
 
   modules = signal<ModuleDef[]>([]);
   roles = signal<string[]>([]);
@@ -42,13 +44,49 @@ export class RoleRightsComponent implements OnInit {
     { key: 'canExport', label: 'Export', icon: '📤' }
   ];
 
-  /** Modules grouped by category and filtered by search term. */
+  /**
+   * Module → subscription-feature key mapping. When the module key already
+   * matches the feature key (the common case) we don't need an entry here.
+   * Modules listed in `ALWAYS_AVAILABLE` are shown regardless of plan
+   * (foundational pieces every workspace needs).
+   */
+  private static readonly MODULE_FEATURE_MAP: Record<string, string> = {
+    'integrations-email': 'email-integration',
+    'integrations-slack': 'slack',
+    'integrations-whatsapp': 'whatsapp',
+  };
+  private static readonly ALWAYS_AVAILABLE = new Set<string>([
+    'customers', // sub-view of contacts; not gated as a paid feature
+  ]);
+
+  /** Feature key required to unlock a module on the current plan. */
+  private featureForModule(key: string): string {
+    return RoleRightsComponent.MODULE_FEATURE_MAP[key] ?? key;
+  }
+
+  /** True when the active subscription includes this module. */
+  private isModuleInPlan(key: string): boolean {
+    if (RoleRightsComponent.ALWAYS_AVAILABLE.has(key)) return true;
+    if (!this.sub.loaded()) return true; // grace until features load
+    return this.sub.hasFeature(this.featureForModule(key));
+  }
+
+  /** Modules included in the active plan (full catalog filtered by plan). */
+  availableModules = computed<ModuleDef[]>(() =>
+    this.modules().filter(m => this.isModuleInPlan(m.key)));
+
+  /** Modules excluded by the current plan — surfaced as the "upgrade" hint. */
+  lockedModules = computed<ModuleDef[]>(() =>
+    this.modules().filter(m => !this.isModuleInPlan(m.key)));
+
+  /** Modules grouped by category and filtered by plan + search term. */
   groupedModules = computed(() => {
     const q = this.search().trim().toLowerCase();
+    const base = this.availableModules();
     const filtered = q
-      ? this.modules().filter(m =>
+      ? base.filter(m =>
           m.label.toLowerCase().includes(q) || m.key.includes(q))
-      : this.modules();
+      : base;
     const groups: Record<string, ModuleDef[]> = {};
     for (const m of filtered) {
       (groups[m.category] ||= []).push(m);
@@ -66,6 +104,9 @@ export class RoleRightsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loading.set(true);
+    // Make sure the plan/feature list is hydrated so the page filters
+    // correctly even if the user lands here on a deep link.
+    this.sub.ensureLoaded().subscribe();
     this.svc.getCatalog().subscribe({
       next: (cat) => {
         this.modules.set(cat.modules);
@@ -138,7 +179,8 @@ export class RoleRightsComponent implements OnInit {
     const m = { ...this.matrix() };
     const role = this.selectedRole();
     const roleMap = { ...(m[role] || {}) };
-    for (const mod of this.modules()) {
+    // Only mutate modules visible on this plan — locked ones stay untouched.
+    for (const mod of this.availableModules()) {
       const row = { ...(roleMap[mod.key]) } as any;
       row[action] = value;
       if (action === 'canView' && !value) {
@@ -159,7 +201,10 @@ export class RoleRightsComponent implements OnInit {
       return;
     }
     const role = this.selectedRole();
-    const rows = Object.values(this.currentMatrix);
+    // Only persist rows for modules included in the active plan; locked
+    // modules keep whatever the org last saved (or fall back to defaults).
+    const visibleKeys = new Set(this.availableModules().map(m => m.key));
+    const rows = Object.values(this.currentMatrix).filter(r => visibleKeys.has(r.module));
     this.saving.set(true);
     this.svc.save(role, rows).subscribe({
       next: () => {

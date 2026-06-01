@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -26,11 +27,13 @@ public class RoleRightsController : ControllerBase
 {
   private readonly ApplicationDbContext _db;
   private readonly ICurrentTenantService _tenant;
+  private readonly IPermissionService _perms;
 
-  public RoleRightsController(ApplicationDbContext db, ICurrentTenantService tenant)
+  public RoleRightsController(ApplicationDbContext db, ICurrentTenantService tenant, IPermissionService perms)
   {
     _db = db;
     _tenant = tenant;
+    _perms = perms;
   }
 
   // ──────────────────────────────────────────────────────
@@ -259,6 +262,7 @@ public class RoleRightsController : ControllerBase
     }
 
     await _db.SaveChangesAsync();
+    if (orgId.HasValue) _perms.InvalidateOrg(orgId.Value);
     return Ok(new { role = role.ToString(), saved = byKey.Count });
   }
 
@@ -284,6 +288,7 @@ public class RoleRightsController : ControllerBase
     var rows = await q.ToListAsync();
     if (rows.Count > 0) _db.RolePermissions.RemoveRange(rows);
     await _db.SaveChangesAsync();
+    if (orgId.HasValue) _perms.InvalidateOrg(orgId.Value);
     return Ok(new { reset = rows.Count });
   }
 

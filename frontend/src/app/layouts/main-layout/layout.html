@@ -1,4 +1,8 @@
-<div class="app-shell" [class.anim-ready]="animationsReady">
+<div
+  class="app-shell"
+  [class.anim-ready]="animationsReady"
+  [class.main-sidebar-bottom]="mainSidebarDock === 'bottom'"
+>
 
   <div class="sidebar" [class.collapsed]="isSidebarCollapsed">
 
@@ -247,7 +251,12 @@
       </div>
     </nav>
 
-    <div class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()">
+    <button
+      type="button"
+      class="sidebar-collapse-btn"
+      (click)="toggleSidebarCollapse()"
+      [attr.aria-label]="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+    >
       <span class="nav-icon-toggle">
         <ng-container *ngIf="isSidebarCollapsed">
           <span class="icon-emoji">▶️</span>
@@ -263,7 +272,7 @@
       <span class="collapse-text" *ngIf="!isSidebarCollapsed">
         {{ tr.t('collapse') || 'Collapse Layout' }}
       </span>
-    </div>
+    </button>
   </div>
 
   <div class="main-area" [class.collapsed]="isSidebarCollapsed">

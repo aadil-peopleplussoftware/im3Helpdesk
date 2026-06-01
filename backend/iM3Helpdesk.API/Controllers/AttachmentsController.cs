@@ -1,3 +1,5 @@
+using iM3Helpdesk.API.Middleware;
+using iM3Helpdesk.API.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
@@ -105,6 +107,7 @@ public class AttachmentsController : ControllerBase
   }
 
   [HttpDelete("{id}")]
+  [RequirePermission("tickets", PermissionAction.Edit)]
   public async Task<IActionResult> Delete(Guid id)
   {
     var attachment = await _context.TicketAttachments.FindAsync(id);
