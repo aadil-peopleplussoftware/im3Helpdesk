@@ -402,7 +402,9 @@
   background: var(--fd-white);
   border: 1px solid var(--fd-border);
   border-radius: var(--fd-radius);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  margin-left: 48px;
 }
 
 /* ── Sticky ticket title ── */
@@ -435,7 +437,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 18px 12px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid var(--fd-border);
 }
 
@@ -449,6 +451,9 @@
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
+  position: absolute;
+  left: -46px;
+  top: 14px;
   img { width: 100%; height: 100%;
     object-fit: cover; }
 }
@@ -506,7 +511,7 @@
 
 /* Email body */
 .ec-body {
-  padding: 16px 18px;
+  padding: 12px 16px 14px;
   font-size: 14px;
   line-height: 1.7;
   color: var(--fd-text);
@@ -554,7 +559,7 @@
 
 /* Attachments */
 .ec-attachments {
-  padding: 12px 18px;
+  padding: 10px 16px 12px;
   border-top: 1px solid var(--fd-border);
 }
 
@@ -599,7 +604,7 @@
 .fd-convo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 /* Public Reply */
@@ -607,14 +612,16 @@
   background: var(--fd-white);
   border: 1px solid var(--fd-border);
   border-radius: var(--fd-radius);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  margin-left: 48px;
 }
 
 .fr-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding: 12px 16px;
+  padding: 14px 16px 10px;
   border-bottom: 1px solid var(--fd-border);
 }
 
@@ -627,14 +634,18 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  position: absolute;
+  left: -46px;
+  top: 14px;
 }
 
 .fr-info {
-  flex: 0 1 auto;
+  flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   flex-wrap: wrap;
+  padding-top: 2px;
 }
 
 .fr-name {
@@ -664,7 +675,7 @@
 }
 
 .fr-body {
-  padding: 14px 16px;
+  padding: 12px 16px 14px;
   font-size: 14px;
   line-height: 1.7;
   color: var(--fd-text);
@@ -782,7 +793,21 @@
   background: var(--fd-white);
   border: 1px solid var(--fd-border);
   border-radius: var(--fd-radius);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+  margin-left: 48px;
+}
+
+/* Composer avatar — same column and size as conversation avatars */
+.fdc-av {
+  position: absolute;
+  left: -47px;
+  top: 14px;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* Tabs */
@@ -1070,6 +1095,19 @@
     color: #fff;
     font-size: 10px;
   }
+  .fd-convo-collapse-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid var(--fd-accent);
+    border-top-color: transparent;
+    animation: fd-convo-spin 0.7s linear infinite;
+  }
+  &.is-loading { cursor: progress; }
+}
+@keyframes fd-convo-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Toolbar */
@@ -1932,11 +1970,11 @@
 
 .ec-header,
 .fr-header {
-  padding: 14px 18px;
+  padding: 14px 16px 8px;
 }
 .ec-body,
 .fr-body {
-  padding: 16px 18px 18px;
+  padding: 8px 16px 14px;
   font-size: 14px;
   line-height: 1.65;
 }
@@ -2340,16 +2378,16 @@ textarea:focus-visible,
 
 .fd-main .fd-email-card .ec-header {
   border-bottom: 0;
-  padding: 10px 0 4px;
+  padding: 14px 16px 8px;
 }
 
 .fd-main .fd-email-card .ec-body {
-  padding: 8px 0;
+  padding: 8px 16px 14px;
 }
 
 .fd-main .fd-email-card .ec-attachments {
   border-top: 0;
-  padding: 10px 0;
+  padding: 10px 16px;
 }
 
 .fd-main .fd-reply:not(.is-note) {
@@ -2767,8 +2805,6 @@ textarea:focus-visible,
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px 14px;
-
   .ec-to-lbl,
   .ec-cc-lbl {
     color: var(--fd-muted);
@@ -3248,7 +3284,6 @@ textarea:focus-visible,
   color: var(--fd-sub);
   display: flex;
   align-items: center;
-  gap: 4px 8px;
   flex-wrap: wrap;
   margin-top: 2px;
 }
@@ -3263,6 +3298,88 @@ textarea:focus-visible,
 }
 .fd-reply .fr-to-row .ec-cc-lbl {
   margin-left: 6px;
+}
+
+/* Keep subject/from/to/body on one visual gutter.
+   Mail icon and sender avatar share the same left column width. */
+.fd-main {
+  --fd-mail-col-size: 38px;
+  --fd-mail-col-gap: 10px;
+}
+
+.fd-sticky-title {
+  padding-left: 0;
+  gap: var(--fd-mail-col-gap);
+}
+
+.fd-sticky-title .fd-mail-ic {
+  width: var(--fd-mail-col-size);
+  height: var(--fd-mail-col-size);
+  flex: 0 0 var(--fd-mail-col-size);
+  border-radius: 10px;
+}
+
+.fd-main .fd-email-card .ec-header {
+  gap: var(--fd-mail-col-gap);
+}
+
+.fd-main .fd-email-card .ec-av {
+  width: var(--fd-mail-col-size);
+  height: var(--fd-mail-col-size);
+  flex: 0 0 var(--fd-mail-col-size);
+}
+
+.fd-main .fd-email-card .ec-body,
+.fd-main .fd-email-card .ec-attachments {
+  padding-left: 16px;
+}
+
+@media (max-width: 720px) {
+  .fd-main {
+    --fd-mail-col-size: 34px;
+    --fd-mail-col-gap: 8px;
+  }
+
+  .fd-main .fd-email-card .ec-body,
+  .fd-main .fd-email-card .ec-attachments {
+    padding-left: 14px;
+  }
+}
+
+/* Keep Reply / Note / Forward cards on same gutter system as inbound email. */
+.fd-main .fd-reply .fr-header {
+  align-items: flex-start;
+  gap: var(--fd-mail-col-gap);
+}
+
+.fd-main .fd-reply .fr-av {
+  width: var(--fd-mail-col-size);
+  height: var(--fd-mail-col-size);
+  flex: 0 0 var(--fd-mail-col-size);
+}
+
+.fd-main .fd-reply .fr-body,
+.fd-main .fd-reply .ec-attachments {
+  padding-left: 16px;
+}
+
+.fd-main .fd-reply .fr-footer {
+  padding-left: 16px;
+}
+
+@media (max-width: 720px) {
+  .fd-main .fd-reply .fr-body,
+  .fd-main .fd-reply .ec-attachments,
+  .fd-main .fd-reply .fr-footer {
+    padding-left: 14px;
+  }
+}
+
+/* Remove only outer card borders for reply/note/forward. */
+.fd-main .fd-reply,
+.fd-main .fd-reply.is-note,
+.fd-main .fd-reply.is-forward {
+  border: 0;
 }
 
 

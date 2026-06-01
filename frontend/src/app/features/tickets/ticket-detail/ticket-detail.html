@@ -299,12 +299,20 @@
 
           <!-- Collapse pill (Freshdesk-style) -->
           <div class="fd-convo-collapse"
-            *ngIf="hiddenConversationsCount > 0">
+            *ngIf="hiddenConversationsCount > 0 || convoExpanding">
             <button type="button"
               class="fd-convo-collapse-pill"
+              [class.is-loading]="convoExpanding"
+              [disabled]="convoExpanding"
               (click)="expandConversations()">
-              <span class="fd-convo-collapse-ic">▾</span>
-              +{{ hiddenConversationsCount }} conversation{{ hiddenConversationsCount === 1 ? '' : 's' }}
+              <ng-container *ngIf="!convoExpanding">
+                <span class="fd-convo-collapse-ic">▾</span>
+                +{{ hiddenConversationsCount }} conversation{{ hiddenConversationsCount === 1 ? '' : 's' }}
+              </ng-container>
+              <ng-container *ngIf="convoExpanding">
+                <span class="fd-convo-collapse-spinner" aria-hidden="true"></span>
+                Loading…
+              </ng-container>
             </button>
           </div>
 
@@ -339,10 +347,6 @@
                       (keydown.enter)="openContact(commentEmail(c) || commentAuthor(c), c.user)">
                       {{ commentAuthor(c) }}
                     </span>
-                    <span class="fr-agent"
-                      *ngIf="c.user?.isAgent">
-                      Support Agent
-                    </span>
                     <span class="fr-via">
                       <ng-container
                         *ngIf="c.source === 'email'">
@@ -372,7 +376,7 @@
                       || getCcList(c).length
                       || getBccList(c).length">
                     <ng-container *ngIf="getReplyToList(c).length > 0">
-                      <span class="ec-to-lbl">To:</span>
+                      <span class="ec-to-lbl">{{ c.source === 'forward' ? 'Forwarded to:' : 'To:' }}</span>
                       <span class="ec-to-val">{{ getReplyToList(c).join(', ') }}</span>
                     </ng-container>
                     <ng-container *ngIf="getCcList(c).length > 0">
@@ -467,6 +471,17 @@
                     *ngIf="getNotifiedList(c).length > 0">
                     <span class="ec-to-lbl">Notified to:</span>
                     <span class="ec-to-val">{{ getNotifiedList(c).join(', ') }}</span>
+                  </div>
+
+                  <!-- Last edited info (only for edited notes) -->
+                  <div class="ec-to-row fr-edited-row"
+                    *ngIf="c.editedAt && c.editedBy">
+                    <span class="ec-to-lbl">Last edited by:</span>
+                    <span class="ec-to-val">
+                      {{ c.editedBy.fullName || c.editedBy.email }},
+                      {{ timeAgo(c.editedAt) }}
+                      ({{ c.editedAt | date:'EEE, d MMM yyyy \'at\' hh:mm a':tz }})
+                    </span>
                   </div>
                 </div>
                 <div class="fr-actions"
@@ -564,6 +579,13 @@
 
         <!-- ─── COMPOSER ─── -->
         <div class="fd-composer">
+
+          <!-- Logged-in user avatar (outside card, aligned with conversation avatars) -->
+          <div class="fr-av fdc-av"
+            [style.background]="getAvatarColor(meName())"
+            [title]="meName()">
+            {{ getInitials(meName()) }}
+          </div>
 
           <!-- Tabs -->
           <div class="fdc-tabs">
@@ -726,8 +748,6 @@
                   (click)="replyBcc=[]; showBcc=false">Clear</button>
               </span>
             </div>
-
-            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
 
             <div class="fdc-editor"
               contenteditable="true"
@@ -904,8 +924,6 @@
                   placeholder="Add Bcc and press Enter"/>
               </div>
             </div>
-
-            <ng-container *ngTemplateOutlet="notifyRow"></ng-container>
 
             <div class="fdc-editor"
               contenteditable="true"

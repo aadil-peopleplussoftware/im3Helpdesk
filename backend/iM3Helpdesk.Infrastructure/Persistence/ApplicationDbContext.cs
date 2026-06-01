@@ -299,6 +299,12 @@ public class ApplicationDbContext : DbContext
           .IsRequired(false)
           .OnDelete(
               DeleteBehavior.Restrict);
+      e.HasOne(c => c.EditedBy)
+          .WithMany()
+          .HasForeignKey(c => c.EditedById)
+          .IsRequired(false)
+          .OnDelete(
+              DeleteBehavior.Restrict);
       e.HasIndex(c => c.EmailMessageId);
     });
 
