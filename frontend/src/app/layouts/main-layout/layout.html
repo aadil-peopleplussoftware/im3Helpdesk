@@ -697,6 +697,22 @@
               </span>
               <span>Recycle Bin</span>
             </div>
+            <div class="profile-link-item" *ngIf="isCompanyAdmin" (click)="goToSlaPolicies()">
+              <span class="profile-link-icon" data-im3-icon-color="warning">
+                <span class="icon-emoji">⏱️</span>
+                <span class="icon-fa"><i class="fa-solid fa-hourglass-end"></i></span>
+                <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </span>
+              <span>SLA Policies</span>
+            </div>
+            <div class="profile-link-item" *ngIf="isCompanyAdmin" (click)="goToBusinessHours()">
+              <span class="profile-link-icon" data-im3-icon-color="info">
+                <span class="icon-emoji">🕘</span>
+                <span class="icon-fa"><i class="fa-solid fa-business-time"></i></span>
+                <svg class="im3-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>
+              </span>
+              <span>Business Hours</span>
+            </div>
             <div class="profile-link-item logout" (click)="logout()">
               <span class="profile-link-icon">
                 <span class="icon-emoji">🚪</span>
@@ -720,3 +736,4 @@
 </div>
 
 <app-global-call-popup></app-global-call-popup>
+<app-global-chat-notification></app-global-chat-notification>

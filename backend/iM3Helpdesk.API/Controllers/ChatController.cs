@@ -2,8 +2,10 @@ using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
 using iM3Helpdesk.Infrastructure.Services;
+using iM3Helpdesk.API.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using iM3Helpdesk.Application.DTOs.Chat;
@@ -19,15 +21,18 @@ public class ChatController : ControllerBase
   private readonly ApplicationDbContext _context;
   private readonly ICurrentTenantService _tenant;
   private readonly IWebHostEnvironment _env;
+  private readonly IHubContext<ChatHub> _hub;
 
   public ChatController(
       ApplicationDbContext context,
       ICurrentTenantService tenant,
-      IWebHostEnvironment env)
+      IWebHostEnvironment env,
+      IHubContext<ChatHub> hub)
   {
     _context = context;
     _tenant = tenant;
     _env = env;
+    _hub = hub;
   }
 
   private Guid GetUserId()
@@ -334,12 +339,18 @@ public class ChatController : ControllerBase
 
     var orgId = _tenant.OrganizationId.Value;
 
-    // Groups where I am a member
-    var myGroupIds = await _context
+    // Groups where I am a member, with my LastReadAt for unread calc
+    var myMemberships = await _context
         .ChatGroupMembers
+        .AsNoTracking()
         .Where(m => m.UserId == myId)
-        .Select(m => m.GroupId)
+        .Select(m => new { m.GroupId, m.LastReadAt })
         .ToListAsync();
+
+    var myGroupIds = myMemberships
+        .Select(m => m.GroupId).ToList();
+    var lastReadByGroup = myMemberships
+        .ToDictionary(m => m.GroupId, m => m.LastReadAt);
 
     var groups = await _context.ChatGroups
         .AsNoTracking()
@@ -384,11 +395,40 @@ public class ChatController : ControllerBase
         .Take(200)
         .ToListAsync();
 
+    // Unread per group: messages from others after my LastReadAt
+    var groupUnreadRaw = await _context
+        .ChatMessages
+        .AsNoTracking()
+        .Where(m =>
+            m.GroupId != null &&
+            myGroupIds.Contains(m.GroupId.Value) &&
+            m.SenderId != myId)
+        .Select(m => new
+        {
+          GroupId = m.GroupId!.Value,
+          m.CreatedAt
+        })
+        .ToListAsync();
+    var groupUnreadCounts = groupUnreadRaw
+        .GroupBy(x => x.GroupId)
+        .ToDictionary(
+            g => g.Key,
+            g =>
+            {
+              lastReadByGroup.TryGetValue(
+                  g.Key, out var lr);
+              return g.Count(x =>
+                  lr == null ||
+                  x.CreatedAt > lr);
+            });
+
     var result = groups.Select(g =>
     {
       var lastMsg = groupLastMsgs
           .FirstOrDefault(m =>
               m.GroupId == g.Id);
+      groupUnreadCounts.TryGetValue(
+          g.Id, out var unread);
 
       return new
       {
@@ -399,6 +439,7 @@ public class ChatController : ControllerBase
         g.MemberCount,
         g.Members,
         isGroup = true,
+        unreadCount = unread,
         lastMessage = lastMsg == null
               ? null : (object)new
               {
@@ -416,6 +457,26 @@ public class ChatController : ControllerBase
     .ToList();
 
     return Ok(result);
+  }
+
+  /// <summary>
+  /// Mark all messages in a group as read for the current user.
+  /// Stamps ChatGroupMember.LastReadAt = UtcNow so the next
+  /// GET /groups call returns unreadCount = 0 for this group.
+  /// </summary>
+  [HttpPost("groups/{groupId}/read")]
+  public async Task<IActionResult> MarkGroupRead(
+      Guid groupId)
+  {
+    var myId = GetUserId();
+    var member = await _context.ChatGroupMembers
+        .FirstOrDefaultAsync(m =>
+            m.GroupId == groupId &&
+            m.UserId == myId);
+    if (member == null) return Forbid();
+    member.LastReadAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+    return Ok(new { ok = true });
   }
 
 
@@ -438,6 +499,7 @@ public class ChatController : ControllerBase
         .Select(m => m.UserId)
         .ToListAsync();
 
+    var newlyAdded = new List<Guid>();
     foreach (var uid in dto.MemberIds)
     {
       if (!existing.Contains(uid))
@@ -448,10 +510,46 @@ public class ChatController : ControllerBase
               GroupId = groupId,
               UserId = uid
             });
+        newlyAdded.Add(uid);
       }
     }
 
     await _context.SaveChangesAsync();
+
+    if (newlyAdded.Count > 0)
+    {
+      var group = await _context.ChatGroups
+          .AsNoTracking().IgnoreQueryFilters()
+          .Where(g => g.Id == groupId)
+          .Select(g => new { g.Id, g.Name, g.Description, g.CreatedAt })
+          .FirstOrDefaultAsync();
+      var totalMembers = existing.Count + newlyAdded.Count;
+      var notice = new
+      {
+        group?.Id,
+        group?.Name,
+        group?.Description,
+        group?.CreatedAt,
+        MemberCount = totalMembers
+      };
+      // Tell every newly-added member their sidebar has a new group.
+      foreach (var uid in newlyAdded)
+      {
+        await _hub.Clients.Group(uid.ToString())
+            .SendAsync("GroupCreated", notice);
+      }
+      // Tell existing members the membership changed (count update).
+      foreach (var uid in existing)
+      {
+        await _hub.Clients.Group(uid.ToString())
+            .SendAsync("GroupUpdated", new
+            {
+              GroupId = groupId,
+              MemberCount = totalMembers
+            });
+      }
+    }
+
     return Ok(new { message = "Members added" });
   }
 
@@ -545,13 +643,38 @@ public class ChatController : ControllerBase
 
     await _context.SaveChangesAsync();
 
+    var memberCount = memberIds.Count;
+    var creator = await _context.Users
+        .AsNoTracking().IgnoreQueryFilters()
+        .Where(u => u.Id == myId)
+        .Select(u => u.FullName)
+        .FirstOrDefaultAsync();
+
+    // Push a real-time "GroupCreated" event to every member so their
+    // chat sidebar refreshes without a page reload.
+    var notice = new
+    {
+      group.Id,
+      group.Name,
+      group.Description,
+      group.CreatedAt,
+      MemberCount = memberCount,
+      CreatedByUserId = myId,
+      CreatedByName = creator ?? ""
+    };
+    foreach (var uid in memberIds)
+    {
+      await _hub.Clients.Group(uid.ToString())
+          .SendAsync("GroupCreated", notice);
+    }
+
     return Ok(new
     {
       group.Id,
       group.Name,
       group.Description,
       group.CreatedAt,
-      MemberCount = memberIds.Count
+      MemberCount = memberCount
     });
   }
 

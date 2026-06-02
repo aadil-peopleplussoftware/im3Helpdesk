@@ -76,9 +76,8 @@
             class="filter-dot"></span>
         </button>
 
-        <button class="icon-btn clear-btn"
-          [class.has-filter]="hasActiveFilters()"
-          [disabled]="!hasActiveFilters()"
+        <button class="icon-btn clear-btn has-filter"
+          *ngIf="hasActiveFilters()"
           (click)="clearFilters()">
           ✕ Clear
         </button>
@@ -140,46 +139,153 @@
     <div class="filters-panel"
       *ngIf="showFilters">
       <div class="filter-row">
-        <div class="filter-group">
+        <!-- Status (multi) -->
+        <div class="filter-group f-multi">
           <label>Status</label>
-          <select class="filter-sel"
-            [(ngModel)]="filters.status"
-            (ngModelChange)="applyFilters()">
-            <option value="">All Status</option>
-            <option *ngFor="let s of statusOptions"
-              [value]="s.value">{{ s.label }}</option>
-          </select>
+          <button type="button" class="f-multi-btn"
+            (click)="toggleFilterMenu('status', $event)">
+            <span>{{ filterSummary('status', 'All Status') }}</span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu" *ngIf="openFilterMenu === 'status'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let s of statusOptions" class="f-multi-item">
+              <input type="checkbox"
+                [checked]="isFilterChecked('status', s.value)"
+                (change)="toggleFilterValue('status', s.value, $event)" />
+              <span>{{ s.label }}</span>
+            </label>
+            <div *ngIf="statusOptions.length === 0" class="f-empty">No options</div>
+          </div>
         </div>
-        <div class="filter-group">
+
+        <!-- Priority (multi) -->
+        <div class="filter-group f-multi">
           <label>Priority</label>
-          <select class="filter-sel"
-            [(ngModel)]="filters.priority"
-            (ngModelChange)="applyFilters()">
-            <option value="">All Priority</option>
-            <option *ngFor="let p of priorityOptions"
-              [value]="p.value">{{ p.label }}</option>
-          </select>
+          <button type="button" class="f-multi-btn"
+            (click)="toggleFilterMenu('priority', $event)">
+            <span>{{ filterSummary('priority', 'All Priority') }}</span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu" *ngIf="openFilterMenu === 'priority'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let p of priorityOptions" class="f-multi-item">
+              <input type="checkbox"
+                [checked]="isFilterChecked('priority', p.value)"
+                (change)="toggleFilterValue('priority', p.value, $event)" />
+              <span>{{ p.label }}</span>
+            </label>
+            <div *ngIf="priorityOptions.length === 0" class="f-empty">No options</div>
+          </div>
         </div>
-        <div class="filter-group">
+
+        <!-- Category (multi) -->
+        <div class="filter-group f-multi">
           <label>Category</label>
-          <input class="filter-sel"
-            [(ngModel)]="filters.category"
-            (ngModelChange)="applyFilters()"
-            placeholder="Filter category..."/>
+          <button type="button" class="f-multi-btn"
+            (click)="toggleFilterMenu('category', $event)">
+            <span>{{ filterSummary('category', 'All Categories') }}</span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu" *ngIf="openFilterMenu === 'category'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let c of categoryOptions" class="f-multi-item">
+              <input type="checkbox"
+                [checked]="isFilterChecked('category', c)"
+                (change)="toggleFilterValue('category', c, $event)" />
+              <span>{{ c }}</span>
+            </label>
+            <div *ngIf="categoryOptions.length === 0" class="f-empty">No categories</div>
+          </div>
         </div>
-        <div class="filter-group">
+
+        <!-- Assigned To (multi) -->
+        <div class="filter-group f-multi">
           <label>Assigned To</label>
-          <input class="filter-sel"
-            [(ngModel)]="filters.assignedTo"
-            (ngModelChange)="applyFilters()"
-            placeholder="Agent name..."/>
+          <button type="button" class="f-multi-btn f-multi-btn-rich"
+            (click)="toggleFilterMenu('assignedTo', $event)">
+            <ng-container *ngIf="filters.assignedTo.length === 0">
+              <span class="f-placeholder">All Agents</span>
+            </ng-container>
+            <ng-container *ngIf="filters.assignedTo.length > 0">
+              <span class="f-stack">
+                <span *ngFor="let id of filters.assignedTo.slice(0, 3)"
+                  class="f-avatar f-avatar-sm"
+                  [style.background]="colorFor(id)"
+                  [title]="agentName(id)">
+                  {{ initialsFor(agentName(id)) }}
+                </span>
+              </span>
+              <span class="f-count">{{ filterSummary('assignedTo', '') }}</span>
+            </ng-container>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu f-multi-menu-rich"
+            *ngIf="openFilterMenu === 'assignedTo'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let a of agentOptions" class="f-multi-item f-multi-item-rich">
+              <input type="checkbox"
+                [checked]="isFilterChecked('assignedTo', a.id)"
+                (change)="toggleFilterValue('assignedTo', a.id, $event)" />
+              <span class="f-avatar"
+                [style.background]="colorFor(a.id)">
+                {{ initialsFor(a.name) }}
+              </span>
+              <span class="f-name">{{ a.name }}</span>
+            </label>
+            <div *ngIf="agentOptions.length === 0" class="f-empty">No agents</div>
+          </div>
         </div>
+
+        <!-- Groups (multi) -->
+        <div class="filter-group f-multi">
+          <label>Groups</label>
+          <button type="button" class="f-multi-btn"
+            (click)="toggleFilterMenu('groups', $event)">
+            <span>{{ filterSummary('groups', 'All Groups') }}</span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu" *ngIf="openFilterMenu === 'groups'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let g of groupOptions" class="f-multi-item">
+              <input type="checkbox"
+                [checked]="isFilterChecked('groups', g.id)"
+                (change)="toggleFilterValue('groups', g.id, $event)" />
+              <span>{{ g.name }}</span>
+            </label>
+            <div *ngIf="groupOptions.length === 0" class="f-empty">No groups</div>
+          </div>
+        </div>
+
+        <!-- Tags (multi) -->
+        <div class="filter-group f-multi">
+          <label>Tags</label>
+          <button type="button" class="f-multi-btn"
+            (click)="toggleFilterMenu('tags', $event)">
+            <span>{{ filterSummary('tags', 'All Tags') }}</span>
+            <span class="f-caret">▾</span>
+          </button>
+          <div class="f-multi-menu" *ngIf="openFilterMenu === 'tags'"
+            (click)="$event.stopPropagation()">
+            <label *ngFor="let tg of tagOptions" class="f-multi-item">
+              <input type="checkbox"
+                [checked]="isFilterChecked('tags', tg)"
+                (change)="toggleFilterValue('tags', tg, $event)" />
+              <span>{{ tg }}</span>
+            </label>
+            <div *ngIf="tagOptions.length === 0" class="f-empty">No tags</div>
+          </div>
+        </div>
+
+        <!-- From Date -->
         <div class="filter-group">
           <label>From Date</label>
           <input type="date" class="filter-sel"
             [(ngModel)]="filters.dateFrom"
             (ngModelChange)="applyFilters()"/>
         </div>
+
+        <!-- To Date -->
         <div class="filter-group">
           <label>To Date</label>
           <input type="date" class="filter-sel"

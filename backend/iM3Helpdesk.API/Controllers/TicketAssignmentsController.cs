@@ -17,6 +17,7 @@ public class TicketAssignmentsController : TicketsControllerBase
     private readonly ICurrentTenantService _tenantService;
     private readonly INotificationService _notificationService;
     private readonly IEmailService _emailService;
+    private readonly ISlaService _slaService;
     private readonly ILogger<TicketAssignmentsController> _logger;
 
     public TicketAssignmentsController(
@@ -24,12 +25,14 @@ public class TicketAssignmentsController : TicketsControllerBase
         ICurrentTenantService tenantService,
         INotificationService notificationService,
         IEmailService emailService,
+        ISlaService slaService,
         ILogger<TicketAssignmentsController> logger)
         : base(context)
     {
         _tenantService = tenantService;
         _notificationService = notificationService;
         _emailService = emailService;
+        _slaService = slaService;
         _logger = logger;
     }
 
@@ -119,6 +122,16 @@ public class TicketAssignmentsController : TicketsControllerBase
             dto.AgentGroupId == Guid.Empty
                 ? null : dto.AgentGroupId;
         ticket.UpdatedAt = DateTime.UtcNow;
+
+        // Recalculate SLA against the new group's BusinessHours profile
+        // (falls back to org default when the group has none).
+        ticket.SlaDeadline = await _slaService
+            .CalculateSlaDeadlineAsync(
+                ticket.OrganizationId, ticket.Priority,
+                ticket.CreatedAt, ticket.AgentGroupId);
+        ticket.SlaStatus = _slaService
+            .GetSlaStatus(ticket.SlaDeadline, ticket.Status);
+
         await _context.SaveChangesAsync();
 
         var userId = GetUserId();

@@ -107,6 +107,14 @@ public class ApplicationDbContext : DbContext
   public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
   public DbSet<PaymentRecord> PaymentRecords => Set<PaymentRecord>();
 
+  // ✅ NEW — SLA Policies (Freshdesk-style)
+  public DbSet<SlaPolicy>     SlaPolicies     => Set<SlaPolicy>();
+  public DbSet<SlaTarget>     SlaTargets      => Set<SlaTarget>();
+  public DbSet<SlaReminder>   SlaReminders    => Set<SlaReminder>();
+  public DbSet<SlaEscalation> SlaEscalations  => Set<SlaEscalation>();
+  public DbSet<BusinessHours> BusinessHours   => Set<BusinessHours>();
+  public DbSet<BusinessHoursHoliday> BusinessHoursHolidays => Set<BusinessHoursHoliday>();
+
   // ════════════════════════════════════
   // OnModelCreating
   // ════════════════════════════════════
@@ -486,6 +494,7 @@ public class ApplicationDbContext : DbContext
       e.Property(x => x.Name)
           .HasMaxLength(100)
           .IsRequired();
+      e.HasIndex(x => x.BusinessHoursId);
       e.HasQueryFilter(g =>
           _isSuperAdmin ||
           g.OrganizationId ==
@@ -890,6 +899,93 @@ public class ApplicationDbContext : DbContext
       e.HasQueryFilter(p =>
           _isSuperAdmin ||
           p.OrganizationId == _currentTenantId);
+    });
+
+    // ── SLA Policy ─────────────── (tenant scoped, Freshdesk-style)
+    modelBuilder.Entity<SlaPolicy>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+      e.Property(x => x.Description).HasMaxLength(500);
+      e.HasIndex(x => x.OrganizationId);
+      e.HasIndex(x => new { x.OrganizationId, x.IsDefault });
+      e.HasMany(x => x.Targets)
+          .WithOne(t => t.Policy!)
+          .HasForeignKey(t => t.SlaPolicyId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasMany(x => x.Reminders)
+          .WithOne(r => r.Policy!)
+          .HasForeignKey(r => r.SlaPolicyId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasMany(x => x.Escalations)
+          .WithOne(es => es.Policy!)
+          .HasForeignKey(es => es.SlaPolicyId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasQueryFilter(p =>
+          _isSuperAdmin ||
+          p.OrganizationId == _currentTenantId);
+    });
+
+    modelBuilder.Entity<SlaTarget>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.OperationalHours).HasMaxLength(40);
+      e.HasIndex(x => new { x.SlaPolicyId, x.Priority }).IsUnique();
+      e.HasQueryFilter(t =>
+          _isSuperAdmin ||
+          t.OrganizationId == _currentTenantId);
+    });
+
+    modelBuilder.Entity<SlaReminder>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.TargetType).HasMaxLength(40);
+      e.Property(x => x.Recipients).HasMaxLength(500);
+      e.HasIndex(x => x.SlaPolicyId);
+      e.HasQueryFilter(r =>
+          _isSuperAdmin ||
+          r.OrganizationId == _currentTenantId);
+    });
+
+    modelBuilder.Entity<SlaEscalation>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.TargetType).HasMaxLength(40);
+      e.Property(x => x.Recipients).HasMaxLength(500);
+      e.HasIndex(x => x.SlaPolicyId);
+      e.HasQueryFilter(es =>
+          _isSuperAdmin ||
+          es.OrganizationId == _currentTenantId);
+    });
+
+    modelBuilder.Entity<BusinessHours>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+      e.Property(x => x.Description).HasMaxLength(500);
+      e.Property(x => x.Mode).HasMaxLength(40);
+      e.Property(x => x.StartTime).HasMaxLength(5);
+      e.Property(x => x.EndTime).HasMaxLength(5);
+      e.Property(x => x.Timezone).HasMaxLength(80);
+      e.HasIndex(x => x.OrganizationId);
+      e.HasIndex(x => new { x.OrganizationId, x.IsDefault });
+      e.HasMany(x => x.Holidays)
+          .WithOne(h => h.BusinessHours!)
+          .HasForeignKey(h => h.BusinessHoursId)
+          .OnDelete(DeleteBehavior.Cascade);
+      e.HasQueryFilter(b =>
+          _isSuperAdmin ||
+          b.OrganizationId == _currentTenantId);
+    });
+
+    modelBuilder.Entity<BusinessHoursHoliday>(e =>
+    {
+      e.HasKey(x => x.Id);
+      e.Property(x => x.Name).HasMaxLength(120).IsRequired();
+      e.HasIndex(x => x.BusinessHoursId);
+      e.HasQueryFilter(h =>
+          _isSuperAdmin ||
+          h.OrganizationId == _currentTenantId);
     });
 
     // ── ChatGroupMember ───────────

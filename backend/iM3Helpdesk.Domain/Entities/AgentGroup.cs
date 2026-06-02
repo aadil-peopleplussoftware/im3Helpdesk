@@ -10,6 +10,9 @@ public class AgentGroup : IMustHaveTenant
   public Guid OrganizationId { get; set; }
   public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+  /// <summary>Optional Business Hours profile this group follows; null = use org default.</summary>
+  public Guid? BusinessHoursId { get; set; }
+
   public ICollection<AgentGroupMember> Members { get; set; }
       = new List<AgentGroupMember>();
 }

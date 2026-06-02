@@ -46,6 +46,9 @@
   backdrop-filter: blur(6px);
 }
 
+/* When the global Teams-style popup is active, hide this in-page overlay. */
+.call-overlay.hidden-by-popup { display: none !important; }
+
 .call-card {
   background: var(--white);
   border-radius: 24px;
@@ -1519,4 +1522,74 @@
 .badge-call {
   background: var(--ui-color-warning) !important;
   font-size: 10px;
+}
+
+/* ── Add-people picker (during active call) ── */
+.invite-picker-overlay {
+  z-index: 2000 !important; /* must sit above .call-overlay (z-index:1000) */
+}
+.invite-picker-card {
+  width: 360px;
+  max-width: 90vw;
+  display: flex; flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+.invite-picker-card .ip-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.invite-picker-card .ip-x {
+  background: transparent; border: 0; cursor: pointer;
+  font-size: 16px; color: #6b7280;
+}
+.invite-picker-card .ip-search {
+  width: 100%; padding: 9px 12px;
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  outline: none; font-size: 14px;
+}
+.invite-picker-card .ip-list {
+  max-height: 320px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.invite-picker-card .ip-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 8px; cursor: pointer;
+}
+.invite-picker-card .ip-row:hover { background: #f3f4f6; }
+.invite-picker-card .ip-av {
+  width: 36px; height: 36px; border-radius: 50%;
+  color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+.invite-picker-card .ip-info { flex: 1; min-width: 0; }
+.invite-picker-card .ip-name {
+  font-size: 14px; font-weight: 600; color: #111827;
+}
+.invite-picker-card .ip-mail {
+  font-size: 12px; color: #6b7280;
+}
+.invite-picker-card .ip-empty {
+  padding: 18px; text-align: center;
+  color: #9ca3af; font-size: 13px;
+}
+.invite-picker-card .ip-foot {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+.invite-picker-card .ip-btn {
+  padding: 8px 16px; border-radius: 8px; border: 0;
+  cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.invite-picker-card .ip-btn.ghost { background: #f3f4f6; color: #374151; }
+.invite-picker-card .ip-btn.primary { background: #2563eb; color: #fff; }
+.invite-picker-card .ip-btn.primary:disabled {
+  opacity: .5; cursor: not-allowed;
+}
+
+.ctrl-btn.add {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+.ctrl-btn.add:hover {
+  background: #2563eb !important;
+  color: #fff !important;
 }

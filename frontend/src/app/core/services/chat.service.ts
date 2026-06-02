@@ -34,10 +34,20 @@ export class ChatService {
 
   // ✅ Call streams
   incomingCall$  = new BehaviorSubject<any>(null);
+  callInitiated$ = new BehaviorSubject<any>(null);
   callAccepted$  = new BehaviorSubject<any>(null);
   callRejected$  = new BehaviorSubject<any>(null);
   callEnded$     = new BehaviorSubject<any>(null);
   iceCandidate$  = new BehaviorSubject<any>(null);
+
+  // ✅ Conference (group call) streams
+  conferenceInvite$           = new BehaviorSubject<any>(null);
+  conferenceParticipantJoined$ = new BehaviorSubject<any>(null);
+  conferenceParticipantLeft$   = new BehaviorSubject<any>(null);
+  conferenceOffer$             = new BehaviorSubject<any>(null);
+  conferenceAnswer$            = new BehaviorSubject<any>(null);
+  conferenceIce$               = new BehaviorSubject<any>(null);
+  callMessage$                 = new BehaviorSubject<any>(null);
 
   // ✅ Call-back request from call log
   startCallRequest$ = new BehaviorSubject<{
@@ -57,6 +67,29 @@ export class ChatService {
   messagesRead$  = new BehaviorSubject<{
     readBy: string
   } | null>(null);
+
+  /**
+   * Currently-open chat thread on the chat page. Set by `chat-page` on
+   * select/open and cleared on destroy. Used by the global Teams-style
+   * toast popup to suppress notifications for the thread the user is
+   * already looking at.
+   * Kind: 'dm'  → id = otherUserId
+   * Kind: 'group' → id = groupId
+   */
+  currentlyViewing$ = new BehaviorSubject<{
+    kind: 'dm' | 'group';
+    id: string;
+  } | null>(null);
+
+  setCurrentlyViewing(kind: 'dm' | 'group', id: string | null | undefined) {
+    if (!id) { this.currentlyViewing$.next(null); return; }
+    this.currentlyViewing$.next({ kind, id: String(id) });
+  }
+  clearCurrentlyViewing() { this.currentlyViewing$.next(null); }
+
+  /** Emits when the current user is added to / a new group is created
+   *  for them. Sidebar should reload its group list on every emission. */
+  groupChanged$ = new BehaviorSubject<any>(null);
 
   // ── Connection state check ─────────────
   get isConnected(): boolean {
@@ -232,6 +265,10 @@ export class ChatService {
     this.hub.on('UserOffline', (d) =>
       this.userStatus$.next({ ...d, isOnline: false }));
 
+    // ✅ Group lifecycle — sidebar refresh trigger
+    this.hub.on('GroupCreated', (d) => this.groupChanged$.next(d));
+    this.hub.on('GroupUpdated', (d) => this.groupChanged$.next(d));
+
     // ✅ BUG FIX: MessagesRead — stream emit karo taaki
     // chat page us sender ka unreadCount = 0 kar sake
     // Pehle sirf loadUnreadCount() tha jo total count reload karta tha
@@ -243,10 +280,27 @@ export class ChatService {
 
     // ✅ Call signals
     this.hub.on('IncomingCall',  (d) => this.incomingCall$.next(d));
+    this.hub.on('CallInitiated', (d) => this.callInitiated$.next(d));
     this.hub.on('CallAccepted',  (d) => this.callAccepted$.next(d));
     this.hub.on('CallRejected',  (d) => this.callRejected$.next(d));
     this.hub.on('CallEnded',     (d) => this.callEnded$.next(d));
     this.hub.on('IceCandidate',  (d) => this.iceCandidate$.next(d));
+
+    // ✅ Conference signals
+    this.hub.on('ConferenceInvite',
+      (d) => this.conferenceInvite$.next(d));
+    this.hub.on('ConferenceParticipantJoined',
+      (d) => this.conferenceParticipantJoined$.next(d));
+    this.hub.on('ConferenceParticipantLeft',
+      (d) => this.conferenceParticipantLeft$.next(d));
+    this.hub.on('ConferenceOffer',
+      (d) => this.conferenceOffer$.next(d));
+    this.hub.on('ConferenceAnswer',
+      (d) => this.conferenceAnswer$.next(d));
+    this.hub.on('ConferenceIce',
+      (d) => this.conferenceIce$.next(d));
+    this.hub.on('CallMessage',
+      (d) => this.callMessage$.next(d));
 
     this.hub.onreconnecting(() =>
       this.isConnected$.next(false));
@@ -335,6 +389,12 @@ export class ChatService {
     return this.safeInvoke('MarkRead', senderId);
   }
 
+  /** Mark a group thread as read for the current user (server-side). */
+  markGroupRead(groupId: string) {
+    return this.http.post(
+      `${this.BASE}/api/Chat/groups/${groupId}/read`, {});
+  }
+
   sendTyping(
     receiverId: string,
     isTyping: boolean
@@ -374,5 +434,55 @@ export class ChatService {
   ): Promise<void> {
     return this.safeInvoke(
       'SendIceCandidate', targetId, candidate);
+  }
+
+  // ── Conference (group call) hub invokes ──
+  inviteToConference(
+    callLogId: string, inviteeIds: string[]
+  ): Promise<void> {
+    return this.safeInvoke(
+      'InviteToConference', callLogId, inviteeIds);
+  }
+
+  joinConference(callLogId: string): Promise<any> {
+    if (!this.isConnected) return Promise.resolve(null);
+    return this.hub.invoke('JoinConference', callLogId)
+      .catch(e => {
+        console.error('JoinConference error:', e);
+        return null;
+      });
+  }
+
+  leaveConference(callLogId: string): Promise<void> {
+    return this.safeInvoke('LeaveConference', callLogId);
+  }
+
+  rejectConference(callLogId: string): Promise<void> {
+    return this.safeInvoke('RejectConference', callLogId);
+  }
+
+  relayConferenceOffer(
+    callLogId: string, targetUserId: string, offer: string
+  ): Promise<void> {
+    return this.safeInvoke(
+      'RelayConferenceOffer', callLogId, targetUserId, offer);
+  }
+
+  relayConferenceAnswer(
+    callLogId: string, targetUserId: string, answer: string
+  ): Promise<void> {
+    return this.safeInvoke(
+      'RelayConferenceAnswer', callLogId, targetUserId, answer);
+  }
+
+  relayConferenceIce(
+    callLogId: string, targetUserId: string, candidate: string
+  ): Promise<void> {
+    return this.safeInvoke(
+      'RelayConferenceIce', callLogId, targetUserId, candidate);
+  }
+
+  sendCallMessage(callLogId: string, text: string): Promise<void> {
+    return this.safeInvoke('SendCallMessage', callLogId, text);
   }
 }

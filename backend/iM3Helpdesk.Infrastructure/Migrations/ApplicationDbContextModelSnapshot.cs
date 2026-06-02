@@ -68,6 +68,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BusinessHoursId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -84,6 +87,8 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BusinessHoursId");
 
                     b.ToTable("AgentGroups");
                 });
@@ -110,6 +115,116 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AgentGroupMembers");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.BusinessHours", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("EndTime")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("Friday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<bool>("Monday")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Saturday")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("StartTime")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("Sunday")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Thursday")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Timezone")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<bool>("Tuesday")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Wednesday")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "IsDefault");
+
+                    b.ToTable("BusinessHours");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.BusinessHoursHoliday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BusinessHoursId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BusinessHoursId");
+
+                    b.ToTable("BusinessHoursHolidays");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.CalendarEvent", b =>
@@ -249,6 +364,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("CallLogId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -283,6 +401,9 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastReadAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
@@ -1192,6 +1313,152 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.ToTable("RolePermissions");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaEscalation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("EscalateAfterMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Recipients")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("SlaPolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SlaPolicyId");
+
+                    b.ToTable("SlaEscalations");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "IsDefault");
+
+                    b.ToTable("SlaPolicies");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ApproachInMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Recipients")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("SlaPolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SlaPolicyId");
+
+                    b.ToTable("SlaReminders");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaTarget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("EscalationEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("FirstResponseMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OperationalHours")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResolutionMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SlaPolicyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SlaPolicyId", "Priority")
+                        .IsUnique();
+
+                    b.ToTable("SlaTargets");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SubscriptionPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1880,6 +2147,17 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.BusinessHoursHoliday", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.BusinessHours", "BusinessHours")
+                        .WithMany("Holidays")
+                        .HasForeignKey("BusinessHoursId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BusinessHours");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.CallLog", b =>
                 {
                     b.HasOne("iM3Helpdesk.Domain.Entities.User", "Caller")
@@ -2037,6 +2315,39 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaEscalation", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.SlaPolicy", "Policy")
+                        .WithMany("Escalations")
+                        .HasForeignKey("SlaPolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaReminder", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.SlaPolicy", "Policy")
+                        .WithMany("Reminders")
+                        .HasForeignKey("SlaPolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaTarget", b =>
+                {
+                    b.HasOne("iM3Helpdesk.Domain.Entities.SlaPolicy", "Policy")
+                        .WithMany("Targets")
+                        .HasForeignKey("SlaPolicyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Ticket", b =>
                 {
                     b.HasOne("iM3Helpdesk.Domain.Entities.AgentGroup", "AgentGroup")
@@ -2171,6 +2482,11 @@ namespace iM3Helpdesk.Infrastructure.Migrations
                     b.Navigation("Members");
                 });
 
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.BusinessHours", b =>
+                {
+                    b.Navigation("Holidays");
+                });
+
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.ChatGroup", b =>
                 {
                     b.Navigation("Members");
@@ -2186,6 +2502,15 @@ namespace iM3Helpdesk.Infrastructure.Migrations
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Organization", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("iM3Helpdesk.Domain.Entities.SlaPolicy", b =>
+                {
+                    b.Navigation("Escalations");
+
+                    b.Navigation("Reminders");
+
+                    b.Navigation("Targets");
                 });
 
             modelBuilder.Entity("iM3Helpdesk.Domain.Entities.Ticket", b =>

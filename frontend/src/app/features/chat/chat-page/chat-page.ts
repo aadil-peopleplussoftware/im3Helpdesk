@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ChatService } from '../../../core/services/chat.service';
@@ -32,6 +32,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   private authService = inject(AuthService);
   private http        = inject(HttpClient);
   public  router      = inject(Router);
+  private route       = inject(ActivatedRoute);
   private cdr         = inject(ChangeDetectorRef);
   public  callSvc     = inject(GlobalCallNotificationService);
   readonly baseUrl = environment.baseUrl;
@@ -219,8 +220,45 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
             this.queueScrollToBottom();
           }
         }
+
+        // Group sidebar bookkeeping: bump unread count for inactive
+        // groups, refresh lastMessage, surface unknown groups.
+        if (msg.groupId) {
+          const idx = this.groups.findIndex(g => g.id === msg.groupId);
+          if (idx === -1) {
+            this.loadGroups();
+          } else {
+            const g = this.groups[idx];
+            const isCurrent = this.selectedGroup?.id === msg.groupId;
+            const inc = (!msg.isFromMe && !isCurrent) ? 1 : 0;
+            const updated = {
+              ...g,
+              unreadCount: (g.unreadCount || 0) + inc,
+              lastMessage: {
+                content: msg.content,
+                createdAt: msg.createdAt,
+                isFromMe: !!msg.isFromMe
+              }
+            };
+            this.groups = [
+              ...this.groups.slice(0, idx),
+              updated,
+              ...this.groups.slice(idx + 1)
+            ];
+            this.applyFilter();
+          }
+        }
+
         this.cdr.detectChanges();
         this.loadUsers(true);
+      })
+    );
+
+    // Group lifecycle (created / members added) → refresh sidebar list
+    this.subs.push(
+      this.chatService.groupChanged$.subscribe(g => {
+        if (!g) return;
+        this.loadGroups();
       })
     );
 
@@ -373,6 +411,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     clearTimeout(this.typingTimeout);
     clearInterval(this.callTimerUI);
     clearInterval(this.pollTimer);
+    this.chatService.clearCurrentlyViewing();
     // ✅ Call END mat karo — callSvc mein zinda hai
   }
 
@@ -402,7 +441,8 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.callSvc.activeCallOtherId = this.selectedUser.id;
     this.cdr.detectChanges();
 
-    await this.callSvc.startCallInternal(this.selectedUser.id, type);
+    await this.callSvc.startCallInternal(
+      this.selectedUser.id, type, this.selectedUser.fullName || '');
 
     // Local video attach
     setTimeout(() => {
@@ -469,6 +509,57 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.cdr.detectChanges();
   }
 
+  // ── Add-people picker (during active call) ───────────
+  showInvitePicker = false;
+  inviteUsers: any[] = [];
+  inviteSearch = '';
+  inviteSelected = new Set<string>();
+  loadingInviteUsers = false;
+
+  openInvitePicker() {
+    this.showInvitePicker = true;
+    this.inviteSearch = '';
+    this.inviteSelected.clear();
+    this.loadingInviteUsers = true;
+    this.chatService.getChatUsers().subscribe({
+      next: (data: any[]) => {
+        this.inviteUsers = data || [];
+        this.loadingInviteUsers = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.loadingInviteUsers = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+  closeInvitePicker() {
+    this.showInvitePicker = false;
+    this.cdr.detectChanges();
+  }
+  toggleInviteUser(id: string) {
+    if (this.inviteSelected.has(id)) this.inviteSelected.delete(id);
+    else this.inviteSelected.add(id);
+  }
+  filteredInviteUsers(): any[] {
+    const q = (this.inviteSearch || '').toLowerCase();
+    const inCall = new Set<string>(
+      Array.from(this.callSvc.participants.keys()));
+    return this.inviteUsers.filter(u => {
+      if (inCall.has(u.id)) return false;
+      if (!q) return true;
+      return (u.fullName || '').toLowerCase().includes(q)
+          || (u.email || '').toLowerCase().includes(q);
+    });
+  }
+  async confirmInvite() {
+    const ids = Array.from(this.inviteSelected);
+    if (!ids.length) return;
+    await this.callSvc.inviteParticipants(ids);
+    this.showInvitePicker = false;
+    this.cdr.detectChanges();
+  }
+
   getCallDurationStr(): string {
     const m = Math.floor(this.callDuration / 60);
     const s = this.callDuration % 60;
@@ -491,6 +582,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
           }
         }
         this.applyFilter();
+        this.openFromQueryParams();
         this.cdr.detectChanges();
       },
       error: () => { this.loadingUsers = false; this.cdr.detectChanges(); }
@@ -500,25 +592,59 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   loadGroups() {
     this.chatService.getGroups().subscribe({
       next: (data) => {
-        this.groups = data;
-        if (this.activeFilter === 'groups') this.applyFilter();
+        // Server now sends authoritative unreadCount; if user is
+        // currently viewing a group, force-zero its count locally to
+        // avoid a stale flicker before MarkGroupRead round-trips.
+        const currentId = this.selectedGroup?.id;
+        this.groups = (data || []).map((g: any) => ({
+          ...g,
+          unreadCount: g.id === currentId
+            ? 0
+            : (g.unreadCount || 0)
+        }));
+        if (this.activeFilter !== 'online') this.applyFilter();
+        this.openFromQueryParams();
         this.cdr.detectChanges();
       }
     });
+  }
+
+  /** Open a chat thread from `?userId=` / `?groupId=` deep-link
+   *  (used by the global chat toast 'open' click). */
+  private openFromQueryParams(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const userId = qp.get('userId');
+    const groupId = qp.get('groupId');
+    if (groupId && this.groups?.length) {
+      const g = this.groups.find(x => x.id === groupId);
+      if (g && this.selectedGroup?.id !== g.id) this.selectGroup(g);
+      return;
+    }
+    if (userId && this.users?.length) {
+      const u = this.users.find(x => x.id === userId);
+      if (u && this.selectedUser?.id !== u.id) this.selectUser(u);
+    }
   }
 
   setFilter(f: FilterType) { this.activeFilter = f; this.applyFilter(); }
 
   applyFilter() {
     let items: any[];
+    const groupItems = this.groups.map(
+      g => ({ ...g, isGroupItem: true }));
     if (this.activeFilter === 'groups') {
-      items = this.groups.map(g => ({ ...g, isGroupItem: true }));
+      items = groupItems;
+    } else if (this.activeFilter === 'unread') {
+      const unreadUsers = this.users
+        .filter(u => (u.unreadCount || 0) > 0);
+      const unreadGroups = groupItems
+        .filter(g => (g.unreadCount || 0) > 0);
+      items = [...unreadUsers, ...unreadGroups];
+    } else if (this.activeFilter === 'online') {
+      items = this.users.filter(u => u.isOnline);
     } else {
-      items = [...this.users];
-      if (this.activeFilter === 'unread')
-        items = items.filter(u => (u.unreadCount || 0) > 0);
-      else if (this.activeFilter === 'online')
-        items = items.filter(u => u.isOnline);
+      // All — merge DMs and groups so the sidebar matches Teams.
+      items = [...this.users, ...groupItems];
     }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
@@ -560,6 +686,7 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   selectUser(user: any) {
     this.selectedUser = user;
     this.selectedGroup = null;
+    this.chatService.setCurrentlyViewing('dm', user?.id);
     this.messages = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();
@@ -583,6 +710,22 @@ export class ChatPageComponent implements OnInit, OnDestroy, AfterViewChecked {
   selectGroup(group: any) {
     this.selectedGroup = group;
     this.selectedUser = null;
+    this.chatService.setCurrentlyViewing('group', group?.id);
+    // Persist group read state on the server + clear local count.
+    if (group) {
+      const idx = this.groups.findIndex(g => g.id === group.id);
+      if (idx !== -1 && (this.groups[idx].unreadCount || 0) > 0) {
+        this.groups = [
+          ...this.groups.slice(0, idx),
+          { ...this.groups[idx], unreadCount: 0 },
+          ...this.groups.slice(idx + 1)
+        ];
+        this.applyFilter();
+      }
+      this.chatService.markGroupRead(group.id).subscribe({
+        error: () => { /* ignore — next reload will reconcile */ }
+      });
+    }
     this.messages = [];
     this.loadingMessages = true;
     this.cdr.detectChanges();

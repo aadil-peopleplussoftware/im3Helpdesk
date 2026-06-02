@@ -368,6 +368,14 @@ public class EmailPollingService : BackgroundService
     var inboundCc = ExtractExternalCc(message, fromEmail, org);
     var inboundBcc = ExtractExternalBcc(message, fromEmail, org);
 
+    // ── SLA: delegate to SlaService so BusinessHours-aware deadlines
+    //   apply to email-polled tickets the same way as UI-created tickets.
+    //   Email-polled tickets default to TicketPriority.Medium and have no
+    //   AgentGroup yet, so the org's default BusinessHours profile is used.
+    var slaService = new SlaService(context);
+    var slaDeadline = await slaService.CalculateSlaDeadlineAsync(
+        org.Id, TicketPriority.Medium, DateTime.UtcNow, null);
+
     var ticket = new Ticket
     {
       Title = subject,
@@ -386,7 +394,7 @@ public class EmailPollingService : BackgroundService
       //    Sender identity is preserved in FromEmail + FromName.
       CreatedByUserId = null,
       Tags = $"email,support-email,{nameTag}",
-      SlaDeadline = DateTime.UtcNow.AddHours(24),
+      SlaDeadline = slaDeadline,
       SlaStatus = "OnTrack",
       TicketNumber = lastNum + 1
     };

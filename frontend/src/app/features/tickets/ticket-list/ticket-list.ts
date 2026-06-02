@@ -72,15 +72,25 @@ export class TicketListComponent
   merging = false;
 
   filters = {
-    status: '',
-    includeClosed: false,
-    priority: '',
-    category: '',
-    assignedTo: '',
+    status: [] as string[],
+    priority: [] as string[],
+    category: [] as string[],
+    assignedTo: [] as string[],   // user IDs
+    groups: [] as string[],       // agent group IDs
+    tags: [] as string[],
     search: '',
     dateFrom: '',
     dateTo: ''
   };
+  /** Key of the currently open multi-select popover, e.g. 'status'. */
+  openFilterMenu: string | null = null;
+  /** Set true after first masters-load applies the "all-but-Closed" default. */
+  private statusDefaultApplied = false;
+
+  agentOptions: { id: string; name: string }[] = [];
+  groupOptions: { id: string; name: string }[] = [];
+  categoryOptions: string[] = [];
+  tagOptions: string[] = [];
 
   statusBoardColumns = ['Open', 'InProgress', 'Pending', 'Resolved', 'Closed'];
 
@@ -123,6 +133,7 @@ export class TicketListComponent
 
   ngOnInit() {
     this.loadMasterOptions();
+    this.loadAgentsAndGroups();
     this.loadTickets();
   }
 
@@ -139,8 +150,41 @@ export class TicketListComponent
             .map(s => this.getStatusDropListId(s));
         }
 
+        // Default: all statuses checked EXCEPT "Closed".
+        if (!this.statusDefaultApplied && this.statusOptions.length > 0) {
+          this.filters.status = this.statusOptions
+            .map(s => s.value)
+            .filter(v => v !== 'Closed');
+          this.statusDefaultApplied = true;
+          this.applyFilters();
+        }
+
         this.cdr.markForCheck();
       }
+    });
+  }
+
+  private loadAgentsAndGroups() {
+    this.agentService.getAll().pipe(
+      takeUntil(this.destroy$),
+      catchError(() => of([] as any[]))
+    ).subscribe(rows => {
+      this.agentOptions = (rows || []).map((r: any) => ({
+        id: r.id || r.Id,
+        name: r.fullName || r.FullName || r.email || r.Email || 'Agent'
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      this.cdr.markForCheck();
+    });
+
+    this.http.get<any[]>(`${environment.apiUrl}/AgentGroups`).pipe(
+      takeUntil(this.destroy$),
+      catchError(() => of([] as any[]))
+    ).subscribe(rows => {
+      this.groupOptions = (rows || []).map((r: any) => ({
+        id: r.id || r.Id,
+        name: r.name || r.Name || 'Group'
+      })).sort((a, b) => a.name.localeCompare(b.name));
+      this.cdr.markForCheck();
     });
   }
 
@@ -158,6 +202,7 @@ export class TicketListComponent
       .subscribe({
         next: (data) => {
           this.allTickets = data;
+          this.recomputeDerivedFilterOptions();
           this.applyFilters();
           this.loading = false;
           this.cdr.markForCheck();
@@ -174,35 +219,36 @@ export class TicketListComponent
 
   applyFilters() {
     let result = [...this.allTickets];
-    const hasSearch =
-      this.filters.search.trim().length > 0;
-    const includeClosed =
-      this.filters.includeClosed || hasSearch;
+    const f = this.filters;
 
-    if (this.filters.status)
-      result = result.filter(t =>
-        t.status === this.filters.status);
-    else if (!includeClosed)
-      result = result.filter(t =>
-        t.status !== 'Closed');
+    if (f.status.length > 0)
+      result = result.filter(t => f.status.includes(t.status));
 
-    if (this.filters.priority)
-      result = result.filter(t =>
-        t.priority === this.filters.priority);
+    if (f.priority.length > 0)
+      result = result.filter(t => f.priority.includes(t.priority));
 
-    if (this.filters.category)
+    if (f.category.length > 0)
       result = result.filter(t =>
-        t.category?.toLowerCase().includes(
-          this.filters.category.toLowerCase()));
+        t.category && f.category.includes(t.category));
 
-    if (this.filters.assignedTo)
+    if (f.assignedTo.length > 0)
       result = result.filter(t =>
-        t.assignedTo?.toLowerCase().includes(
-          this.filters.assignedTo.toLowerCase()));
+        t.assignedToId && f.assignedTo.includes(t.assignedToId));
 
-    if (this.filters.search) {
-      const q =
-        this.filters.search.toLowerCase();
+    if (f.groups.length > 0)
+      result = result.filter(t =>
+        t.agentGroupId && f.groups.includes(t.agentGroupId));
+
+    if (f.tags.length > 0) {
+      result = result.filter(t => {
+        const tt = (t.tags || '').split(',')
+          .map((x: string) => x.trim()).filter(Boolean);
+        return f.tags.some(tag => tt.includes(tag));
+      });
+    }
+
+    if (f.search) {
+      const q = f.search.toLowerCase();
       result = result.filter(t =>
         t.title?.toLowerCase().includes(q) ||
         t.assignedTo?.toLowerCase().includes(q) ||
@@ -213,26 +259,22 @@ export class TicketListComponent
         `#tn${t.ticketNumber}`.includes(q));
     }
 
-    if (this.filters.dateFrom) {
-      const from =
-        new Date(this.filters.dateFrom);
-      result = result.filter(t =>
-        new Date(t.createdAt) >= from);
+    if (f.dateFrom) {
+      const from = new Date(f.dateFrom);
+      result = result.filter(t => new Date(t.createdAt) >= from);
     }
 
-    if (this.filters.dateTo) {
-      const to = new Date(this.filters.dateTo);
+    if (f.dateTo) {
+      const to = new Date(f.dateTo);
       to.setHours(23, 59, 59);
-      result = result.filter(t =>
-        new Date(t.createdAt) <= to);
+      result = result.filter(t => new Date(t.createdAt) <= to);
     }
 
     // Sort
     result.sort((a, b) => {
       const valA = a[this.sortBy];
       const valB = b[this.sortBy];
-      const dir =
-        this.sortDir === 'asc' ? 1 : -1;
+      const dir = this.sortDir === 'asc' ? 1 : -1;
       if (valA < valB) return -1 * dir;
       if (valA > valB) return 1 * dir;
       return 0;
@@ -244,11 +286,12 @@ export class TicketListComponent
 
   clearFilters() {
     this.filters = {
-      status: '',
-      includeClosed: true,
-      priority: '',
-      category: '',
-      assignedTo: '',
+      status: [],
+      priority: [],
+      category: [],
+      assignedTo: [],
+      groups: [],
+      tags: [],
       search: '',
       dateFrom: '',
       dateTo: ''
@@ -257,16 +300,95 @@ export class TicketListComponent
   }
 
   hasActiveFilters(): boolean {
+    const f = this.filters;
     return !!(
-      !this.filters.includeClosed ||
-      this.filters.status ||
-      this.filters.priority ||
-      this.filters.category ||
-      this.filters.assignedTo ||
-      this.filters.search ||
-      this.filters.dateFrom ||
-      this.filters.dateTo
+      f.status.length || f.priority.length ||
+      f.category.length || f.assignedTo.length ||
+      f.groups.length || f.tags.length ||
+      f.search || f.dateFrom || f.dateTo
     );
+  }
+
+  // ── Multi-select popover helpers ─────────────────────────────
+  toggleFilterMenu(key: string, ev?: Event) {
+    ev?.stopPropagation();
+    this.openFilterMenu = this.openFilterMenu === key ? null : key;
+    this.cdr.markForCheck();
+  }
+
+  isFilterChecked(key: keyof typeof this.filters, value: string): boolean {
+    const arr = this.filters[key] as unknown as string[];
+    return Array.isArray(arr) && arr.includes(value);
+  }
+
+  toggleFilterValue(key: keyof typeof this.filters, value: string, ev?: Event) {
+    ev?.stopPropagation();
+    const arr = this.filters[key] as unknown as string[];
+    if (!Array.isArray(arr)) return;
+    const i = arr.indexOf(value);
+    if (i >= 0) arr.splice(i, 1); else arr.push(value);
+    this.applyFilters();
+  }
+
+  filterSummary(key: 'status' | 'priority' | 'category' |
+                       'assignedTo' | 'groups' | 'tags',
+                allLabel: string): string {
+    const arr = this.filters[key];
+    if (!arr.length) return allLabel;
+    if (arr.length === 1) {
+      if (key === 'assignedTo')
+        return this.agentOptions.find(a => a.id === arr[0])?.name || '1 selected';
+      if (key === 'groups')
+        return this.groupOptions.find(g => g.id === arr[0])?.name || '1 selected';
+      if (key === 'status' || key === 'priority') {
+        const opt = (key === 'status' ? this.statusOptions : this.priorityOptions)
+          .find(o => o.value === arr[0]);
+        return opt?.label || arr[0];
+      }
+      return arr[0];
+    }
+    return `${arr.length} selected`;
+  }
+
+  private recomputeDerivedFilterOptions() {
+    const cats = new Set<string>();
+    const tags = new Set<string>();
+    for (const t of this.allTickets) {
+      if (t.category) cats.add(t.category);
+      if (t.tags) {
+        for (const tag of String(t.tags).split(',')) {
+          const v = tag.trim();
+          if (v) tags.add(v);
+        }
+      }
+    }
+    this.categoryOptions = Array.from(cats).sort((a, b) => a.localeCompare(b));
+    this.tagOptions = Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }
+
+  /** Two-letter initials for avatar bubbles. */
+  initialsFor(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  /** Stable HSL color from an id/name string. */
+  colorFor(seed: string): string {
+    let h = 0;
+    const s = seed || 'x';
+    for (let i = 0; i < s.length; i++) {
+      h = (h * 31 + s.charCodeAt(i)) | 0;
+    }
+    const hue = Math.abs(h) % 360;
+    return `hsl(${hue}, 60%, 52%)`;
+  }
+
+  /** Look up an agent's name by id. */
+  agentName(id: string): string {
+    return this.agentOptions.find(a => a.id === id)?.name || '';
   }
 
   @HostListener('document:click', ['$event'])
@@ -276,6 +398,10 @@ export class TicketListComponent
 
     if (this.showColumnPicker && !target.closest('.col-wrap')) {
       this.showColumnPicker = false;
+      this.cdr.markForCheck();
+    }
+    if (this.openFilterMenu && !target.closest('.f-multi')) {
+      this.openFilterMenu = null;
       this.cdr.markForCheck();
     }
   }
@@ -703,35 +829,50 @@ export class TicketListComponent
   }
 
   exportCsv() {
+    // Always export the *currently visible* (filtered + sorted) list.
+    const data = this.tickets;
+
     const headers = [
-      '#', 'Title', 'Status', 'Priority',
-      'Category', 'Assigned', 'Created'
+      '#', 'Title', 'Status', 'Priority', 'Category',
+      'Assigned To', 'Tags', 'SLA Status', 'SLA Deadline',
+      'Created By', 'Created At'
     ];
-    const rows = this.tickets.map(t => [
+    const rows = data.map(t => [
       `#TN${t.ticketNumber}`,
-      t.title,
-      t.status,
-      t.priority,
-      t.category,
+      t.title || '',
+      t.status || '',
+      t.priority || '',
+      t.category || '',
       t.assignedTo || 'Unassigned',
-      new Date(t.createdAt).toLocaleDateString()
+      t.tags || '',
+      t.slaStatus || '',
+      t.slaDeadline ? new Date(t.slaDeadline).toLocaleString() : '',
+      t.createdBy || '',
+      t.createdAt ? new Date(t.createdAt).toLocaleString() : ''
     ]);
 
     const csv = [headers, ...rows]
       .map(r => r.map(
-        v => `"${(v || '').toString()
-          .replace(/"/g, '""')}"`
+        v => `"${(v ?? '').toString().replace(/"/g, '""')}"`
       ).join(','))
-      .join('\n');
+      .join('\r\n');
 
-    const blob = new Blob([csv],
-      { type: 'text/csv' });
+    // UTF-8 BOM so Excel opens non-ASCII (Hindi/emoji/accents) correctly.
+    const blob = new Blob(
+      ['\uFEFF' + csv],
+      { type: 'text/csv;charset=utf-8;' }
+    );
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download =
-      `tickets-${Date.now()}.csv`;
+    const tag = this.hasActiveFilters() ? 'filtered' : 'all';
+    a.download = `tickets-${tag}-${data.length}-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+
+    this.toastr.success(
+      `Exported ${data.length} ticket${data.length === 1 ? '' : 's'}` +
+      (this.hasActiveFilters() ? ' (filtered)' : '')
+    );
   }
 }

@@ -23,17 +23,20 @@ public class CustomerController : ControllerBase
   private readonly ICurrentTenantService _tenantService;
   private readonly INotificationService _notificationService;
   private readonly IEmailService _emailService;
+  private readonly ISlaService _slaService;
 
   public CustomerController(
       ApplicationDbContext context,
       ICurrentTenantService tenantService,
       INotificationService notificationService,
-      IEmailService emailService)
+      IEmailService emailService,
+      ISlaService slaService)
   {
     _context = context;
     _tenantService = tenantService;
     _notificationService = notificationService;
     _emailService = emailService;
+    _slaService = slaService;
   }
 
   private async Task<bool> IsPriorityAllowedAsync(string value)
@@ -215,6 +218,12 @@ public class CustomerController : ControllerBase
       CreatedByUserId = userId,
       Status = TicketStatus.Open
     };
+
+    ticket.SlaDeadline = await _slaService
+        .CalculateSlaDeadlineAsync(
+            ticket.OrganizationId, ticket.Priority,
+            ticket.CreatedAt, null);
+    ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);
     await _context.SaveChangesAsync();

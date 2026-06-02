@@ -127,7 +127,8 @@ public class TicketsController : TicketsControllerBase
                 ? t.CreatedBy.FullName : "",
           AssignedTo = t.AssignedTo != null
                 ? t.AssignedTo.FullName : null,
-          AssignedToId = t.AssignedToUserId
+          AssignedToId = t.AssignedToUserId,
+          AgentGroupId = t.AgentGroupId
         })
         .ToListAsync();
 
@@ -434,9 +435,9 @@ public class TicketsController : TicketsControllerBase
     }
     ticket.TicketType = normalizedTicketType;
 
-    ticket.SlaDeadline = _slaService
-        .CalculateSlaDeadline(
-            ticket.Priority, ticket.CreatedAt);
+    ticket.SlaDeadline = await _slaService
+        .CalculateSlaDeadlineAsync(
+            orgId, ticket.Priority, ticket.CreatedAt, groupId);
     ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);
@@ -511,9 +512,9 @@ public class TicketsController : TicketsControllerBase
       }
 
       ticket.Priority = newP;
-      ticket.SlaDeadline = _slaService
-          .CalculateSlaDeadline(
-              ticket.Priority, ticket.CreatedAt);
+      ticket.SlaDeadline = await _slaService
+          .CalculateSlaDeadlineAsync(
+              ticket.OrganizationId, ticket.Priority, ticket.CreatedAt, ticket.AgentGroupId);
       ticket.SlaStatus = _slaService
           .GetSlaStatus(
               ticket.SlaDeadline, ticket.Status);

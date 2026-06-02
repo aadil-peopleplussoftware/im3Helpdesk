@@ -1,0 +1,75 @@
+<app-layout>
+  <div class="sla-page" (click)="closeMenus()">
+    <!-- Top bar -->
+    <div class="sla-topbar">
+      <div>
+        <h1 class="sla-title">SLA Policies</h1>
+        <p class="sla-sub">
+          Define and enforce response &amp; resolution targets for tickets,
+          based on priority and business hours.
+          <a class="sla-link" href="javascript:void(0)">Take a tour</a>
+        </p>
+      </div>
+      <button class="sla-btn-primary" (click)="newPolicy()" *ngIf="isCompanyAdmin">
+        <span>+</span> New SLA policy
+      </button>
+    </div>
+
+    <!-- Info bar -->
+    <div class="sla-info">
+      <span class="sla-info-icon">i</span>
+      The first matching SLA policy will be applied to tickets with matching conditions.
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="sla-loading">Loading SLA policies…</div>
+
+    <!-- Empty -->
+    <div *ngIf="!loading && rows.length === 0" class="sla-empty">
+      No SLA policies yet.
+    </div>
+
+    <!-- List -->
+    <div class="sla-list" *ngIf="!loading && rows.length > 0">
+      <div class="sla-card"
+           *ngFor="let row of rows; let i = index"
+           (click)="edit(row)">
+        <div class="sla-num">{{ i + 1 }}</div>
+
+        <div class="sla-body">
+          <div class="sla-name-row">
+            <span class="sla-name">{{ row.name }}</span>
+            <span class="sla-default-chip" *ngIf="row.isDefault">Default</span>
+          </div>
+          <div class="sla-desc">
+            {{ row.description || (row.isDefault ? 'default policy' : '—') }}
+          </div>
+        </div>
+
+        <div class="sla-actions" (click)="$event.stopPropagation()">
+          <!-- Toggle -->
+          <label class="sla-switch" [class.disabled]="!isCompanyAdmin">
+            <input type="checkbox"
+                   [checked]="row.isActive"
+                   [disabled]="!isCompanyAdmin"
+                   (change)="toggle(row, $event)" />
+            <span class="sla-slider"></span>
+          </label>
+
+          <!-- Kebab -->
+          <button class="sla-kebab"
+                  *ngIf="isCompanyAdmin"
+                  (click)="toggleMenu(row.id, $event)"
+                  aria-label="More actions">⋮</button>
+
+          <div class="sla-menu" *ngIf="openMenuFor === row.id">
+            <button (click)="edit(row)">Edit</button>
+            <button class="danger"
+                    [disabled]="row.isDefault"
+                    (click)="remove(row, $event)">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-layout>
