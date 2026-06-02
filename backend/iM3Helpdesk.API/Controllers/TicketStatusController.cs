@@ -135,9 +135,9 @@ public class TicketStatusController : TicketsControllerBase
 
         ticket.Priority = newP;
         ticket.UpdatedAt = DateTime.UtcNow;
-        ticket.SlaDeadline = _slaService
-            .CalculateSlaDeadline(
-                ticket.Priority, ticket.CreatedAt);
+        ticket.SlaDeadline = await _slaService
+            .CalculateSlaDeadlineAsync(
+                ticket.OrganizationId, ticket.Priority, ticket.CreatedAt, ticket.AgentGroupId);
         ticket.SlaStatus = _slaService
             .GetSlaStatus(
                 ticket.SlaDeadline, ticket.Status);

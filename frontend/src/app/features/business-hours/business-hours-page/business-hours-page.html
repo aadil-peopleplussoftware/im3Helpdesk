@@ -1,0 +1,82 @@
+<app-layout>
+  <div class="bh-page">
+    <div class="bh-grid">
+      <div class="bh-main">
+        <div class="bh-head">
+          <div class="bh-titles">
+            <h2 class="bh-title">Business hours
+              <span class="bh-tour">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Take a tour
+              </span>
+            </h2>
+            <p class="bh-sub">
+              Business hours are mapped to tickets in a group to help set the right expectation with customers.
+              Tickets that have no group associated are mapped to the default business hours.
+            </p>
+          </div>
+          <button class="bh-add-btn" (click)="openCreate()">+ Add business hours</button>
+        </div>
+
+        <div class="bh-list" *ngIf="!loading">
+          <div class="bh-card" *ngFor="let b of items" (click)="edit(b)">
+            <div class="bh-card-body">
+              <div class="bh-card-name">
+                {{ b.name }}
+                <i class="fa-solid fa-lock bh-lock" *ngIf="b.isDefault" title="Default"></i>
+              </div>
+              <div class="bh-card-meta">
+                <span>{{ b.timezone }}</span>
+                <span class="bh-dot">•</span>
+                <span>{{ b.groupsCount }} group{{ b.groupsCount === 1 ? '' : 's' }} associated</span>
+              </div>
+            </div>
+            <div class="bh-card-actions" (click)="$event.stopPropagation()">
+              <button class="bh-kebab" (click)="toggleMenu(b.id, $event)">⋮</button>
+              <div class="bh-menu" *ngIf="openMenuId === b.id">
+                <div class="bh-menu-item" (click)="edit(b)">Edit</div>
+                <div class="bh-menu-item danger" *ngIf="!b.isDefault" (click)="remove(b)">Delete</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bh-empty" *ngIf="!items.length">No business hours yet.</div>
+        </div>
+
+        <div class="bh-loading" *ngIf="loading">Loading…</div>
+      </div>
+
+      <aside class="bh-side">
+        <h4>Business hours</h4>
+        <p>
+          Business Hours give you more control over SLAs in your helpdesk, and when a ticket is due.
+          For example, if your helpdesk works between 9am to 6pm Mon–Fri and a customer logs a ticket at 7pm on Tuesday,
+          the "Due by" timers do not start ticking till Wednesday morning at 9.
+        </p>
+        <h4>Holidays</h4>
+        <p>
+          Holidays will exclude Business days and hours. If your helpdesk works between 9am to 6pm Mon–Fri and a customer
+          sends a medium priority ticket at 8pm on Friday with a resolution time of 24 hours, then the ticket Due By time
+          is set as 9am on Tuesday (not 8pm on Sat).
+        </p>
+        <h4>Multiple Business Hours</h4>
+        <p>
+          You can also create multiple sets of business hours and holidays, and apply them for specific groups.
+          If you have one support team working on PST and another on GMT, you can let each group have its own set of
+          business hours and holidays.
+        </p>
+      </aside>
+    </div>
+
+    <div class="bh-modal-backdrop" *ngIf="showCreate" (click)="cancelCreate()">
+      <div class="bh-modal" (click)="$event.stopPropagation()">
+        <h3>Add business hours</h3>
+        <label class="bh-modal-label">Name</label>
+        <input class="bh-modal-input" [(ngModel)]="newName" placeholder="e.g. EU Support Hours" autofocus />
+        <div class="bh-modal-foot">
+          <button class="bh-btn-secondary" (click)="cancelCreate()">Cancel</button>
+          <button class="bh-btn-primary" (click)="submitCreate()">Create</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-layout>

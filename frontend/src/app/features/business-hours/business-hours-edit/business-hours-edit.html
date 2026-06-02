@@ -1,0 +1,162 @@
+<app-layout>
+  <div class="bhe-page" *ngIf="detail">
+    <div class="bhe-back" (click)="back()">
+      <i class="fa-solid fa-arrow-left"></i> Business hours
+    </div>
+
+    <div class="bhe-head">
+      <div class="bhe-name-row" *ngIf="!editingName">
+        <h2 class="bhe-name">
+          {{ detail.name }}
+          <i class="fa-solid fa-lock bhe-lock" *ngIf="detail.isDefault" title="Default"></i>
+        </h2>
+        <button class="bhe-pencil" (click)="startEditName()" title="Rename">
+          <i class="fa-solid fa-pencil"></i>
+        </button>
+      </div>
+      <div class="bhe-name-edit" *ngIf="editingName">
+        <input class="bhe-name-input" [(ngModel)]="nameDraft" (keyup.enter)="commitEditName()" autofocus />
+        <button class="bhe-btn-primary small" (click)="commitEditName()">OK</button>
+        <button class="bhe-btn-secondary small" (click)="cancelEditName()">Cancel</button>
+      </div>
+      <p class="bhe-sub" *ngIf="detail.isDefault">Default Business Calendar</p>
+    </div>
+
+    <div class="bhe-tabs">
+      <button class="bhe-tab" [class.active]="tab === 'hours'"    (click)="setTab('hours')">Business hours</button>
+      <button class="bhe-tab" [class.active]="tab === 'holidays'" (click)="setTab('holidays')">Holidays</button>
+      <button class="bhe-tab" [class.active]="tab === 'groups'"   (click)="setTab('groups')">Groups</button>
+    </div>
+
+    <!-- TAB 1: Business hours -->
+    <div class="bhe-panel" *ngIf="tab === 'hours'">
+      <div class="bhe-field">
+        <label class="bhe-label">Time zone</label>
+        <select class="bhe-select" [(ngModel)]="timezone" [disabled]="detail.isDefault">
+          <option *ngFor="let tz of timezones" [value]="tz.value">{{ tz.label }}</option>
+        </select>
+        <div class="bhe-hint" *ngIf="detail.isDefault">
+          Default time zone is set in your account preferences.
+        </div>
+      </div>
+
+      <div class="bhe-field">
+        <label class="bhe-label">Choose your work week</label>
+        <label class="bhe-radio">
+          <input type="radio" name="bhmode" value="TwentyFourSeven" [(ngModel)]="modeChoice" />
+          <span>24 hrs &times; 7 days</span>
+        </label>
+        <label class="bhe-radio">
+          <input type="radio" name="bhmode" value="Custom" [(ngModel)]="modeChoice" />
+          <span>Custom business hours</span>
+        </label>
+      </div>
+
+      <div class="bhe-days" *ngIf="modeChoice === 'Custom'">
+        <div class="bhe-day-row" *ngFor="let d of days">
+          <label class="bhe-toggle">
+            <input type="checkbox" [(ngModel)]="d.enabled" />
+            <span class="bhe-toggle-track"><span class="bhe-toggle-thumb"></span></span>
+          </label>
+          <span class="bhe-day-name">{{ d.label }}</span>
+          <ng-container *ngIf="d.enabled">
+            <input class="bhe-time" type="time" [(ngModel)]="startTime" />
+            <span class="bhe-dash">to</span>
+            <input class="bhe-time" type="time" [(ngModel)]="endTime" />
+          </ng-container>
+          <span class="bhe-closed" *ngIf="!d.enabled">Closed</span>
+        </div>
+        <p class="bhe-hint">All enabled days share the same start/end time.</p>
+      </div>
+
+      <div class="bhe-actions">
+        <button class="bhe-btn-primary" [disabled]="saving" (click)="saveHours()">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </button>
+        <button class="bhe-btn-secondary" (click)="back()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- TAB 2: Holidays -->
+    <div class="bhe-panel" *ngIf="tab === 'holidays'">
+      <div class="bhe-banner">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Holidays marked as recurring apply automatically every year.</span>
+      </div>
+
+      <div class="bhe-holiday-head">
+        <h4>Holidays</h4>
+        <button class="bhe-btn-primary small" (click)="openAddHoliday()">+ Add holiday</button>
+      </div>
+
+      <div class="bhe-holiday-empty" *ngIf="!detail.holidays.length">
+        <i class="fa-regular fa-calendar"></i>
+        <p>No holidays added yet.</p>
+      </div>
+
+      <table class="bhe-holiday-table" *ngIf="detail.holidays.length">
+        <thead>
+          <tr><th>Name</th><th>Date</th><th>Recurring</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let h of detail.holidays">
+            <td>{{ h.name }}</td>
+            <td>{{ formatHolidayDate(h.date) }}</td>
+            <td>{{ h.isRecurring ? 'Yes' : 'No' }}</td>
+            <td class="bhe-row-actions">
+              <button class="bhe-link" (click)="openEditHoliday(h)">Edit</button>
+              <button class="bhe-link danger" (click)="removeHoliday(h)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3: Groups -->
+    <div class="bhe-panel" *ngIf="tab === 'groups'">
+      <p class="bhe-sub">Select the groups whose tickets should follow this business hours profile.</p>
+
+      <div class="bhe-group-list" *ngIf="groupsDraft.length">
+        <div class="bhe-group-row" *ngFor="let g of groupsDraft" (click)="toggleGroup(g)" [class.active]="g.assigned">
+          <input type="checkbox" [checked]="g.assigned" (click)="$event.stopPropagation(); toggleGroup(g)" />
+          <span>{{ g.name }}</span>
+        </div>
+      </div>
+      <div class="bhe-empty" *ngIf="!groupsDraft.length">No agent groups exist yet.</div>
+
+      <div class="bhe-actions">
+        <button class="bhe-btn-primary" [disabled]="saving" (click)="saveGroups()">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </button>
+        <button class="bhe-btn-secondary" (click)="back()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bhe-loading" *ngIf="loading">Loading…</div>
+
+  <!-- Holiday modal -->
+  <div class="bhe-modal-backdrop" *ngIf="showHolidayModal" (click)="cancelHoliday()">
+    <div class="bhe-modal" (click)="$event.stopPropagation()">
+      <h3>{{ editingHoliday ? 'Edit holiday' : 'Add holiday' }}</h3>
+
+      <label class="bhe-modal-label">Name</label>
+      <input class="bhe-modal-input" [(ngModel)]="hName" placeholder="e.g. Independence Day" />
+
+      <label class="bhe-modal-label">Date</label>
+      <input class="bhe-modal-input" type="date" [(ngModel)]="hDate" />
+
+      <label class="bhe-modal-check">
+        <input type="checkbox" [(ngModel)]="hRecurring" />
+        <span>Recurs every year on this date</span>
+      </label>
+
+      <div class="bhe-modal-foot">
+        <button class="bhe-btn-secondary" (click)="cancelHoliday()">Cancel</button>
+        <button class="bhe-btn-primary" (click)="submitHoliday()">
+          {{ editingHoliday ? 'Update' : 'Add' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</app-layout>

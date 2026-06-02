@@ -1,0 +1,207 @@
+.sla-page {
+  padding: 24px 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1f2937;
+}
+
+.sla-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+
+  .sla-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    color: #111827;
+  }
+  .sla-sub {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+    max-width: 720px;
+    line-height: 1.5;
+  }
+  .sla-link {
+    color: #2563eb;
+    margin-left: 6px;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.sla-btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+
+  &:hover { background: #1d4ed8; }
+  span { font-size: 16px; line-height: 1; }
+}
+
+.sla-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sla-info-icon {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #2563eb; color: #fff;
+  font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-style: italic; font-family: Georgia, serif;
+}
+
+.sla-loading, .sla-empty {
+  padding: 32px; text-align: center; color: #6b7280; font-size: 14px;
+}
+
+.sla-list {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  // keep visible so the kebab dropdown isn't clipped
+  overflow: visible;
+}
+
+.sla-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: background .15s;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+
+  &:first-child { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+  &:last-child  { border-bottom: none; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+  &:hover { background: #f9fafb; }
+}
+
+.sla-num {
+  flex: 0 0 24px;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.sla-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sla-name-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 4px;
+}
+.sla-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.sla-default-chip {
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.sla-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.sla-actions {
+  display: flex; align-items: center; gap: 12px; position: relative;
+}
+
+// Switch (Freshdesk-style blue)
+.sla-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  cursor: pointer;
+
+  input { opacity: 0; width: 0; height: 0; }
+
+  .sla-slider {
+    position: absolute; inset: 0;
+    background: #cbd5e1;
+    border-radius: 20px;
+    transition: .2s;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 2px; top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+  }
+  input:checked + .sla-slider {
+    background: #2563eb;
+    &::before { transform: translateX(16px); }
+  }
+  &.disabled { opacity: .5; cursor: not-allowed; }
+}
+
+.sla-kebab {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 18px; color: #6b7280; padding: 4px 8px;
+  border-radius: 4px; line-height: 1;
+
+  &:hover { background: #f3f4f6; color: #111827; }
+}
+
+.sla-menu {
+  position: absolute;
+  right: 0; top: 100%;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  z-index: 20;
+  min-width: 130px;
+  overflow: hidden;
+
+  button {
+    display: block; width: 100%;
+    background: transparent; border: none;
+    padding: 8px 14px;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+    color: #374151;
+
+    &:hover { background: #f3f4f6; }
+    &.danger { color: #dc2626; }
+    &:disabled { opacity: .4; cursor: not-allowed; }
+  }
+}

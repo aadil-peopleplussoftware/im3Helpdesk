@@ -114,6 +114,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate(['/recycle-bin']);
   }
 
+  public goToSlaPolicies() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/sla-policies']);
+  }
+
+  public goToBusinessHours() {
+    this.showProfileDropdown = false;
+    this.router.navigate(['/business-hours']);
+  }
+
   public goToExplorePlans() {
     this.showProfileDropdown = false;
     this.router.navigate(['/explore-plans']);

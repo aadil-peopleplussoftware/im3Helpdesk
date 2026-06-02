@@ -1,3 +1,4 @@
+using iM3Helpdesk.Application.Contracts.Services;
 using iM3Helpdesk.Domain.Entities;
 using iM3Helpdesk.Domain.Enums;
 using iM3Helpdesk.Infrastructure.Persistence;
@@ -19,6 +20,7 @@ public class InboundEmailController : ControllerBase
   private readonly ApplicationDbContext _context;
   private readonly ILogger<InboundEmailController> _logger;
   private readonly IMemoryCache _cache;
+  private readonly ISlaService _slaService;
   private readonly string _hmacSecret;
   private const int RateLimitCount = 10;
   private static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(1);
@@ -27,11 +29,13 @@ public class InboundEmailController : ControllerBase
       ApplicationDbContext context,
       ILogger<InboundEmailController> logger,
       IMemoryCache cache,
-      IConfiguration configuration)
+      IConfiguration configuration,
+      ISlaService slaService)
   {
     _context = context;
     _logger = logger;
     _cache = cache;
+    _slaService = slaService;
     _hmacSecret = configuration["WebhookSecurity:InboundEmail:Secret"] ?? string.Empty;
   }
 
@@ -231,8 +235,10 @@ public class InboundEmailController : ControllerBase
       Tags = string.Join(",", tags)
     };
 
-    // Calculate SLA
-    ticket.SlaDeadline = DateTime.UtcNow.AddHours(24);
+    // Calculate SLA from the org's active default policy.
+    ticket.SlaDeadline = await _slaService
+        .CalculateSlaDeadlineAsync(
+            org.Id, ticket.Priority, DateTime.UtcNow);
     ticket.SlaStatus = "OnTrack";
 
     _context.Tickets.Add(ticket);

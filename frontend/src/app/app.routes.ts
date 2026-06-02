@@ -178,6 +178,40 @@ export const routes: Routes = [
     canActivate: [authGuard, permissionGuard('recycle-bin'), featureGuard('recycle-bin')]
   },
   {
+    path: 'sla-policies/:id/edit',
+    loadComponent: () =>
+      import('./features/sla-policies/sla-policy-edit/sla-policy-edit').then(
+        m => m.SlaPolicyEditComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'business-hours/:id/edit',
+    loadComponent: () =>
+      import('./features/business-hours/business-hours-edit/business-hours-edit').then(
+        m => m.BusinessHoursEditComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'business-hours',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/business-hours/business-hours-page/business-hours-page').then(
+        m => m.BusinessHoursPageComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
+    path: 'sla-policies',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/sla-policies/sla-policies-page/sla-policies-page').then(
+        m => m.SlaPoliciesPageComponent
+      ),
+    canActivate: [authGuard, companyAdminGuard]
+  },
+  {
     path: 'notifications',
     loadComponent: () =>
       import('./features/notifications/notifications-page/notifications-page').then(m => m.NotificationsPageComponent),

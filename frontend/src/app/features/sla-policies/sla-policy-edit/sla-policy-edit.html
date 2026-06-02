@@ -1,0 +1,215 @@
+<app-layout>
+  <div class="sla-edit" *ngIf="!loading && policy">
+    <!-- Header -->
+    <div class="sla-edit-head">
+      <button class="sla-back" (click)="cancel()">←</button>
+      <div class="sla-edit-titles">
+        <input class="sla-name-input"
+               [(ngModel)]="policy.name"
+               [readonly]="policy.isDefault"
+               placeholder="Policy name" />
+        <input class="sla-desc-input"
+               [(ngModel)]="policy.description"
+               placeholder="Description (optional)" />
+      </div>
+      <span class="sla-default-chip" *ngIf="policy.isDefault">Default</span>
+    </div>
+
+    <!-- Priority matrix -->
+    <section class="sla-section">
+      <div class="sla-section-title">Set SLA target as:</div>
+
+      <div class="sla-matrix">
+        <div class="sla-matrix-head">
+          <div class="col-pri">Priority</div>
+          <div class="col-resp">First response time</div>
+          <div class="col-res">Resolution time</div>
+          <div class="col-ops">Operational hours</div>
+          <div class="col-esc">Escalation</div>
+        </div>
+
+        <div class="sla-matrix-row" *ngFor="let row of targets">
+          <div class="col-pri">
+            <span class="pri-dot" [style.background]="priorityColor(row.priority)"></span>
+            <span class="pri-label">{{ priorityLabel(row.priority) }}</span>
+          </div>
+          <div class="col-resp">
+            <div class="dhm-input">
+              <div class="dhm-cell">
+                <input type="number" min="0" max="365"
+                       [(ngModel)]="row.frDay"
+                       (ngModelChange)="recomputeDuration(row, 'firstResponse')" />
+                <span class="dhm-label">day</span>
+              </div>
+              <div class="dhm-cell">
+                <input type="number" min="0" max="23"
+                       [(ngModel)]="row.frHr"
+                       (ngModelChange)="recomputeDuration(row, 'firstResponse')" />
+                <span class="dhm-label">hrs</span>
+              </div>
+              <div class="dhm-cell">
+                <input type="number" min="0" max="59"
+                       [(ngModel)]="row.frMin"
+                       (ngModelChange)="recomputeDuration(row, 'firstResponse')" />
+                <span class="dhm-label">mins</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-res">
+            <div class="dhm-input">
+              <div class="dhm-cell">
+                <input type="number" min="0" max="365"
+                       [(ngModel)]="row.resDay"
+                       (ngModelChange)="recomputeDuration(row, 'resolution')" />
+                <span class="dhm-label">day</span>
+              </div>
+              <div class="dhm-cell">
+                <input type="number" min="0" max="23"
+                       [(ngModel)]="row.resHr"
+                       (ngModelChange)="recomputeDuration(row, 'resolution')" />
+                <span class="dhm-label">hrs</span>
+              </div>
+              <div class="dhm-cell">
+                <input type="number" min="0" max="59"
+                       [(ngModel)]="row.resMin"
+                       (ngModelChange)="recomputeDuration(row, 'resolution')" />
+                <span class="dhm-label">mins</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-ops">
+            <select [(ngModel)]="row.operationalHours">
+              <option value="BusinessHours">Business hours</option>
+              <option value="CalendarHours">Calendar hours (24x7)</option>
+            </select>
+          </div>
+          <div class="col-esc">
+            <label class="sla-mini-switch">
+              <input type="checkbox" [(ngModel)]="row.escalationEnabled" />
+              <span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reminders -->
+    <section class="sla-section">
+      <div class="sla-section-title">Remind agents when the SLA due time approaches</div>
+      <p class="sla-section-sub">
+        Notify agents before an SLA target is breached so they can act in time.
+      </p>
+
+      <div class="sla-rule-list">
+        <ng-container *ngFor="let r of reminders; let i = index">
+          <div class="sla-rule">
+            <div class="sla-rule-line">
+              When the
+              <select [(ngModel)]="r.targetType">
+                <option value="FirstResponse">First response target</option>
+                <option value="Resolution">Resolution target</option>
+              </select>
+              approaches in
+              <select [(ngModel)]="r.approachInMinutes">
+                <option *ngFor="let opt of approachChoices" [ngValue]="opt.value">{{ opt.label }}</option>
+              </select>
+              , send reminder to
+            </div>
+            <div class="sla-rule-row2">
+              <ng-container
+                *ngTemplateOutlet="recipientPicker; context: { rule: r, key: pickerKey('rem', i) }">
+              </ng-container>
+              <button class="sla-remove" (click)="removeReminder(i)" title="Remove">🗑</button>
+            </div>
+          </div>
+          <div class="sla-and" *ngIf="i < reminders.length - 1">AND</div>
+        </ng-container>
+
+        <button class="sla-add-rule" (click)="addReminder()">+ Add new reminder</button>
+      </div>
+    </section>
+
+    <!-- Escalations -->
+    <section class="sla-section">
+      <div class="sla-section-title">Send escalation when the SLA due time has elapsed</div>
+      <p class="sla-section-sub">
+        Escalate to managers and other stakeholders when SLA targets are missed.
+      </p>
+
+      <div class="sla-rule-list">
+        <ng-container *ngFor="let e of escalations; let i = index">
+          <div class="sla-rule">
+            <div class="sla-rule-line">
+              When the
+              <select [(ngModel)]="e.targetType">
+                <option value="FirstResponse">First response target</option>
+                <option value="Resolution">Resolution target</option>
+              </select>
+              is not met, escalate
+              <select [(ngModel)]="e.escalateAfterMinutes">
+                <option *ngFor="let opt of escalateAfterChoices" [ngValue]="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+              to
+            </div>
+            <div class="sla-rule-row2">
+              <ng-container
+                *ngTemplateOutlet="recipientPicker; context: { rule: e, key: pickerKey('esc', i) }">
+              </ng-container>
+              <button class="sla-remove" (click)="removeEscalation(i)" title="Remove">🗑</button>
+            </div>
+          </div>
+          <div class="sla-and" *ngIf="i < escalations.length - 1">AND</div>
+        </ng-container>
+
+        <button class="sla-add-rule" (click)="addEscalation()">+ Add new escalation</button>
+      </div>
+    </section>
+
+    <!-- Reusable recipient picker template -->
+    <ng-template #recipientPicker let-rule="rule" let-key="key">
+      <div class="recipient-picker" [class.open]="openPickerKey === key">
+        <div class="recipient-picker-trigger" (click)="togglePicker(key, $event)">
+          <span class="rp-chip" *ngFor="let chip of selectedChips(rule.recipients)">
+            {{ chip.label }}
+            <button class="rp-chip-x" (click)="removeChip(rule, chip.value, $event)">×</button>
+          </span>
+          <span class="rp-placeholder" *ngIf="!selectedChips(rule.recipients).length">
+            Select agents…
+          </span>
+          <span class="rp-caret">▾</span>
+        </div>
+        <div class="recipient-picker-menu" *ngIf="openPickerKey === key" (click)="$event.stopPropagation()">
+          <div class="rp-search-wrap">
+            <input class="rp-search"
+                   type="text"
+                   [(ngModel)]="pickerSearch"
+                   placeholder="Search agents"
+                   autofocus />
+          </div>
+          <div class="rp-list">
+            <div class="rp-option"
+                 *ngFor="let opt of filteredOptions()"
+                 [class.checked]="isChecked(rule.recipients, opt.value)"
+                 (click)="toggleOption(rule, opt.value, $event)">
+              <span class="rp-option-label">{{ opt.label }}</span>
+              <span class="rp-option-check" *ngIf="isChecked(rule.recipients, opt.value)">✓</span>
+            </div>
+            <div class="rp-empty" *ngIf="!filteredOptions().length">No matches</div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Footer -->
+    <div class="sla-foot">
+      <button class="sla-btn-secondary" (click)="cancel()" [disabled]="saving">Cancel</button>
+      <button class="sla-btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="sla-edit-loading" *ngIf="loading">Loading…</div>
+</app-layout>
